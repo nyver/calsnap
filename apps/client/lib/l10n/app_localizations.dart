@@ -1,0 +1,1256 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/intl.dart' as intl;
+
+import 'app_localizations_en.dart';
+import 'app_localizations_ru.dart';
+
+// ignore_for_file: type=lint
+
+/// Callers can lookup localized strings with an instance of AppLocalizations
+/// returned by `AppLocalizations.of(context)`.
+///
+/// Applications need to include `AppLocalizations.delegate()` in their app's
+/// `localizationDelegates` list, and the locales they support in the app's
+/// `supportedLocales` list. For example:
+///
+/// ```dart
+/// import 'l10n/app_localizations.dart';
+///
+/// return MaterialApp(
+///   localizationsDelegates: AppLocalizations.localizationsDelegates,
+///   supportedLocales: AppLocalizations.supportedLocales,
+///   home: MyApplicationHome(),
+/// );
+/// ```
+///
+/// ## Update pubspec.yaml
+///
+/// Please make sure to update your pubspec.yaml to include the following
+/// packages:
+///
+/// ```yaml
+/// dependencies:
+///   # Internationalization support.
+///   flutter_localizations:
+///     sdk: flutter
+///   intl: any # Use the pinned version from flutter_localizations
+///
+///   # Rest of dependencies
+/// ```
+///
+/// ## iOS Applications
+///
+/// iOS applications define key application metadata, including supported
+/// locales, in an Info.plist file that is built into the application bundle.
+/// To configure the locales supported by your app, you’ll need to edit this
+/// file.
+///
+/// First, open your project’s ios/Runner.xcworkspace Xcode workspace file.
+/// Then, in the Project Navigator, open the Info.plist file under the Runner
+/// project’s Runner folder.
+///
+/// Next, select the Information Property List item, select Add Item from the
+/// Editor menu, then select Localizations from the pop-up menu.
+///
+/// Select and expand the newly-created Localizations item then, for each
+/// locale your application supports, add a new item and select the locale
+/// you wish to add from the pop-up menu in the Value field. This list should
+/// be consistent with the languages listed in the AppLocalizations.supportedLocales
+/// property.
+abstract class AppLocalizations {
+  AppLocalizations(String locale)
+    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+
+  final String localeName;
+
+  static AppLocalizations of(BuildContext context) {
+    return Localizations.of<AppLocalizations>(context, AppLocalizations)!;
+  }
+
+  static const LocalizationsDelegate<AppLocalizations> delegate =
+      _AppLocalizationsDelegate();
+
+  /// A list of this localizations delegate along with the default localizations
+  /// delegates.
+  ///
+  /// Returns a list of localizations delegates containing this delegate along with
+  /// GlobalMaterialLocalizations.delegate, GlobalCupertinoLocalizations.delegate,
+  /// and GlobalWidgetsLocalizations.delegate.
+  ///
+  /// Additional delegates can be added by appending to this list in
+  /// MaterialApp. This list does not have to be used at all if a custom list
+  /// of delegates is preferred or required.
+  static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
+      <LocalizationsDelegate<dynamic>>[
+        delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ];
+
+  /// A list of this localizations delegate's supported locales.
+  static const List<Locale> supportedLocales = <Locale>[
+    Locale('en'),
+    Locale('ru'),
+  ];
+
+  /// No description provided for @appTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'CalSnap'**
+  String get appTitle;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
+
+  /// No description provided for @apply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get apply;
+
+  /// No description provided for @edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get edit;
+
+  /// No description provided for @next.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get next;
+
+  /// No description provided for @back.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get back;
+
+  /// No description provided for @skip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get skip;
+
+  /// No description provided for @create.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get create;
+
+  /// No description provided for @gramsUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'g'**
+  String get gramsUnit;
+
+  /// No description provided for @unitGram.
+  ///
+  /// In en, this message translates to:
+  /// **'g'**
+  String get unitGram;
+
+  /// No description provided for @unitMilliliter.
+  ///
+  /// In en, this message translates to:
+  /// **'ml'**
+  String get unitMilliliter;
+
+  /// No description provided for @unitPiece.
+  ///
+  /// In en, this message translates to:
+  /// **'pcs'**
+  String get unitPiece;
+
+  /// No description provided for @unitPortion.
+  ///
+  /// In en, this message translates to:
+  /// **'portion'**
+  String get unitPortion;
+
+  /// No description provided for @proteinLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Protein'**
+  String get proteinLabel;
+
+  /// No description provided for @fatLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Fat'**
+  String get fatLabel;
+
+  /// No description provided for @carbsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Carbs'**
+  String get carbsLabel;
+
+  /// No description provided for @mealBreakfast.
+  ///
+  /// In en, this message translates to:
+  /// **'Breakfast'**
+  String get mealBreakfast;
+
+  /// No description provided for @mealLunch.
+  ///
+  /// In en, this message translates to:
+  /// **'Lunch'**
+  String get mealLunch;
+
+  /// No description provided for @mealDinner.
+  ///
+  /// In en, this message translates to:
+  /// **'Dinner'**
+  String get mealDinner;
+
+  /// No description provided for @mealSnack.
+  ///
+  /// In en, this message translates to:
+  /// **'Snack'**
+  String get mealSnack;
+
+  /// No description provided for @mealOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get mealOther;
+
+  /// No description provided for @mealUnnamed.
+  ///
+  /// In en, this message translates to:
+  /// **'Meal'**
+  String get mealUnnamed;
+
+  /// No description provided for @navDiary.
+  ///
+  /// In en, this message translates to:
+  /// **'Diary'**
+  String get navDiary;
+
+  /// No description provided for @navHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get navHistory;
+
+  /// No description provided for @navStatistics.
+  ///
+  /// In en, this message translates to:
+  /// **'Statistics'**
+  String get navStatistics;
+
+  /// No description provided for @navSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get navSettings;
+
+  /// No description provided for @initErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'CalSnap could not start'**
+  String get initErrorTitle;
+
+  /// No description provided for @initErrorBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong while opening your diary. Your data has not been changed. Please try again.'**
+  String get initErrorBody;
+
+  /// No description provided for @unsupportedSchemaTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Please update CalSnap'**
+  String get unsupportedSchemaTitle;
+
+  /// No description provided for @unsupportedSchemaBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your diary was created by a newer version of the app. Update CalSnap to open it. Your data has not been changed.'**
+  String get unsupportedSchemaBody;
+
+  /// No description provided for @onboardingStep.
+  ///
+  /// In en, this message translates to:
+  /// **'Step {current} of {total}'**
+  String onboardingStep(int current, int total);
+
+  /// No description provided for @onboardingIntroTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Log meals with a photo'**
+  String get onboardingIntroTitle;
+
+  /// No description provided for @onboardingIntroBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a photo of your meal, check the foods CalSnap finds, and save. Your diary stays on this device.'**
+  String get onboardingIntroBody;
+
+  /// No description provided for @onboardingEstimateNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Calories from photos are estimates, not exact measurements. You can correct every value.'**
+  String get onboardingEstimateNotice;
+
+  /// No description provided for @onboardingTargetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily calorie target'**
+  String get onboardingTargetTitle;
+
+  /// No description provided for @onboardingTargetHint.
+  ///
+  /// In en, this message translates to:
+  /// **'kcal per day'**
+  String get onboardingTargetHint;
+
+  /// No description provided for @errKcalRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a value from 800 to 6000 kcal.'**
+  String get errKcalRange;
+
+  /// No description provided for @onboardingMacrosTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Macro targets (optional)'**
+  String get onboardingMacrosTitle;
+
+  /// No description provided for @onboardingMacrosBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Grams per day. Leave a field empty if you do not track it.'**
+  String get onboardingMacrosBody;
+
+  /// No description provided for @errMacroRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter 0 to 500 g or leave the field empty.'**
+  String get errMacroRange;
+
+  /// No description provided for @proteinFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Protein, g'**
+  String get proteinFieldLabel;
+
+  /// No description provided for @fatFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Fat, g'**
+  String get fatFieldLabel;
+
+  /// No description provided for @carbsFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Carbs, g'**
+  String get carbsFieldLabel;
+
+  /// No description provided for @onboardingPlateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate diameter (optional)'**
+  String get onboardingPlateTitle;
+
+  /// No description provided for @onboardingPlateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Helps to estimate portion sizes from photos. Typical dinner plates are 24 to 28 cm.'**
+  String get onboardingPlateBody;
+
+  /// No description provided for @plateFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Diameter, cm'**
+  String get plateFieldLabel;
+
+  /// No description provided for @errPlateRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a value from 10 to 40 cm or leave the field empty.'**
+  String get errPlateRange;
+
+  /// No description provided for @onboardingCameraTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera access'**
+  String get onboardingCameraTitle;
+
+  /// No description provided for @onboardingCameraBody.
+  ///
+  /// In en, this message translates to:
+  /// **'CalSnap uses the camera to photograph your meals. You can also pick photos from the gallery or add meals manually.'**
+  String get onboardingCameraBody;
+
+  /// No description provided for @allowCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow camera'**
+  String get allowCamera;
+
+  /// No description provided for @today.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get today;
+
+  /// No description provided for @yesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get yesterday;
+
+  /// No description provided for @kcalProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{consumed} / {target} kcal'**
+  String kcalProgress(String consumed, String target);
+
+  /// No description provided for @kcalConsumedOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'{consumed} kcal'**
+  String kcalConsumedOnly(String consumed);
+
+  /// No description provided for @kcalRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} kcal remaining'**
+  String kcalRemaining(String amount);
+
+  /// No description provided for @kcalOver.
+  ///
+  /// In en, this message translates to:
+  /// **'{amount} kcal over the target'**
+  String kcalOver(String amount);
+
+  /// No description provided for @macroProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{consumed} / {target} g'**
+  String macroProgress(String consumed, String target);
+
+  /// No description provided for @macroConsumed.
+  ///
+  /// In en, this message translates to:
+  /// **'{consumed} g'**
+  String macroConsumed(String consumed);
+
+  /// No description provided for @emptyDayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No meals yet'**
+  String get emptyDayTitle;
+
+  /// No description provided for @emptyDayBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a photo of your meal or add it manually.'**
+  String get emptyDayBody;
+
+  /// No description provided for @addMeal.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get addMeal;
+
+  /// No description provided for @takePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Take photo'**
+  String get takePhoto;
+
+  /// No description provided for @chooseFromGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from gallery'**
+  String get chooseFromGallery;
+
+  /// No description provided for @addManually.
+  ///
+  /// In en, this message translates to:
+  /// **'Add manually'**
+  String get addManually;
+
+  /// No description provided for @previousDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous day'**
+  String get previousDay;
+
+  /// No description provided for @nextDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Next day'**
+  String get nextDay;
+
+  /// No description provided for @openCalendar.
+  ///
+  /// In en, this message translates to:
+  /// **'Open calendar'**
+  String get openCalendar;
+
+  /// No description provided for @historyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get historyTitle;
+
+  /// No description provided for @historyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Days with meals are marked. Tap a day to open it.'**
+  String get historyHint;
+
+  /// No description provided for @mealPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Meal photo'**
+  String get mealPhoto;
+
+  /// No description provided for @captureTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a photo'**
+  String get captureTitle;
+
+  /// No description provided for @cameraPermissionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera access is needed'**
+  String get cameraPermissionTitle;
+
+  /// No description provided for @cameraPermissionBody.
+  ///
+  /// In en, this message translates to:
+  /// **'CalSnap needs the camera to photograph your meal. You can still choose a photo from the gallery or add the meal manually.'**
+  String get cameraPermissionBody;
+
+  /// No description provided for @openSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get openSettings;
+
+  /// No description provided for @cameraUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The camera is not available. You can choose a photo from the gallery instead.'**
+  String get cameraUnavailable;
+
+  /// No description provided for @flashOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Flash off'**
+  String get flashOff;
+
+  /// No description provided for @flashAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Flash auto'**
+  String get flashAuto;
+
+  /// No description provided for @flashOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Flash on'**
+  String get flashOn;
+
+  /// No description provided for @switchCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch camera'**
+  String get switchCamera;
+
+  /// No description provided for @shutter.
+  ///
+  /// In en, this message translates to:
+  /// **'Take photo'**
+  String get shutter;
+
+  /// No description provided for @gallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery'**
+  String get gallery;
+
+  /// No description provided for @retake.
+  ///
+  /// In en, this message translates to:
+  /// **'Retake'**
+  String get retake;
+
+  /// No description provided for @analyze.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyze'**
+  String get analyze;
+
+  /// No description provided for @previewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the photo'**
+  String get previewTitle;
+
+  /// No description provided for @imageUnreadable.
+  ///
+  /// In en, this message translates to:
+  /// **'This image cannot be read. Try another photo.'**
+  String get imageUnreadable;
+
+  /// No description provided for @imageTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'This photo is too large to upload. Try another photo.'**
+  String get imageTooLarge;
+
+  /// No description provided for @analyzingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyzing your meal…'**
+  String get analyzingTitle;
+
+  /// No description provided for @stepPreparing.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing the photo'**
+  String get stepPreparing;
+
+  /// No description provided for @stepIdentifying.
+  ///
+  /// In en, this message translates to:
+  /// **'Identifying foods'**
+  String get stepIdentifying;
+
+  /// No description provided for @stepPortions.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimating portions'**
+  String get stepPortions;
+
+  /// No description provided for @stepNutrition.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculating nutrition'**
+  String get stepNutrition;
+
+  /// No description provided for @errOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'No internet connection. The diary is available offline. Analyzing a new photo requires a network.'**
+  String get errOffline;
+
+  /// No description provided for @errTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'The analysis is taking too long. Please try again.'**
+  String get errTimeout;
+
+  /// No description provided for @errRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many requests. Please try again in a little while.'**
+  String get errRateLimited;
+
+  /// No description provided for @errUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The analysis service is temporarily unavailable. Please try again.'**
+  String get errUnavailable;
+
+  /// No description provided for @errNotRecognized.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not confidently recognize the dish.'**
+  String get errNotRecognized;
+
+  /// No description provided for @errBadImage.
+  ///
+  /// In en, this message translates to:
+  /// **'This photo cannot be analyzed. Try another photo.'**
+  String get errBadImage;
+
+  /// No description provided for @errUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Please try again.'**
+  String get errUnknown;
+
+  /// No description provided for @tryAnotherPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Try another photo'**
+  String get tryAnotherPhoto;
+
+  /// No description provided for @resultTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recognized'**
+  String get resultTitle;
+
+  /// No description provided for @editMealTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit meal'**
+  String get editMealTitle;
+
+  /// No description provided for @newMealTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New meal'**
+  String get newMealTitle;
+
+  /// No description provided for @estimateNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Weights are estimates. Please check them before saving.'**
+  String get estimateNotice;
+
+  /// No description provided for @approxKcal.
+  ///
+  /// In en, this message translates to:
+  /// **'{value} kcal'**
+  String approxKcal(String value);
+
+  /// No description provided for @totalKcal.
+  ///
+  /// In en, this message translates to:
+  /// **'{value} kcal'**
+  String totalKcal(String value);
+
+  /// No description provided for @estimatedWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'estimate'**
+  String get estimatedWeight;
+
+  /// No description provided for @pleaseCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Please check'**
+  String get pleaseCheck;
+
+  /// No description provided for @partialBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Some ingredients may have been missed. Check the result before saving.'**
+  String get partialBanner;
+
+  /// No description provided for @estimatedNutritionNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Nutrition values for this item are estimated.'**
+  String get estimatedNutritionNote;
+
+  /// No description provided for @addItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Add item'**
+  String get addItem;
+
+  /// No description provided for @mealTypeFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Meal type'**
+  String get mealTypeFieldLabel;
+
+  /// No description provided for @noItemsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add at least one item to save.'**
+  String get noItemsHint;
+
+  /// No description provided for @removeItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get removeItem;
+
+  /// No description provided for @editItemTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit item'**
+  String get editItemTitle;
+
+  /// No description provided for @itemNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get itemNameLabel;
+
+  /// No description provided for @itemWeightLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight'**
+  String get itemWeightLabel;
+
+  /// No description provided for @per100Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Per 100 g'**
+  String get per100Title;
+
+  /// No description provided for @kcalPer100Label.
+  ///
+  /// In en, this message translates to:
+  /// **'kcal per 100 g'**
+  String get kcalPer100Label;
+
+  /// No description provided for @errWeightRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a weight above 0 and up to 5000 g.'**
+  String get errWeightRange;
+
+  /// No description provided for @errNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a name (up to 100 characters).'**
+  String get errNameRequired;
+
+  /// No description provided for @errKcal900.
+  ///
+  /// In en, this message translates to:
+  /// **'Calories must be between 0 and 900 per 100 g.'**
+  String get errKcal900;
+
+  /// No description provided for @errMacro100.
+  ///
+  /// In en, this message translates to:
+  /// **'Each value must be between 0 and 100 g.'**
+  String get errMacro100;
+
+  /// No description provided for @weightInGrams.
+  ///
+  /// In en, this message translates to:
+  /// **'= {grams} g'**
+  String weightInGrams(String grams);
+
+  /// No description provided for @replaceProduct.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace product'**
+  String get replaceProduct;
+
+  /// No description provided for @discardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard changes?'**
+  String get discardTitle;
+
+  /// No description provided for @discardBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your changes have not been saved.'**
+  String get discardBody;
+
+  /// No description provided for @discard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get discard;
+
+  /// No description provided for @keepEditing.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep editing'**
+  String get keepEditing;
+
+  /// No description provided for @deleteMealTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this meal?'**
+  String get deleteMealTitle;
+
+  /// No description provided for @deleteMealBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The meal and its photo will be removed.'**
+  String get deleteMealBody;
+
+  /// No description provided for @mealDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Meal deleted'**
+  String get mealDeleted;
+
+  /// No description provided for @undo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get undo;
+
+  /// No description provided for @emptyMealTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The meal has no items'**
+  String get emptyMealTitle;
+
+  /// No description provided for @emptyMealBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A meal needs at least one item. You can delete the meal instead.'**
+  String get emptyMealBody;
+
+  /// No description provided for @deleteMeal.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete meal'**
+  String get deleteMeal;
+
+  /// No description provided for @mealSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Meal saved'**
+  String get mealSaved;
+
+  /// No description provided for @saveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The meal could not be saved. Your entries are kept, please try again.'**
+  String get saveFailed;
+
+  /// No description provided for @searchFoodsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add food'**
+  String get searchFoodsTitle;
+
+  /// No description provided for @searchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search foods'**
+  String get searchHint;
+
+  /// No description provided for @noResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No foods found.'**
+  String get noResults;
+
+  /// No description provided for @createCustomProduct.
+  ///
+  /// In en, this message translates to:
+  /// **'Create custom product'**
+  String get createCustomProduct;
+
+  /// No description provided for @customProductTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New product'**
+  String get customProductTitle;
+
+  /// No description provided for @statsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 7 days'**
+  String get statsTitle;
+
+  /// No description provided for @statsToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get statsToday;
+
+  /// No description provided for @statsAverage.
+  ///
+  /// In en, this message translates to:
+  /// **'Average per logged day'**
+  String get statsAverage;
+
+  /// No description provided for @statsAdherence.
+  ///
+  /// In en, this message translates to:
+  /// **'{onTarget} of {logged, plural, one{{logged} logged day} other{{logged} logged days}} on target'**
+  String statsAdherence(int onTarget, int logged);
+
+  /// No description provided for @statsNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'No meals logged in the last 7 days.'**
+  String get statsNoData;
+
+  /// No description provided for @statsTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Target {value} kcal'**
+  String statsTarget(String value);
+
+  /// No description provided for @statsChartLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Calories per day for the last 7 days'**
+  String get statsChartLabel;
+
+  /// No description provided for @settingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settingsTitle;
+
+  /// No description provided for @settingsTargetsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily targets'**
+  String get settingsTargetsSection;
+
+  /// No description provided for @settingsCalories.
+  ///
+  /// In en, this message translates to:
+  /// **'Calorie target'**
+  String get settingsCalories;
+
+  /// No description provided for @settingsPlate.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate diameter'**
+  String get settingsPlate;
+
+  /// No description provided for @notSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get notSet;
+
+  /// No description provided for @settingsPhotosSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos'**
+  String get settingsPhotosSection;
+
+  /// No description provided for @settingsSavePhotos.
+  ///
+  /// In en, this message translates to:
+  /// **'Save meal photos'**
+  String get settingsSavePhotos;
+
+  /// No description provided for @settingsSavePhotosHint.
+  ///
+  /// In en, this message translates to:
+  /// **'When off, photos are deleted after the analysis. Existing photos are kept.'**
+  String get settingsSavePhotosHint;
+
+  /// No description provided for @settingsLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get settingsLanguage;
+
+  /// No description provided for @languageSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System default'**
+  String get languageSystem;
+
+  /// No description provided for @languageRussian.
+  ///
+  /// In en, this message translates to:
+  /// **'Русский'**
+  String get languageRussian;
+
+  /// No description provided for @languageEnglish.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get languageEnglish;
+
+  /// No description provided for @settingsDataSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Your data'**
+  String get settingsDataSection;
+
+  /// No description provided for @settingsExportCsv.
+  ///
+  /// In en, this message translates to:
+  /// **'Export CSV'**
+  String get settingsExportCsv;
+
+  /// No description provided for @settingsExportJson.
+  ///
+  /// In en, this message translates to:
+  /// **'Export JSON'**
+  String get settingsExportJson;
+
+  /// No description provided for @exportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The export failed. Please try again.'**
+  String get exportFailed;
+
+  /// No description provided for @exportSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'CalSnap export'**
+  String get exportSubject;
+
+  /// No description provided for @settingsClearData.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all data'**
+  String get settingsClearData;
+
+  /// No description provided for @clearDataTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all data?'**
+  String get clearDataTitle;
+
+  /// No description provided for @clearDataBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This permanently deletes all meals, photos, custom products and settings from this device. It cannot be undone. Consider exporting your data first.'**
+  String get clearDataBody;
+
+  /// No description provided for @clearDataConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete everything'**
+  String get clearDataConfirm;
+
+  /// No description provided for @settingsPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy'**
+  String get settingsPrivacy;
+
+  /// No description provided for @settingsAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get settingsAbout;
+
+  /// No description provided for @settingsVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version}'**
+  String settingsVersion(String version);
+
+  /// No description provided for @valueUnitKcal.
+  ///
+  /// In en, this message translates to:
+  /// **'{value} kcal'**
+  String valueUnitKcal(String value);
+
+  /// No description provided for @valueUnitGrams.
+  ///
+  /// In en, this message translates to:
+  /// **'{value} g'**
+  String valueUnitGrams(String value);
+
+  /// No description provided for @valueUnitCm.
+  ///
+  /// In en, this message translates to:
+  /// **'{value} cm'**
+  String valueUnitCm(String value);
+
+  /// No description provided for @privacyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy'**
+  String get privacyTitle;
+
+  /// No description provided for @privacyDiary.
+  ///
+  /// In en, this message translates to:
+  /// **'Your diary is stored only on this device.'**
+  String get privacyDiary;
+
+  /// No description provided for @privacyAnalysis.
+  ///
+  /// In en, this message translates to:
+  /// **'When you analyze a photo, CalSnap sends the prepared photo (without metadata), the app language and, if set, your plate diameter to the CalSnap server, which forwards them to an AI provider.'**
+  String get privacyAnalysis;
+
+  /// No description provided for @privacyNoStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'The CalSnap server does not store your photos after the request is finished.'**
+  String get privacyNoStorage;
+
+  /// No description provided for @privacyProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'The retention and training terms of the AI provider apply to what it receives.'**
+  String get privacyProvider;
+
+  /// No description provided for @privacyPolicyLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Full privacy policy'**
+  String get privacyPolicyLink;
+
+  /// No description provided for @privacyPolicyUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The link could not be opened.'**
+  String get privacyPolicyUnavailable;
+}
+
+class _AppLocalizationsDelegate
+    extends LocalizationsDelegate<AppLocalizations> {
+  const _AppLocalizationsDelegate();
+
+  @override
+  Future<AppLocalizations> load(Locale locale) {
+    return SynchronousFuture<AppLocalizations>(lookupAppLocalizations(locale));
+  }
+
+  @override
+  bool isSupported(Locale locale) =>
+      <String>['en', 'ru'].contains(locale.languageCode);
+
+  @override
+  bool shouldReload(_AppLocalizationsDelegate old) => false;
+}
+
+AppLocalizations lookupAppLocalizations(Locale locale) {
+  // Lookup logic when only language code is specified.
+  switch (locale.languageCode) {
+    case 'en':
+      return AppLocalizationsEn();
+    case 'ru':
+      return AppLocalizationsRu();
+  }
+
+  throw FlutterError(
+    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+    'an issue with the localizations generation tool. Please file an issue '
+    'on GitHub with a reproducible sample app and the gen-l10n configuration '
+    'that was used.',
+  );
+}

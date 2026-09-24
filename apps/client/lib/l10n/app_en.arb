@@ -1,0 +1,314 @@
+{
+  "@@locale": "en",
+  "appTitle": "CalSnap",
+  "cancel": "Cancel",
+  "save": "Save",
+  "delete": "Delete",
+  "retry": "Retry",
+  "close": "Close",
+  "apply": "Apply",
+  "edit": "Edit",
+  "next": "Next",
+  "back": "Back",
+  "skip": "Skip",
+  "create": "Create",
+  "gramsUnit": "g",
+  "unitGram": "g",
+  "unitMilliliter": "ml",
+  "unitPiece": "pcs",
+  "unitPortion": "portion",
+  "proteinLabel": "Protein",
+  "fatLabel": "Fat",
+  "carbsLabel": "Carbs",
+  "mealBreakfast": "Breakfast",
+  "mealLunch": "Lunch",
+  "mealDinner": "Dinner",
+  "mealSnack": "Snack",
+  "mealOther": "Other",
+  "mealUnnamed": "Meal",
+  "navDiary": "Diary",
+  "navHistory": "History",
+  "navStatistics": "Statistics",
+  "navSettings": "Settings",
+  "initErrorTitle": "CalSnap could not start",
+  "initErrorBody": "Something went wrong while opening your diary. Your data has not been changed. Please try again.",
+  "unsupportedSchemaTitle": "Please update CalSnap",
+  "unsupportedSchemaBody": "Your diary was created by a newer version of the app. Update CalSnap to open it. Your data has not been changed.",
+  "onboardingStep": "Step {current} of {total}",
+  "@onboardingStep": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "onboardingIntroTitle": "Log meals with a photo",
+  "onboardingIntroBody": "Take a photo of your meal, check the foods CalSnap finds, and save. Your diary stays on this device.",
+  "onboardingEstimateNotice": "Calories from photos are estimates, not exact measurements. You can correct every value.",
+  "onboardingTargetTitle": "Daily calorie target",
+  "onboardingTargetHint": "kcal per day",
+  "errKcalRange": "Enter a value from 800 to 6000 kcal.",
+  "onboardingMacrosTitle": "Macro targets (optional)",
+  "onboardingMacrosBody": "Grams per day. Leave a field empty if you do not track it.",
+  "errMacroRange": "Enter 0 to 500 g or leave the field empty.",
+  "proteinFieldLabel": "Protein, g",
+  "fatFieldLabel": "Fat, g",
+  "carbsFieldLabel": "Carbs, g",
+  "onboardingPlateTitle": "Plate diameter (optional)",
+  "onboardingPlateBody": "Helps to estimate portion sizes from photos. Typical dinner plates are 24 to 28 cm.",
+  "plateFieldLabel": "Diameter, cm",
+  "errPlateRange": "Enter a value from 10 to 40 cm or leave the field empty.",
+  "onboardingCameraTitle": "Camera access",
+  "onboardingCameraBody": "CalSnap uses the camera to photograph your meals. You can also pick photos from the gallery or add meals manually.",
+  "allowCamera": "Allow camera",
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "kcalProgress": "{consumed} / {target} kcal",
+  "@kcalProgress": {
+    "placeholders": {
+      "consumed": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "kcalConsumedOnly": "{consumed} kcal",
+  "@kcalConsumedOnly": {
+    "placeholders": {
+      "consumed": {
+        "type": "String"
+      }
+    }
+  },
+  "kcalRemaining": "{amount} kcal remaining",
+  "@kcalRemaining": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "kcalOver": "{amount} kcal over the target",
+  "@kcalOver": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "macroProgress": "{consumed} / {target} g",
+  "@macroProgress": {
+    "placeholders": {
+      "consumed": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "macroConsumed": "{consumed} g",
+  "@macroConsumed": {
+    "placeholders": {
+      "consumed": {
+        "type": "String"
+      }
+    }
+  },
+  "emptyDayTitle": "No meals yet",
+  "emptyDayBody": "Take a photo of your meal or add it manually.",
+  "addMeal": "Add",
+  "takePhoto": "Take photo",
+  "chooseFromGallery": "Choose from gallery",
+  "addManually": "Add manually",
+  "previousDay": "Previous day",
+  "nextDay": "Next day",
+  "openCalendar": "Open calendar",
+  "historyTitle": "History",
+  "historyHint": "Days with meals are marked. Tap a day to open it.",
+  "mealPhoto": "Meal photo",
+  "captureTitle": "Take a photo",
+  "cameraPermissionTitle": "Camera access is needed",
+  "cameraPermissionBody": "CalSnap needs the camera to photograph your meal. You can still choose a photo from the gallery or add the meal manually.",
+  "openSettings": "Open settings",
+  "cameraUnavailable": "The camera is not available. You can choose a photo from the gallery instead.",
+  "flashOff": "Flash off",
+  "flashAuto": "Flash auto",
+  "flashOn": "Flash on",
+  "switchCamera": "Switch camera",
+  "shutter": "Take photo",
+  "gallery": "Gallery",
+  "retake": "Retake",
+  "analyze": "Analyze",
+  "previewTitle": "Check the photo",
+  "imageUnreadable": "This image cannot be read. Try another photo.",
+  "imageTooLarge": "This photo is too large to upload. Try another photo.",
+  "analyzingTitle": "Analyzing your meal…",
+  "stepPreparing": "Preparing the photo",
+  "stepIdentifying": "Identifying foods",
+  "stepPortions": "Estimating portions",
+  "stepNutrition": "Calculating nutrition",
+  "errOffline": "No internet connection. The diary is available offline. Analyzing a new photo requires a network.",
+  "errTimeout": "The analysis is taking too long. Please try again.",
+  "errRateLimited": "Too many requests. Please try again in a little while.",
+  "errUnavailable": "The analysis service is temporarily unavailable. Please try again.",
+  "errNotRecognized": "Could not confidently recognize the dish.",
+  "errBadImage": "This photo cannot be analyzed. Try another photo.",
+  "errUnknown": "Something went wrong. Please try again.",
+  "tryAnotherPhoto": "Try another photo",
+  "resultTitle": "Recognized",
+  "editMealTitle": "Edit meal",
+  "newMealTitle": "New meal",
+  "estimateNotice": "Weights are estimates. Please check them before saving.",
+  "approxKcal": "{value} kcal",
+  "@approxKcal": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "totalKcal": "{value} kcal",
+  "@totalKcal": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "estimatedWeight": "estimate",
+  "pleaseCheck": "Please check",
+  "partialBanner": "Some ingredients may have been missed. Check the result before saving.",
+  "estimatedNutritionNote": "Nutrition values for this item are estimated.",
+  "addItem": "Add item",
+  "mealTypeFieldLabel": "Meal type",
+  "noItemsHint": "Add at least one item to save.",
+  "removeItem": "Remove",
+  "editItemTitle": "Edit item",
+  "itemNameLabel": "Name",
+  "itemWeightLabel": "Weight",
+  "per100Title": "Per 100 g",
+  "kcalPer100Label": "kcal per 100 g",
+  "errWeightRange": "Enter a weight above 0 and up to 5000 g.",
+  "errNameRequired": "Enter a name (up to 100 characters).",
+  "errKcal900": "Calories must be between 0 and 900 per 100 g.",
+  "errMacro100": "Each value must be between 0 and 100 g.",
+  "weightInGrams": "= {grams} g",
+  "@weightInGrams": {
+    "placeholders": {
+      "grams": {
+        "type": "String"
+      }
+    }
+  },
+  "replaceProduct": "Replace product",
+  "discardTitle": "Discard changes?",
+  "discardBody": "Your changes have not been saved.",
+  "discard": "Discard",
+  "keepEditing": "Keep editing",
+  "deleteMealTitle": "Delete this meal?",
+  "deleteMealBody": "The meal and its photo will be removed.",
+  "mealDeleted": "Meal deleted",
+  "undo": "Undo",
+  "emptyMealTitle": "The meal has no items",
+  "emptyMealBody": "A meal needs at least one item. You can delete the meal instead.",
+  "deleteMeal": "Delete meal",
+  "mealSaved": "Meal saved",
+  "saveFailed": "The meal could not be saved. Your entries are kept, please try again.",
+  "searchFoodsTitle": "Add food",
+  "searchHint": "Search foods",
+  "noResults": "No foods found.",
+  "createCustomProduct": "Create custom product",
+  "customProductTitle": "New product",
+  "statsTitle": "Last 7 days",
+  "statsToday": "Today",
+  "statsAverage": "Average per logged day",
+  "statsAdherence": "{onTarget} of {logged, plural, one{{logged} logged day} other{{logged} logged days}} on target",
+  "@statsAdherence": {
+    "placeholders": {
+      "onTarget": {
+        "type": "int"
+      },
+      "logged": {
+        "type": "int"
+      }
+    }
+  },
+  "statsNoData": "No meals logged in the last 7 days.",
+  "statsTarget": "Target {value} kcal",
+  "@statsTarget": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "statsChartLabel": "Calories per day for the last 7 days",
+  "settingsTitle": "Settings",
+  "settingsTargetsSection": "Daily targets",
+  "settingsCalories": "Calorie target",
+  "settingsPlate": "Plate diameter",
+  "notSet": "Not set",
+  "settingsPhotosSection": "Photos",
+  "settingsSavePhotos": "Save meal photos",
+  "settingsSavePhotosHint": "When off, photos are deleted after the analysis. Existing photos are kept.",
+  "settingsLanguage": "Language",
+  "languageSystem": "System default",
+  "languageRussian": "Русский",
+  "languageEnglish": "English",
+  "settingsDataSection": "Your data",
+  "settingsExportCsv": "Export CSV",
+  "settingsExportJson": "Export JSON",
+  "exportFailed": "The export failed. Please try again.",
+  "exportSubject": "CalSnap export",
+  "settingsClearData": "Clear all data",
+  "clearDataTitle": "Clear all data?",
+  "clearDataBody": "This permanently deletes all meals, photos, custom products and settings from this device. It cannot be undone. Consider exporting your data first.",
+  "clearDataConfirm": "Delete everything",
+  "settingsPrivacy": "Privacy",
+  "settingsAbout": "About",
+  "settingsVersion": "Version {version}",
+  "@settingsVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "valueUnitKcal": "{value} kcal",
+  "@valueUnitKcal": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "valueUnitGrams": "{value} g",
+  "@valueUnitGrams": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "valueUnitCm": "{value} cm",
+  "@valueUnitCm": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "privacyTitle": "Privacy",
+  "privacyDiary": "Your diary is stored only on this device.",
+  "privacyAnalysis": "When you analyze a photo, CalSnap sends the prepared photo (without metadata), the app language and, if set, your plate diameter to the CalSnap server, which forwards them to an AI provider.",
+  "privacyNoStorage": "The CalSnap server does not store your photos after the request is finished.",
+  "privacyProvider": "The retention and training terms of the AI provider apply to what it receives.",
+  "privacyPolicyLink": "Full privacy policy",
+  "privacyPolicyUnavailable": "The link could not be opened."
+}

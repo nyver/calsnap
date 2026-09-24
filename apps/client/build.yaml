@@ -1,0 +1,9 @@
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          # Column names follow the specification (snake_case).
+          case_from_dart_to_sql: snake_case
+          # Keep the generated code strict-mode friendly.
+          generate_connect_constructor: false
