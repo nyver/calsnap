@@ -660,4 +660,45 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get serverSettingsAction => 'Настройки сервера';
+
+  @override
+  String get errCertificate =>
+      'Сертификат безопасности сервера не является доверенным или изменился. Откройте настройки сервера и проверьте его.';
+
+  @override
+  String get serverCheckingCertificate => 'Проверка сервера…';
+
+  @override
+  String get serverCertificateTrusted =>
+      'Самоподписанный сертификат подтверждён';
+
+  @override
+  String get certTrustTitle => 'Доверять этому серверу?';
+
+  @override
+  String get certChangedTitle => 'Сертификат сервера изменился';
+
+  @override
+  String certTrustBody(String host) {
+    return 'Сервер $host использует сертификат, который это устройство не распознаёт, скорее всего самоподписанный. Сравните отпечаток ниже с указанным в журнале сервера. Доверяйте серверу, только если они совпадают полностью.';
+  }
+
+  @override
+  String certChangedBody(String host) {
+    return 'Сертификат $host отличается от подтверждённого ранее. Это ожидаемо, если сервер создал новый сертификат. В остальных случаях соединение может перехватываться. Сравните отпечаток с журналом сервера, прежде чем доверять.';
+  }
+
+  @override
+  String get certFingerprintLabel => 'Отпечаток SHA-256';
+
+  @override
+  String get certSubjectLabel => 'Субъект';
+
+  @override
+  String certValidUntil(String date) {
+    return 'Действителен до $date';
+  }
+
+  @override
+  String get certTrustAction => 'Доверять';
 }

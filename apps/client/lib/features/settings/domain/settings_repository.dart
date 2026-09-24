@@ -25,6 +25,7 @@ abstract final class SettingKeys {
   static const unitSystem = 'unit_system';
   static const onboardingCompleted = 'onboarding_completed';
   static const apiBaseUrl = 'api_base_url';
+  static const trustedCertificate = 'trusted_certificate';
   static const catalogVersion = 'catalog_version';
   static const remoteConfigJson = 'remote_config_json';
 }

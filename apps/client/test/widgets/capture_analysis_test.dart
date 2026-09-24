@@ -333,6 +333,11 @@ void main() {
             message: 'Something went wrong. Please try again.',
             buttons: ['analysisRetry', 'analysisAddManually'],
           ),
+          'untrusted certificate': (
+            failure: const CertificateFailure(),
+            message: "The server's security certificate is not trusted or has changed. Open the server settings and review it.",
+            buttons: ['openServerSettings', 'analysisAddManually'],
+          ),
           'nothing recognized': (
             failure: const NotRecognizedFailure(),
             message: 'Could not confidently recognize the dish.',

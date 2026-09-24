@@ -1261,6 +1261,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Server settings'**
   String get serverSettingsAction;
+
+  /// No description provided for @errCertificate.
+  ///
+  /// In en, this message translates to:
+  /// **'The server\'s security certificate is not trusted or has changed. Open the server settings and review it.'**
+  String get errCertificate;
+
+  /// No description provided for @serverCheckingCertificate.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking the server…'**
+  String get serverCheckingCertificate;
+
+  /// No description provided for @serverCertificateTrusted.
+  ///
+  /// In en, this message translates to:
+  /// **'Self-signed certificate confirmed'**
+  String get serverCertificateTrusted;
+
+  /// No description provided for @certTrustTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Trust this server?'**
+  String get certTrustTitle;
+
+  /// No description provided for @certChangedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Server certificate changed'**
+  String get certChangedTitle;
+
+  /// No description provided for @certTrustBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The server {host} uses a certificate that this device does not recognize, most likely a self-signed one. Compare the fingerprint below with the one in the server log. Trust the server only if they are identical.'**
+  String certTrustBody(String host);
+
+  /// No description provided for @certChangedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The certificate of {host} is not the one you confirmed earlier. That is expected if the server generated a new certificate. Otherwise someone may be intercepting the connection. Compare the fingerprint with the server log before trusting it.'**
+  String certChangedBody(String host);
+
+  /// No description provided for @certFingerprintLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'SHA-256 fingerprint'**
+  String get certFingerprintLabel;
+
+  /// No description provided for @certSubjectLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Subject'**
+  String get certSubjectLabel;
+
+  /// No description provided for @certValidUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'Valid until {date}'**
+  String certValidUntil(String date);
+
+  /// No description provided for @certTrustAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Trust'**
+  String get certTrustAction;
 }
 
 class _AppLocalizationsDelegate

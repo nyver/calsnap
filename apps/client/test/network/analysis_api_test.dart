@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io' show HandshakeException;
 import 'dart:typed_data';
 
 import 'package:calsnap/core/network/retry_interceptor.dart';
@@ -297,6 +298,32 @@ void main() {
       ),
     );
     expect(t.adapter.requests, hasLength(1));
+  });
+
+  group('untrusted certificates', () {
+    final options = RequestOptions(path: '/v1/config');
+
+    test('a bad certificate maps to CertificateFailure', () {
+      expect(
+        AnalysisApi.mapFailure(
+          DioException.badCertificate(requestOptions: options),
+        ),
+        isA<CertificateFailure>(),
+      );
+    });
+
+    test('a rejected TLS handshake maps to CertificateFailure', () {
+      final e = DioException(
+        requestOptions: options,
+        error: const HandshakeException('CERTIFICATE_VERIFY_FAILED'),
+      );
+      expect(AnalysisApi.mapFailure(e), isA<CertificateFailure>());
+    });
+
+    test('other unknown errors stay UnknownFailure', () {
+      final e = DioException(requestOptions: options, error: StateError('x'));
+      expect(AnalysisApi.mapFailure(e), isA<UnknownFailure>());
+    });
   });
 
   group('RemoteConfig', () {

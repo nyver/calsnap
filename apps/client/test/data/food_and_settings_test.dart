@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:calsnap/core/domain/nutrition.dart';
 import 'package:calsnap/core/files/photo_storage.dart';
+import 'package:calsnap/core/network/server_certificate.dart';
 import 'package:calsnap/features/foods/domain/food.dart';
 import 'package:calsnap/features/meal/domain/meal.dart';
 import 'package:calsnap/features/settings/domain/settings_repository.dart';
@@ -292,6 +293,31 @@ void main() {
         s = await r.settings.read();
         expect(s.apiBaseUrl, isNull);
         expect(await r.settings.getRaw(SettingKeys.apiBaseUrl), isNull);
+      },
+    );
+
+    test(
+      'the confirmed certificate is stored, and a damaged value is ignored',
+      () async {
+        final fingerprint = List.filled(32, 'AB').join(':');
+        final pin = TrustedCertificate.forUrl(
+          'https://calsnap.lan:8445',
+          fingerprint,
+        );
+        await r.settings.save(AppSettings(trustedCertificate: pin));
+        var s = await r.settings.read();
+        expect(s.trustedCertificate, pin);
+        // Saving other settings keeps it.
+        await r.settings.save(s.copyWith(savePhotos: false));
+        expect((await r.settings.read()).trustedCertificate, pin);
+
+        await r.settings.setRaw(SettingKeys.trustedCertificate, 'garbage');
+        expect((await r.settings.read()).trustedCertificate, isNull);
+
+        await r.settings.save(s.copyWith(trustedCertificate: () => null));
+        s = await r.settings.read();
+        expect(s.trustedCertificate, isNull);
+        expect(await r.settings.getRaw(SettingKeys.trustedCertificate), isNull);
       },
     );
 

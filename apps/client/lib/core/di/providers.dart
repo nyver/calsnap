@@ -21,6 +21,7 @@ import '../database/app_database.dart';
 import '../database/database_opener.dart';
 import '../files/photo_storage.dart';
 import '../network/dio_factory.dart';
+import '../network/server_certificate.dart';
 import '../utils/clock.dart';
 import '../utils/ids.dart';
 
@@ -164,9 +165,29 @@ final apiBaseUrlProvider = Provider<String?>((ref) {
   return null;
 });
 
-/// Rebuilt (and the old client closed) when the backend address changes.
+/// The confirmed self-signed certificate, only while it belongs to the backend
+/// address in effect.
+final trustedCertificateProvider = Provider<TrustedCertificate?>((ref) {
+  final url = ref.watch(apiBaseUrlProvider);
+  final pin = ref.watch(
+    currentSettingsProvider.select((s) => s.trustedCertificate),
+  );
+  return url != null && pin != null && pin.isFor(url) ? pin : null;
+});
+
+/// Looks at the backend certificate when the user enters the address. Tests
+/// override it to avoid the network.
+final certificateProbeProvider = Provider<CertificateProbe>(
+  (ref) => probeServerCertificate,
+);
+
+/// Rebuilt (and the old client closed) when the backend address or its
+/// confirmed certificate changes.
 final dioProvider = Provider<Dio>((ref) {
-  final dio = createDio(baseUrl: ref.watch(apiBaseUrlProvider) ?? '');
+  final dio = createDio(
+    baseUrl: ref.watch(apiBaseUrlProvider) ?? '',
+    trusted: ref.watch(trustedCertificateProvider),
+  );
   ref.onDispose(() => dio.close(force: true));
   return dio;
 });

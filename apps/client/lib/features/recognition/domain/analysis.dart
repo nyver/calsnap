@@ -180,6 +180,12 @@ class ServerNotConfiguredFailure extends AnalysisFailure {
   const ServerNotConfiguredFailure();
 }
 
+/// TLS to the backend failed because its certificate is not trusted, or it is
+/// not the one the user confirmed (for example after the server regenerated it).
+class CertificateFailure extends AnalysisFailure {
+  const CertificateFailure();
+}
+
 class UnknownFailure extends AnalysisFailure {
   const UnknownFailure();
 }

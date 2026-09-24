@@ -1,3 +1,4 @@
+import 'dart:io' show TlsException;
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -85,9 +86,14 @@ class AnalysisApi {
       case DioExceptionType.badResponse:
         return _fromResponse(e.response);
       case DioExceptionType.badCertificate:
+        return const CertificateFailure();
       case DioExceptionType.cancel:
-      case DioExceptionType.unknown:
         return const UnknownFailure();
+      case DioExceptionType.unknown:
+        // A rejected TLS handshake is not wrapped in a dedicated Dio type.
+        return e.error is TlsException
+            ? const CertificateFailure()
+            : const UnknownFailure();
     }
   }
 

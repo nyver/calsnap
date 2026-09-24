@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,11 +9,14 @@ import '../../../app/router.dart';
 import '../../../core/config/api_base_url.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/di/providers.dart';
+import '../../../core/network/server_certificate.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/l10n_x.dart';
 import '../../export/data/export_service.dart';
 import '../../meal/ui/meal_draft_notifier.dart';
+import '../domain/server_address_check.dart';
 import '../domain/user_settings.dart';
+import 'certificate_dialog.dart';
 
 /// Targets, photo retention, language, export, clearing data, privacy and version.
 /// Every change is stored and applied immediately.
@@ -183,9 +188,19 @@ class SettingsScreen extends ConsumerWidget {
             key: const Key('settingServerUrl'),
             leading: const Icon(Icons.dns_outlined),
             title: Text(l10n.settingsServerUrl),
-            subtitle: Text(
-              ref.watch(apiBaseUrlProvider) ?? l10n.notSet,
-              key: const Key('serverUrlValue'),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  ref.watch(apiBaseUrlProvider) ?? l10n.notSet,
+                  key: const Key('serverUrlValue'),
+                ),
+                if (ref.watch(trustedCertificateProvider) != null)
+                  Text(
+                    l10n.serverCertificateTrusted,
+                    key: const Key('serverCertificateTrusted'),
+                  ),
+              ],
             ),
             trailing: const Icon(Icons.chevron_right),
             onTap: () async {
@@ -194,13 +209,8 @@ class SettingsScreen extends ConsumerWidget {
                 builder: (context) =>
                     _ServerUrlDialog(initial: settings.apiBaseUrl ?? ''),
               );
-              if (result != null) {
-                await _save(
-                  ref,
-                  settings.copyWith(
-                    apiBaseUrl: () => result.isEmpty ? null : result,
-                  ),
-                );
+              if (result != null && context.mounted) {
+                await _applyServerUrl(context, ref, settings, result);
               }
             },
           ),
@@ -249,6 +259,66 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
+  /// Saves the address. For an https address whose certificate the system does
+  /// not trust (a self-signed server), the user has to confirm its fingerprint
+  /// first; declining leaves the settings unchanged.
+  Future<void> _applyServerUrl(
+    BuildContext context,
+    WidgetRef ref,
+    AppSettings settings,
+    String url,
+  ) async {
+    if (url.isEmpty) {
+      await _save(ref, settings.copyWith(apiBaseUrl: () => null));
+      return;
+    }
+    // Dialogs are shown on the root navigator, so the spinner must be popped there.
+    final navigator = Navigator.of(context, rootNavigator: true);
+    // Bounded by the probe's connect timeout.
+    unawaited(
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const _ProgressDialog(),
+      ),
+    );
+    final AddressCheck check;
+    try {
+      check = await checkServerAddress(
+        url,
+        pinned: settings.trustedCertificate,
+        probe: ref.read(certificateProbeProvider),
+      );
+    } finally {
+      navigator.pop();
+    }
+    if (!context.mounted) return;
+
+    switch (check) {
+      case AddressReady():
+        await _save(ref, settings.copyWith(apiBaseUrl: () => url));
+      case AddressNeedsTrust(:final info, :final changed):
+        final trusted = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => CertificateDialog(
+            host: Uri.parse(url).host,
+            info: info,
+            changed: changed,
+          ),
+        );
+        if (trusted != true) return;
+        await _save(
+          ref,
+          settings.copyWith(
+            apiBaseUrl: () => url,
+            trustedCertificate: () =>
+                TrustedCertificate.forUrl(url, info.fingerprint),
+          ),
+        );
+    }
+  }
+
   Future<void> _export(
     BuildContext context,
     WidgetRef ref,
@@ -294,6 +364,25 @@ class SettingsScreen extends ConsumerWidget {
     ref.read(mealDraftProvider.notifier).clear();
     if (context.mounted) context.go(Routes.splash);
   }
+}
+
+class _ProgressDialog extends StatelessWidget {
+  const _ProgressDialog();
+
+  @override
+  Widget build(BuildContext context) => PopScope(
+    canPop: false,
+    child: AlertDialog(
+      key: const Key('serverCheckDialog'),
+      content: Row(
+        children: [
+          const CircularProgressIndicator(),
+          const SizedBox(width: 24),
+          Expanded(child: Text(context.l10n.serverCheckingCertificate)),
+        ],
+      ),
+    ),
+  );
 }
 
 class _Section extends StatelessWidget {

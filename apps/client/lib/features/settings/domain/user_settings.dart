@@ -1,3 +1,5 @@
+import '../../../core/network/server_certificate.dart';
+
 /// User preferences stored in `user_settings`.
 class AppSettings {
   const AppSettings({
@@ -10,6 +12,7 @@ class AppSettings {
     this.language = AppLanguage.system,
     this.onboardingCompleted = false,
     this.apiBaseUrl,
+    this.trustedCertificate,
   });
 
   static const int defaultKcalTarget = 2000;
@@ -26,6 +29,9 @@ class AppSettings {
   /// Backend address chosen by the user; null falls back to the build default.
   final String? apiBaseUrl;
 
+  /// Self-signed backend certificate the user confirmed, if any.
+  final TrustedCertificate? trustedCertificate;
+
   /// Metric units are the only unit system in the MVP.
   String get unitSystem => 'metric';
 
@@ -41,6 +47,7 @@ class AppSettings {
     AppLanguage? language,
     bool? onboardingCompleted,
     String? Function()? apiBaseUrl,
+    TrustedCertificate? Function()? trustedCertificate,
   }) => AppSettings(
     dailyKcalTarget: dailyKcalTarget != null
         ? dailyKcalTarget()
@@ -61,6 +68,9 @@ class AppSettings {
     language: language ?? this.language,
     onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
     apiBaseUrl: apiBaseUrl != null ? apiBaseUrl() : this.apiBaseUrl,
+    trustedCertificate: trustedCertificate != null
+        ? trustedCertificate()
+        : this.trustedCertificate,
   );
 }
 

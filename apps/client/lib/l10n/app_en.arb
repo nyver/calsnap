@@ -317,5 +317,37 @@
   "errServerUrlInvalid": "Enter a full address that starts with https://, without a login, query or #fragment.",
   "errServerUrlInsecure": "Only secure https:// addresses are allowed.",
   "errServerNotConfigured": "The server address is not set. Enter the address of your CalSnap server in the settings to analyze photos.",
-  "serverSettingsAction": "Server settings"
+  "serverSettingsAction": "Server settings",
+  "errCertificate": "The server's security certificate is not trusted or has changed. Open the server settings and review it.",
+  "serverCheckingCertificate": "Checking the server…",
+  "serverCertificateTrusted": "Self-signed certificate confirmed",
+  "certTrustTitle": "Trust this server?",
+  "certChangedTitle": "Server certificate changed",
+  "certTrustBody": "The server {host} uses a certificate that this device does not recognize, most likely a self-signed one. Compare the fingerprint below with the one in the server log. Trust the server only if they are identical.",
+  "@certTrustBody": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "certChangedBody": "The certificate of {host} is not the one you confirmed earlier. That is expected if the server generated a new certificate. Otherwise someone may be intercepting the connection. Compare the fingerprint with the server log before trusting it.",
+  "@certChangedBody": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "certFingerprintLabel": "SHA-256 fingerprint",
+  "certSubjectLabel": "Subject",
+  "certValidUntil": "Valid until {date}",
+  "@certValidUntil": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "certTrustAction": "Trust"
 }

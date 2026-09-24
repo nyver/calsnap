@@ -1,3 +1,5 @@
+import 'package:calsnap/core/di/providers.dart';
+import 'package:calsnap/core/network/server_certificate.dart';
 import 'package:calsnap/features/camera/data/gateways.dart';
 import 'package:calsnap/features/export/data/export_service.dart';
 import 'package:calsnap/features/settings/domain/user_settings.dart';
@@ -190,10 +192,37 @@ void main() {
       WidgetTester tester,
       TestApp app, {
       List<Override> overrides = const [],
+      CertificateProbeResult probeResult = const CertificateTrusted(),
     }) async {
       await tester.pumpWidget(
-        app.app(initialLocation: '/settings', overrides: overrides),
+        app.app(
+          initialLocation: '/settings',
+          overrides: [
+            // No real network in widget tests: every server looks trusted
+            // unless the test says otherwise.
+            certificateProbeProvider.overrideWithValue(
+              (host, port) async => probeResult,
+            ),
+            ...overrides,
+          ],
+        ),
       );
+      await settle(tester);
+    }
+
+    final selfSignedInfo = CertificateInfo(
+      fingerprint: List.filled(32, 'AB').join(':'),
+      subject: 'CN=calsnap',
+      validFrom: DateTime.utc(2026),
+      validTo: DateTime.utc(2028, 5, 17),
+    );
+    const selfSignedUrl = 'https://calsnap.lan:8445';
+
+    Future<void> enterServerUrl(WidgetTester tester, String url) async {
+      await tapKey(tester, 'settingServerUrl');
+      await settle(tester);
+      await enterKey(tester, 'serverUrlField', url);
+      await tapKey(tester, 'serverUrlApply');
       await settle(tester);
     }
 
@@ -266,6 +295,125 @@ void main() {
       await settle(tester);
       expect((await app.settings()).apiBaseUrl, isNull);
       expect(find.text('http://10.0.2.2:8445'), findsOneWidget);
+    });
+
+    settingsTest(
+      'a self-signed server is saved only after its fingerprint is confirmed',
+      (tester, app) async {
+        await app.completeOnboarding();
+        await openSettings(
+          tester,
+          app,
+          probeResult: CertificateUntrusted(selfSignedInfo),
+        );
+
+        await enterServerUrl(tester, selfSignedUrl);
+        expect(find.text('Trust this server?'), findsOneWidget);
+        expect(
+          find.textContaining('AB:AB:AB:AB:AB:AB:AB:AB', findRichText: true),
+          findsOneWidget,
+        );
+        expect(find.textContaining('CN=calsnap'), findsOneWidget);
+        // Nothing is stored before the user decides.
+        expect((await app.settings()).apiBaseUrl, isNull);
+        expect((await app.settings()).trustedCertificate, isNull);
+
+        await tapKey(tester, 'certificateTrust');
+        await settle(tester);
+
+        final saved = await app.settings();
+        expect(saved.apiBaseUrl, selfSignedUrl);
+        expect(
+          saved.trustedCertificate,
+          TrustedCertificate.forUrl(selfSignedUrl, selfSignedInfo.fingerprint),
+        );
+        expect(
+          find.byKey(const Key('serverCertificateTrusted')),
+          findsOneWidget,
+        );
+      },
+    );
+
+    settingsTest('declining the certificate leaves the settings unchanged', (
+      tester,
+      app,
+    ) async {
+      await app.completeOnboarding();
+      await openSettings(
+        tester,
+        app,
+        probeResult: CertificateUntrusted(selfSignedInfo),
+      );
+
+      await enterServerUrl(tester, selfSignedUrl);
+      await tapKey(tester, 'certificateCancel');
+      await settle(tester);
+
+      final saved = await app.settings();
+      expect(saved.apiBaseUrl, isNull);
+      expect(saved.trustedCertificate, isNull);
+      expect(find.byKey(const Key('certificateDialog')), findsNothing);
+      expect(find.text('http://10.0.2.2:8445'), findsOneWidget);
+    });
+
+    settingsTest('a changed certificate gets a stronger warning', (
+      tester,
+      app,
+    ) async {
+      await app.completeOnboarding();
+      final other = List.filled(32, '11').join(':');
+      await app.real(() async {
+        final s = await app.services.settings.read();
+        await app.services.settings.save(
+          s.copyWith(
+            apiBaseUrl: () => selfSignedUrl,
+            trustedCertificate: () =>
+                TrustedCertificate.forUrl(selfSignedUrl, other),
+          ),
+        );
+      });
+      await openSettings(
+        tester,
+        app,
+        probeResult: CertificateUntrusted(selfSignedInfo),
+      );
+
+      await enterServerUrl(tester, selfSignedUrl);
+      expect(find.text('Server certificate changed'), findsOneWidget);
+
+      await tapKey(tester, 'certificateTrust');
+      await settle(tester);
+      expect(
+        (await app.settings()).trustedCertificate?.fingerprint,
+        selfSignedInfo.fingerprint,
+      );
+    });
+
+    settingsTest('an already confirmed certificate is not asked about again', (
+      tester,
+      app,
+    ) async {
+      await app.completeOnboarding();
+      await app.real(() async {
+        final s = await app.services.settings.read();
+        await app.services.settings.save(
+          s.copyWith(
+            trustedCertificate: () => TrustedCertificate.forUrl(
+              selfSignedUrl,
+              selfSignedInfo.fingerprint,
+            ),
+          ),
+        );
+      });
+      await openSettings(
+        tester,
+        app,
+        probeResult: CertificateUntrusted(selfSignedInfo),
+      );
+
+      await enterServerUrl(tester, selfSignedUrl);
+      expect(find.byKey(const Key('certificateDialog')), findsNothing);
+      expect((await app.settings()).apiBaseUrl, selfSignedUrl);
     });
 
     settingsTest(

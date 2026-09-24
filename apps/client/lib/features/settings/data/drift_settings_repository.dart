@@ -1,4 +1,5 @@
 import '../../../core/database/app_database.dart';
+import '../../../core/network/server_certificate.dart';
 import '../domain/settings_repository.dart';
 import '../domain/user_settings.dart';
 
@@ -34,6 +35,7 @@ class DriftSettingsRepository implements SettingsRepository {
       s.onboardingCompleted.toString(),
     );
     await _put(SettingKeys.apiBaseUrl, s.apiBaseUrl);
+    await _put(SettingKeys.trustedCertificate, s.trustedCertificate?.stored);
   });
 
   @override
@@ -74,6 +76,9 @@ class DriftSettingsRepository implements SettingsRepository {
       language: AppLanguage.fromName(map[SettingKeys.language]),
       onboardingCompleted: map[SettingKeys.onboardingCompleted] == 'true',
       apiBaseUrl: map[SettingKeys.apiBaseUrl],
+      trustedCertificate: TrustedCertificate.tryParse(
+        map[SettingKeys.trustedCertificate],
+      ),
     );
   }
 

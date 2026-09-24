@@ -656,4 +656,44 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get serverSettingsAction => 'Server settings';
+
+  @override
+  String get errCertificate =>
+      'The server\'s security certificate is not trusted or has changed. Open the server settings and review it.';
+
+  @override
+  String get serverCheckingCertificate => 'Checking the server…';
+
+  @override
+  String get serverCertificateTrusted => 'Self-signed certificate confirmed';
+
+  @override
+  String get certTrustTitle => 'Trust this server?';
+
+  @override
+  String get certChangedTitle => 'Server certificate changed';
+
+  @override
+  String certTrustBody(String host) {
+    return 'The server $host uses a certificate that this device does not recognize, most likely a self-signed one. Compare the fingerprint below with the one in the server log. Trust the server only if they are identical.';
+  }
+
+  @override
+  String certChangedBody(String host) {
+    return 'The certificate of $host is not the one you confirmed earlier. That is expected if the server generated a new certificate. Otherwise someone may be intercepting the connection. Compare the fingerprint with the server log before trusting it.';
+  }
+
+  @override
+  String get certFingerprintLabel => 'SHA-256 fingerprint';
+
+  @override
+  String get certSubjectLabel => 'Subject';
+
+  @override
+  String certValidUntil(String date) {
+    return 'Valid until $date';
+  }
+
+  @override
+  String get certTrustAction => 'Trust';
 }

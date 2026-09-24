@@ -205,6 +205,7 @@ class _Failure extends StatelessWidget {
           BadImageReason.rejected => l10n.errBadImage,
         },
         ServerNotConfiguredFailure() => l10n.errServerNotConfigured,
+        CertificateFailure() => l10n.errCertificate,
         UnknownFailure() => l10n.errUnknown,
       };
 
@@ -230,7 +231,8 @@ class _Failure extends StatelessWidget {
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 32),
-        if (failure is ServerNotConfiguredFailure)
+        if (failure is ServerNotConfiguredFailure ||
+            failure is CertificateFailure)
           FilledButton(
             key: const Key('openServerSettings'),
             onPressed: onServerSettings,
