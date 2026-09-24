@@ -18,6 +18,25 @@ export 'analysis_controller.dart' show AnalysisSource;
 /// closes itself and the result screen is shown again.
 enum AnalysisExit { cancelled, tryAnother, refined, keepFirst }
 
+/// The localized, actionable message of a failed request. Shared by every
+/// screen that talks to the backend.
+String analysisFailureMessage(AppLocalizations l10n, AnalysisFailure failure) =>
+    switch (failure) {
+      OfflineFailure() => l10n.errOffline,
+      TimeoutFailure() => l10n.errTimeout,
+      RateLimitedFailure() => l10n.errRateLimited,
+      UnavailableFailure() => l10n.errUnavailable,
+      NotRecognizedFailure() => l10n.errNotRecognized,
+      BadImageFailure(:final reason) => switch (reason) {
+        BadImageReason.unreadable => l10n.imageUnreadable,
+        BadImageReason.tooLarge => l10n.imageTooLarge,
+        BadImageReason.rejected => l10n.errBadImage,
+      },
+      ServerNotConfiguredFailure() => l10n.errServerNotConfigured,
+      CertificateFailure() => l10n.errCertificate,
+      UnknownFailure() => l10n.errUnknown,
+    };
+
 /// Shows the progress of an analysis (cancellable) and its failures.
 class AnalysisScreen extends ConsumerStatefulWidget {
   const AnalysisScreen({required this.source, super.key});
@@ -208,21 +227,7 @@ class _Failure extends StatelessWidget {
   final VoidCallback onServerSettings;
 
   static String message(AppLocalizations l10n, AnalysisFailure failure) =>
-      switch (failure) {
-        OfflineFailure() => l10n.errOffline,
-        TimeoutFailure() => l10n.errTimeout,
-        RateLimitedFailure() => l10n.errRateLimited,
-        UnavailableFailure() => l10n.errUnavailable,
-        NotRecognizedFailure() => l10n.errNotRecognized,
-        BadImageFailure(:final reason) => switch (reason) {
-          BadImageReason.unreadable => l10n.imageUnreadable,
-          BadImageReason.tooLarge => l10n.imageTooLarge,
-          BadImageReason.rejected => l10n.errBadImage,
-        },
-        ServerNotConfiguredFailure() => l10n.errServerNotConfigured,
-        CertificateFailure() => l10n.errCertificate,
-        UnknownFailure() => l10n.errUnknown,
-      };
+      analysisFailureMessage(l10n, failure);
 
   @override
   Widget build(BuildContext context) {

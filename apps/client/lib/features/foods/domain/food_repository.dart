@@ -16,11 +16,14 @@ abstract interface class FoodRepository {
   /// The catalog or cached food with this normalized name, if any.
   Future<Food?> findByNormalizedName(String normalizedName);
 
-  /// Stores a custom product with `source = "user"`.
+  /// Stores a custom product with `source = "user"`. With a barcode, the
+  /// product is also found by [findByBarcode]; creating it again for the same
+  /// barcode replaces the earlier one.
   Future<Food> createCustom(CustomFoodInput input);
 
-  /// The packaged product cached for this normalized barcode, if any.
-  Future<Food?> findPackaged(String barcode);
+  /// The product stored for this normalized barcode, cached from the backend
+  /// (`packaged`) or created by the user, if any.
+  Future<Food?> findByBarcode(String barcode);
 
   /// Caches a packaged product (`source = "packaged"`, `sourceId` = barcode)
   /// or refreshes the cached one, keeping its id. Its barcode is searchable.

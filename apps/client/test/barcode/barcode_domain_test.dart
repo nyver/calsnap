@@ -347,7 +347,7 @@ void main() {
     test('packaged products survive a catalog re-seed', () async {
       await r.foods.savePackaged(yogurt);
       await r.foods.seedCatalog(readCatalogJson());
-      expect(await r.foods.findPackaged('4006381333931'), isNotNull);
+      expect(await r.foods.findByBarcode('4006381333931'), isNotNull);
     });
   });
 }

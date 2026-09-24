@@ -183,18 +183,26 @@ class DriftFoodRepository implements FoodRepository {
       );
     }
     final name = input.name.trim();
+    final barcode = input.barcode;
+    final existing = barcode == null ? null : await findByBarcode(barcode);
     final row = FoodsCompanion.insert(
-      id: _ids.newId(),
+      id: existing?.source == NutritionSourceName.user
+          ? existing!.id
+          : _ids.newId(),
       name: name,
       normalizedName: Value(name.toLowerCase().split(RegExp(r'\s+')).join('_')),
+      // A barcode is searchable, like the ones of cached packaged products.
+      aliases: Value(barcode),
       kcalPer100g: input.per100.kcal,
       proteinPer100g: Value(input.per100.protein),
       fatPer100g: Value(input.per100.fat),
       carbsPer100g: Value(input.per100.carbs),
+      gramsPerPortion: Value(input.servingSizeG),
       source: const Value(NutritionSourceName.user),
+      sourceId: Value(barcode),
       updatedAt: _clock().toUtc().millisecondsSinceEpoch,
     );
-    await _db.into(_db.foods).insert(row);
+    await _db.into(_db.foods).insertOnConflictUpdate(row);
     final created = await (_db.select(
       _db.foods,
     )..where((t) => t.id.equals(row.id.value))).getSingle();
@@ -202,21 +210,33 @@ class DriftFoodRepository implements FoodRepository {
   }
 
   @override
-  Future<Food?> findPackaged(String barcode) async {
-    final row =
+  Future<Food?> findByBarcode(String barcode) async {
+    final rows =
         await (_db.select(_db.foods)..where(
               (t) =>
-                  t.source.equals(NutritionSourceName.packaged) &
+                  t.source.isIn([
+                    NutritionSourceName.packaged,
+                    NutritionSourceName.user,
+                  ]) &
                   t.sourceId.equals(barcode),
             ))
-            .getSingleOrNull();
-    return row == null ? null : _toFood(row);
+            .get();
+    if (rows.isEmpty) return null;
+    // The user's own correction of a product wins over the cached one.
+    rows.sort(
+      (a, b) => (a.source == NutritionSourceName.user ? 0 : 1).compareTo(
+        b.source == NutritionSourceName.user ? 0 : 1,
+      ),
+    );
+    return _toFood(rows.first);
   }
 
   @override
   Future<Food> savePackaged(PackagedProduct product) async {
-    final existing = await findPackaged(product.barcode);
-    final id = existing?.id ?? _ids.newId();
+    final existing = await findByBarcode(product.barcode);
+    final id = existing?.source == NutritionSourceName.packaged
+        ? existing!.id
+        : _ids.newId();
     await _db
         .into(_db.foods)
         .insertOnConflictUpdate(

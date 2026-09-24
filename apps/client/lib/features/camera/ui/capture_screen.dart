@@ -9,7 +9,10 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router.dart';
 import '../../../core/di/providers.dart';
 import '../../../shared/l10n_x.dart';
+import '../../label/domain/label_reading.dart';
+import '../../label/ui/label_reader.dart';
 import '../../meal/ui/meal_draft_notifier.dart';
+import '../../recognition/domain/analysis.dart';
 import '../../recognition/ui/analysis_controller.dart';
 import '../../recognition/ui/analysis_screen.dart';
 import '../data/gateways.dart';
@@ -19,21 +22,33 @@ import 'photo_quality_banner.dart';
 import 'plate_guide.dart';
 import 'plate_sheet.dart';
 
+/// What the capture screen is for.
+enum CaptureMode {
+  /// A photo of the meal (the default).
+  meal,
+
+  /// The second, side photo of the meal shown in the result screen.
+  side,
+
+  /// A nutrition facts table on a package; pops with the [LabelReading].
+  label,
+}
+
 /// In-app camera with flash, lens switch, gallery import and a preview with
 /// "Retake" and "Analyze". Permission is requested here, at the point of use.
 class CaptureScreen extends ConsumerStatefulWidget {
   const CaptureScreen({
     this.startWithGallery = false,
-    this.sideView = false,
+    this.mode = CaptureMode.meal,
     super.key,
   });
 
   /// Opens the gallery picker right away (from the "Choose from gallery" action).
   final bool startWithGallery;
 
-  /// Takes the second, side photo of the meal shown in the result screen. The
-  /// recognition draft stays as it is, so there is no manual entry here.
-  final bool sideView;
+  /// Side and label captures leave the current draft alone, so there is no
+  /// manual entry there and no plate guide.
+  final CaptureMode mode;
 
   @override
   ConsumerState<CaptureScreen> createState() => _CaptureScreenState();
@@ -61,6 +76,12 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
 
   /// A plate size chosen for this photo only (see [AnalysisSource]).
   ({double? cm})? _plateOverride;
+
+  /// A label is being read by the backend.
+  bool _reading = false;
+
+  /// Why the last label reading failed, shown above the buttons.
+  String? _readError;
 
   @override
   void initState() {
@@ -177,7 +198,10 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
   /// Runs the local checks in the background; the preview is usable at once.
   Future<void> _assess(String path) async {
     final check = ref.read(photoQualityProvider);
-    final quality = await check(path, checkPlate: !widget.sideView);
+    final quality = await check(
+      path,
+      checkPlate: widget.mode == CaptureMode.meal,
+    );
     if (!mounted || _photoPath != path) return;
     setState(() => _quality = quality);
   }
@@ -222,6 +246,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
       _photoPath = null;
       _photoIsOurs = false;
       _quality = null;
+      _readError = null;
     });
     if (_controller == null && _access == CameraAccess.granted) {
       unawaited(_openCamera());
@@ -231,8 +256,12 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
   Future<void> _analyze() async {
     final path = _photoPath;
     if (path == null) return;
+    if (widget.mode == CaptureMode.label) {
+      await _readLabel(path);
+      return;
+    }
     final AnalysisSource source;
-    if (widget.sideView) {
+    if (widget.mode == CaptureMode.side) {
       final draft = ref.read(mealDraftProvider);
       final jpeg = draft?.sourceJpeg;
       if (jpeg == null) return;
@@ -255,6 +284,36 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
         context.pop();
       case AnalysisExit.cancelled || null:
         break;
+    }
+  }
+
+  /// Has the backend read the label; on success the screen pops with the
+  /// reading and the caller shows the confirmation form.
+  Future<void> _readLabel(String path) async {
+    if (_reading) return;
+    final l10n = context.l10n;
+    setState(() {
+      _reading = true;
+      _readError = null;
+    });
+    String? error;
+    try {
+      final reading = await ref.read(labelReaderProvider).read(path);
+      if (!mounted) return;
+      context.pop(reading);
+      return;
+    } on LabelNotRecognizedException {
+      error = l10n.labelNotRecognized;
+    } on AnalysisFailure catch (failure) {
+      error = analysisFailureMessage(l10n, failure);
+    } on Exception {
+      error = l10n.errUnknown;
+    }
+    if (mounted) {
+      setState(() {
+        _reading = false;
+        _readError = error;
+      });
     }
   }
 
@@ -285,8 +344,10 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
       backgroundColor: Colors.black,
       appBar: AppBar(
         title: Text(
-          widget.sideView
+          widget.mode == CaptureMode.side
               ? l10n.sideCaptureTitle
+              : widget.mode == CaptureMode.label
+              ? l10n.labelScanTitle
               : _photoPath == null
               ? l10n.captureTitle
               : l10n.previewTitle,
@@ -300,7 +361,12 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
                 path: _photoPath!,
                 issues: _quality?.issues ?? const [],
                 plateLabel: _plateLabel(context),
-                showPlate: !widget.sideView,
+                showPlate: widget.mode == CaptureMode.meal,
+                analyzeText: widget.mode == CaptureMode.label
+                    ? l10n.labelRead
+                    : l10n.analyze,
+                busy: _reading,
+                error: _readError,
                 onPlate: _choosePlate,
                 onRetake: _retake,
                 onAnalyze: _analyze,
@@ -329,7 +395,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
           if (result == CameraAccess.granted) await _openCamera();
         },
         onGallery: _pickFromGallery,
-        onManual: widget.sideView ? null : _manual,
+        onManual: widget.mode == CaptureMode.meal ? _manual : null,
       );
     }
 
@@ -340,7 +406,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
       if (_cameraFailed) {
         return _CameraUnavailable(
           onGallery: _pickFromGallery,
-          onManual: widget.sideView ? null : _manual,
+          onManual: widget.mode == CaptureMode.meal ? _manual : null,
         );
       }
       return const Center(child: CircularProgressIndicator());
@@ -348,12 +414,18 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
     final l10n = context.l10n;
     return Column(
       children: [
-        if (widget.sideView)
+        if (widget.mode != CaptureMode.meal)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
             child: Text(
-              l10n.sideCaptureHint,
-              key: const Key('sideCaptureHint'),
+              widget.mode == CaptureMode.label
+                  ? l10n.labelHint
+                  : l10n.sideCaptureHint,
+              key: Key(
+                widget.mode == CaptureMode.label
+                    ? 'labelCaptureHint'
+                    : 'sideCaptureHint',
+              ),
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.white70),
             ),
@@ -362,7 +434,8 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
           child: Stack(
             children: [
               Center(child: CameraPreview(controller)),
-              if (!widget.sideView) const Positioned.fill(child: PlateGuide()),
+              if (widget.mode == CaptureMode.meal)
+                const Positioned.fill(child: PlateGuide()),
             ],
           ),
         ),
@@ -451,6 +524,9 @@ class _Preview extends StatelessWidget {
     required this.issues,
     required this.plateLabel,
     required this.showPlate,
+    required this.analyzeText,
+    required this.busy,
+    required this.error,
     required this.onPlate,
     required this.onRetake,
     required this.onAnalyze,
@@ -462,9 +538,26 @@ class _Preview extends StatelessWidget {
   /// The chip text for the known plate; null when there is none yet.
   final String? plateLabel;
   final bool showPlate;
+
+  /// The label of the main button ("Analyze", or "Read label").
+  final String analyzeText;
+
+  /// A request is running: the buttons wait.
+  final bool busy;
+
+  /// Why the last request failed, if it did.
+  final String? error;
   final VoidCallback onPlate;
   final VoidCallback onRetake;
   final VoidCallback onAnalyze;
+
+  Widget _analyzeChild() => busy
+      ? const SizedBox(
+          height: 20,
+          width: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        )
+      : Text(analyzeText);
 
   @override
   Widget build(BuildContext context) {
@@ -483,6 +576,25 @@ class _Preview extends StatelessWidget {
             ),
           ),
         ),
+        if (error != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Container(
+              key: const Key('readError'),
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.errorContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                error!,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onErrorContainer,
+                ),
+              ),
+            ),
+          ),
         if (issues.isNotEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -513,12 +625,12 @@ class _Preview extends StatelessWidget {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.white,
                         ),
-                        onPressed: onRetake,
+                        onPressed: busy ? null : onRetake,
                         child: Text(l10n.retake),
                       )
                     : FilledButton(
                         key: const Key('retake'),
-                        onPressed: onRetake,
+                        onPressed: busy ? null : onRetake,
                         child: Text(l10n.retake),
                       ),
               ),
@@ -527,16 +639,16 @@ class _Preview extends StatelessWidget {
                 child: issues.isEmpty
                     ? FilledButton(
                         key: const Key('analyze'),
-                        onPressed: onAnalyze,
-                        child: Text(l10n.analyze),
+                        onPressed: busy ? null : onAnalyze,
+                        child: _analyzeChild(),
                       )
                     : OutlinedButton(
                         key: const Key('analyze'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.white,
                         ),
-                        onPressed: onAnalyze,
-                        child: Text(l10n.analyze),
+                        onPressed: busy ? null : onAnalyze,
+                        child: _analyzeChild(),
                       ),
               ),
             ],

@@ -571,6 +571,69 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scanBarcode => 'Scan barcode';
 
   @override
+  String get scanLabelButton => 'Scan nutrition label';
+
+  @override
+  String get scanSourceUser => 'Saved by you';
+
+  @override
+  String get labelScanTitle => 'Nutrition label';
+
+  @override
+  String get labelHint =>
+      'Fill the frame with the nutrition table. Keep it straight, sharp and well lit.';
+
+  @override
+  String get labelRead => 'Read label';
+
+  @override
+  String get labelNotRecognized =>
+      'No nutrition table was found in this photo. Photograph the table straight on and in focus, or enter the values yourself.';
+
+  @override
+  String get labelFillButton => 'Fill from a label photo';
+
+  @override
+  String get labelCheckValues =>
+      'Check every value against the package before saving.';
+
+  @override
+  String get labelConverted =>
+      'The label was per serving; the values were converted to 100 g.';
+
+  @override
+  String get labelVolume =>
+      'The label was per 100 ml; the values are used as per 100 g.';
+
+  @override
+  String get labelEnergyMismatch =>
+      'The energy does not match the protein, fat and carbohydrates. Please check the numbers.';
+
+  @override
+  String get labelEnergyEstimated =>
+      'The label showed no energy; it was calculated from protein, fat and carbohydrates.';
+
+  @override
+  String get labelLowConfidence =>
+      'The text was hard to read. Some numbers may be wrong.';
+
+  @override
+  String get labelIncomplete =>
+      'Some values could not be read. Please fill them in.';
+
+  @override
+  String customBarcode(String value) {
+    return 'Barcode $value';
+  }
+
+  @override
+  String get customServingLabel => 'Serving, g (optional)';
+
+  @override
+  String get errServing =>
+      'Enter a serving from 1 to 2000 g or leave the field empty.';
+
+  @override
   String get scanTitle => 'Scan barcode';
 
   @override
@@ -764,7 +827,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get privacyAnalysis =>
-      'When you analyze a photo, CalSnap sends the prepared photo (without metadata; two photos if you add a side photo), the app language and, if set, your plate diameter to the CalSnap server, which forwards them to an AI provider.';
+      'When you analyze a photo, CalSnap sends the prepared photo (without metadata; two photos if you add a side photo, or a photo of a nutrition label if you scan one), the app language and, if set, your plate diameter to the CalSnap server, which forwards them to an AI provider.';
 
   @override
   String get privacyBarcode =>

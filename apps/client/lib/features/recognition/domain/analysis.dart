@@ -87,6 +87,7 @@ class RemoteConfig {
     this.analyzeTimeoutSeconds = 60,
     this.maxImages = 1,
     this.barcodeLookup = false,
+    this.labelReading = false,
   });
 
   /// Clamps every value to a safe range; unknown fields are ignored.
@@ -118,6 +119,8 @@ class RemoteConfig {
       maxImages: read('maxImages', defaults.maxImages).clamp(1, 2),
       // Servers that predate barcode lookup do not send it: no scanner.
       barcodeLookup: json['barcodeLookup'] == true,
+      // Servers that predate label reading do not send it: no label scan.
+      labelReading: json['labelReading'] == true,
     );
   }
 
@@ -134,6 +137,9 @@ class RemoteConfig {
   /// True when the backend can look packaged products up by barcode.
   final bool barcodeLookup;
 
+  /// True when the backend can read a nutrition facts table from a photo.
+  final bool labelReading;
+
   Map<String, dynamic> toJson() => {
     'imageMaxLongSidePx': imageMaxLongSidePx,
     'imageJpegQuality': imageJpegQuality,
@@ -141,6 +147,7 @@ class RemoteConfig {
     'analyzeTimeoutSeconds': analyzeTimeoutSeconds,
     'maxImages': maxImages,
     'barcodeLookup': barcodeLookup,
+    'labelReading': labelReading,
   };
 }
 

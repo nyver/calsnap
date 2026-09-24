@@ -11,8 +11,9 @@ abstract interface class ProductSource {
   Future<PackagedProduct> fetch(String barcode, {required String locale});
 }
 
-/// Finds a packaged product by barcode: the local cache first, so a product
-/// scanned before works offline, then the backend. A product found online is
+/// Finds a packaged product by barcode: the local cache first (a product
+/// scanned before, or one the user created from its label), so it works
+/// offline, then the backend. A product found online is
 /// stored in the food cache, where it also shows up in the food search.
 class ProductLookup {
   ProductLookup({required this._foods, required this._source});
@@ -28,7 +29,7 @@ class ProductLookup {
     if (code == null) {
       throw ArgumentError.value(rawBarcode, 'rawBarcode', 'not a valid GTIN');
     }
-    final cached = await _foods.findPackaged(code);
+    final cached = await _foods.findByBarcode(code);
     if (cached != null) return cached;
     final product = await _source.fetch(code, locale: locale);
     return _foods.savePackaged(product);

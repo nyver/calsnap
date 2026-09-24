@@ -574,6 +574,69 @@ class AppLocalizationsRu extends AppLocalizations {
   String get scanBarcode => 'Сканировать штрихкод';
 
   @override
+  String get scanLabelButton => 'Сфотографировать этикетку';
+
+  @override
+  String get scanSourceUser => 'Сохранено вами';
+
+  @override
+  String get labelScanTitle => 'Этикетка';
+
+  @override
+  String get labelHint =>
+      'Займите кадр таблицей пищевой ценности. Снимайте ровно, резко и при хорошем свете.';
+
+  @override
+  String get labelRead => 'Прочитать этикетку';
+
+  @override
+  String get labelNotRecognized =>
+      'На этом фото не найдена таблица пищевой ценности. Сфотографируйте её прямо и в фокусе или введите значения вручную.';
+
+  @override
+  String get labelFillButton => 'Заполнить по фото этикетки';
+
+  @override
+  String get labelCheckValues =>
+      'Перед сохранением сверьте каждое значение с упаковкой.';
+
+  @override
+  String get labelConverted =>
+      'На этикетке значения были на порцию; они пересчитаны на 100 г.';
+
+  @override
+  String get labelVolume =>
+      'На этикетке значения на 100 мл; они использованы как на 100 г.';
+
+  @override
+  String get labelEnergyMismatch =>
+      'Энергия не сходится с белками, жирами и углеводами. Проверьте числа.';
+
+  @override
+  String get labelEnergyEstimated =>
+      'На этикетке нет энергии; она рассчитана по белкам, жирам и углеводам.';
+
+  @override
+  String get labelLowConfidence =>
+      'Текст плохо читался. Некоторые числа могут быть неверны.';
+
+  @override
+  String get labelIncomplete =>
+      'Часть значений прочитать не удалось. Заполните их.';
+
+  @override
+  String customBarcode(String value) {
+    return 'Штрихкод $value';
+  }
+
+  @override
+  String get customServingLabel => 'Порция, г (необязательно)';
+
+  @override
+  String get errServing =>
+      'Введите порцию от 1 до 2000 г или оставьте поле пустым.';
+
+  @override
   String get scanTitle => 'Сканирование штрихкода';
 
   @override
@@ -769,7 +832,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get privacyAnalysis =>
-      'При анализе фото CalSnap отправляет подготовленное фото (без метаданных; два фото, если вы добавите фото сбоку), язык приложения и, если задан, диаметр тарелки на сервер CalSnap, который передаёт их AI-провайдеру.';
+      'При анализе фото CalSnap отправляет подготовленное фото (без метаданных; два фото, если вы добавите фото сбоку, или фото этикетки, если вы её сканируете), язык приложения и, если задан, диаметр тарелки на сервер CalSnap, который передаёт их AI-провайдеру.';
 
   @override
   String get privacyBarcode =>

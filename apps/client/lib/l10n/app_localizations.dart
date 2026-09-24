@@ -1112,6 +1112,108 @@ abstract class AppLocalizations {
   /// **'Scan barcode'**
   String get scanBarcode;
 
+  /// No description provided for @scanLabelButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan nutrition label'**
+  String get scanLabelButton;
+
+  /// No description provided for @scanSourceUser.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved by you'**
+  String get scanSourceUser;
+
+  /// No description provided for @labelScanTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nutrition label'**
+  String get labelScanTitle;
+
+  /// No description provided for @labelHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill the frame with the nutrition table. Keep it straight, sharp and well lit.'**
+  String get labelHint;
+
+  /// No description provided for @labelRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Read label'**
+  String get labelRead;
+
+  /// No description provided for @labelNotRecognized.
+  ///
+  /// In en, this message translates to:
+  /// **'No nutrition table was found in this photo. Photograph the table straight on and in focus, or enter the values yourself.'**
+  String get labelNotRecognized;
+
+  /// No description provided for @labelFillButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill from a label photo'**
+  String get labelFillButton;
+
+  /// No description provided for @labelCheckValues.
+  ///
+  /// In en, this message translates to:
+  /// **'Check every value against the package before saving.'**
+  String get labelCheckValues;
+
+  /// No description provided for @labelConverted.
+  ///
+  /// In en, this message translates to:
+  /// **'The label was per serving; the values were converted to 100 g.'**
+  String get labelConverted;
+
+  /// No description provided for @labelVolume.
+  ///
+  /// In en, this message translates to:
+  /// **'The label was per 100 ml; the values are used as per 100 g.'**
+  String get labelVolume;
+
+  /// No description provided for @labelEnergyMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'The energy does not match the protein, fat and carbohydrates. Please check the numbers.'**
+  String get labelEnergyMismatch;
+
+  /// No description provided for @labelEnergyEstimated.
+  ///
+  /// In en, this message translates to:
+  /// **'The label showed no energy; it was calculated from protein, fat and carbohydrates.'**
+  String get labelEnergyEstimated;
+
+  /// No description provided for @labelLowConfidence.
+  ///
+  /// In en, this message translates to:
+  /// **'The text was hard to read. Some numbers may be wrong.'**
+  String get labelLowConfidence;
+
+  /// No description provided for @labelIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Some values could not be read. Please fill them in.'**
+  String get labelIncomplete;
+
+  /// No description provided for @customBarcode.
+  ///
+  /// In en, this message translates to:
+  /// **'Barcode {value}'**
+  String customBarcode(String value);
+
+  /// No description provided for @customServingLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Serving, g (optional)'**
+  String get customServingLabel;
+
+  /// No description provided for @errServing.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a serving from 1 to 2000 g or leave the field empty.'**
+  String get errServing;
+
   /// No description provided for @scanTitle.
   ///
   /// In en, this message translates to:
@@ -1445,7 +1547,7 @@ abstract class AppLocalizations {
   /// No description provided for @privacyAnalysis.
   ///
   /// In en, this message translates to:
-  /// **'When you analyze a photo, CalSnap sends the prepared photo (without metadata; two photos if you add a side photo), the app language and, if set, your plate diameter to the CalSnap server, which forwards them to an AI provider.'**
+  /// **'When you analyze a photo, CalSnap sends the prepared photo (without metadata; two photos if you add a side photo, or a photo of a nutrition label if you scan one), the app language and, if set, your plate diameter to the CalSnap server, which forwards them to an AI provider.'**
   String get privacyAnalysis;
 
   /// No description provided for @privacyBarcode.

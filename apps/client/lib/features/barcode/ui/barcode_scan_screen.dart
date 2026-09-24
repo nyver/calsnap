@@ -9,7 +9,11 @@ import '../../../core/di/providers.dart';
 import '../../../shared/l10n_x.dart';
 import '../../camera/data/gateways.dart';
 import '../../foods/domain/food.dart';
+import '../../label/ui/label_flow.dart';
+import '../../label/ui/label_reader.dart';
+import '../../meal/domain/meal.dart';
 import '../../recognition/domain/analysis.dart';
+import '../../recognition/ui/analysis_screen.dart' show analysisFailureMessage;
 import '../domain/gtin.dart';
 import '../domain/packaged_product.dart';
 import 'scanner_view.dart';
@@ -103,6 +107,16 @@ class _BarcodeScanScreenState extends ConsumerState<BarcodeScanScreen> {
     });
   }
 
+  /// The chain for a barcode nobody knows: photograph the nutrition table,
+  /// confirm what was read, save it locally under this barcode.
+  Future<void> _scanLabel() async {
+    final code = _code;
+    final reading = await scanLabel(context);
+    if (reading == null || !mounted) return;
+    final food = await confirmLabelReading(context, reading, barcode: code);
+    if (food != null && mounted) context.pop(food);
+  }
+
   void _again() => setState(() {
     _phase = _Phase.scanning;
     _food = null;
@@ -145,6 +159,9 @@ class _BarcodeScanScreenState extends ConsumerState<BarcodeScanScreen> {
           ),
           _Phase.failed => _Failed(
             failure: _failure,
+            onScanLabel: ref.watch(labelReadingSupportedProvider).value ?? false
+                ? _scanLabel
+                : null,
             onRetry: () {
               final code = _code;
               if (code != null) unawaited(_lookup(code));
@@ -334,7 +351,12 @@ class _Found extends ConsumerWidget {
                   ),
                 ],
                 const SizedBox(height: 12),
-                Text(l10n.scanSource, style: theme.textTheme.bodySmall),
+                Text(
+                  food.source == NutritionSourceName.packaged
+                      ? l10n.scanSource
+                      : l10n.scanSourceUser,
+                  style: theme.textTheme.bodySmall,
+                ),
               ],
             ),
           ),
@@ -359,11 +381,15 @@ class _Found extends ConsumerWidget {
 class _Failed extends StatelessWidget {
   const _Failed({
     required this.failure,
+    required this.onScanLabel,
     required this.onRetry,
     required this.onAgain,
   });
 
   final Object? failure;
+
+  /// Offered for an unknown product when the server can read labels.
+  final VoidCallback? onScanLabel;
   final VoidCallback onRetry;
   final VoidCallback onAgain;
 
@@ -372,16 +398,12 @@ class _Failed extends StatelessWidget {
     final l10n = context.l10n;
     final scheme = Theme.of(context).colorScheme;
     final notFound = failure is ProductNotFoundException;
-    final message = switch (failure) {
-      ProductNotFoundException() => l10n.scanNotFound,
-      OfflineFailure() => l10n.errOffline,
-      TimeoutFailure() => l10n.errTimeout,
-      RateLimitedFailure() => l10n.errRateLimited,
-      UnavailableFailure() => l10n.errUnavailable,
-      ServerNotConfiguredFailure() => l10n.errServerNotConfigured,
-      CertificateFailure() => l10n.errCertificate,
-      _ => l10n.errUnknown,
-    };
+    final failed = failure;
+    final message = failed is AnalysisFailure
+        ? analysisFailureMessage(l10n, failed)
+        : notFound
+        ? l10n.scanNotFound
+        : l10n.errUnknown;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -401,6 +423,12 @@ class _Failed extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 24),
+            if (notFound && onScanLabel != null)
+              FilledButton(
+                key: const Key('scanLabel'),
+                onPressed: onScanLabel,
+                child: Text(l10n.scanLabelButton),
+              ),
             if (!notFound)
               FilledButton(
                 key: const Key('scanRetry'),

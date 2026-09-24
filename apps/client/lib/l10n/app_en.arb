@@ -272,6 +272,30 @@
   "settingsCalories": "Calorie target",
   "settingsPlate": "My usual plate",
   "scanBarcode": "Scan barcode",
+  "scanLabelButton": "Scan nutrition label",
+  "scanSourceUser": "Saved by you",
+  "labelScanTitle": "Nutrition label",
+  "labelHint": "Fill the frame with the nutrition table. Keep it straight, sharp and well lit.",
+  "labelRead": "Read label",
+  "labelNotRecognized": "No nutrition table was found in this photo. Photograph the table straight on and in focus, or enter the values yourself.",
+  "labelFillButton": "Fill from a label photo",
+  "labelCheckValues": "Check every value against the package before saving.",
+  "labelConverted": "The label was per serving; the values were converted to 100 g.",
+  "labelVolume": "The label was per 100 ml; the values are used as per 100 g.",
+  "labelEnergyMismatch": "The energy does not match the protein, fat and carbohydrates. Please check the numbers.",
+  "labelEnergyEstimated": "The label showed no energy; it was calculated from protein, fat and carbohydrates.",
+  "labelLowConfidence": "The text was hard to read. Some numbers may be wrong.",
+  "labelIncomplete": "Some values could not be read. Please fill them in.",
+  "customBarcode": "Barcode {value}",
+  "@customBarcode": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "customServingLabel": "Serving, g (optional)",
+  "errServing": "Enter a serving from 1 to 2000 g or leave the field empty.",
   "scanTitle": "Scan barcode",
   "scanHint": "Point the camera at the barcode on the package",
   "scanTorch": "Flashlight",
@@ -376,7 +400,7 @@
   },
   "privacyTitle": "Privacy",
   "privacyDiary": "Your diary is stored only on this device.",
-  "privacyAnalysis": "When you analyze a photo, CalSnap sends the prepared photo (without metadata; two photos if you add a side photo), the app language and, if set, your plate diameter to the CalSnap server, which forwards them to an AI provider.",
+  "privacyAnalysis": "When you analyze a photo, CalSnap sends the prepared photo (without metadata; two photos if you add a side photo, or a photo of a nutrition label if you scan one), the app language and, if set, your plate diameter to the CalSnap server, which forwards them to an AI provider.",
   "privacyBarcode": "Barcodes are read on your device. To find a product, CalSnap sends only the barcode number to its server, which asks Open Food Facts. The scanner library may send anonymous technical statistics to Google.",
   "privacyNoStorage": "The CalSnap server does not store your photos after the request is finished.",
   "privacyProvider": "The retention and training terms of the AI provider apply to what it receives.",
