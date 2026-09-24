@@ -568,7 +568,62 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settingsCalories => 'Цель по калориям';
 
   @override
-  String get settingsPlate => 'Диаметр тарелки';
+  String get settingsPlate => 'Моя обычная тарелка';
+
+  @override
+  String get plateGuideHint => 'Держите камеру прямо над тарелкой';
+
+  @override
+  String get qualityTitle => 'Переснять для более точной оценки?';
+
+  @override
+  String get issueSteepAngle =>
+      'Тарелка снята под большим углом. Для более точной оценки порции сфотографируйте сверху.';
+
+  @override
+  String get issuePlateCutOff =>
+      'Тарелка не помещается в кадр. Отойдите немного, чтобы тарелка была видна целиком.';
+
+  @override
+  String get issueBlurry =>
+      'Фото выглядит размытым. Держите телефон неподвижно и дождитесь фокусировки.';
+
+  @override
+  String get issueTooDark =>
+      'Фото слишком тёмное. Перейдите к более яркому свету или включите вспышку.';
+
+  @override
+  String get issueTooBright =>
+      'Фото пересвечено. Избегайте бликов и прямого света.';
+
+  @override
+  String plateChipUsual(String value) {
+    return 'Моя обычная тарелка: $value см';
+  }
+
+  @override
+  String plateChipOnce(String value) {
+    return 'Тарелка для этого фото: $value см';
+  }
+
+  @override
+  String get plateChipAdd => 'Указать размер тарелки';
+
+  @override
+  String get plateSheetTitle => 'Размер тарелки';
+
+  @override
+  String get plateSheetBody =>
+      'Известный размер тарелки помогает оценить порцию. Обычные обеденные тарелки — 24–28 см.';
+
+  @override
+  String get plateOtherLabel => 'Другой, см';
+
+  @override
+  String get plateRemember => 'Запомнить как мою обычную тарелку';
+
+  @override
+  String get plateNone => 'Без размера тарелки';
 
   @override
   String get notSet => 'Не задано';

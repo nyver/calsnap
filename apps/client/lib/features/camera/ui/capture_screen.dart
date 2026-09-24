@@ -7,11 +7,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
+import '../../../core/di/providers.dart';
 import '../../../shared/l10n_x.dart';
 import '../../meal/ui/meal_draft_notifier.dart';
 import '../../recognition/ui/analysis_controller.dart';
 import '../../recognition/ui/analysis_screen.dart';
 import '../data/gateways.dart';
+import '../data/photo_analyzer.dart';
+import '../domain/photo_quality.dart';
+import 'photo_quality_banner.dart';
+import 'plate_guide.dart';
+import 'plate_sheet.dart';
 
 /// In-app camera with flash, lens switch, gallery import and a preview with
 /// "Retake" and "Analyze". Permission is requested here, at the point of use.
@@ -48,6 +54,13 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
 
   /// Camera-made files are removed when the screen is left; gallery originals never.
   bool _photoIsOurs = false;
+
+  /// The local checks of the photo in the preview; null until they finish or
+  /// when the photo cannot be judged.
+  PhotoQuality? _quality;
+
+  /// A plate size chosen for this photo only (see [AnalysisSource]).
+  ({double? cm})? _plateOverride;
 
   @override
   void initState() {
@@ -137,10 +150,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
     try {
       final file = await controller.takePicture();
       if (!mounted) return;
-      setState(() {
-        _photoPath = file.path;
-        _photoIsOurs = true;
-      });
+      _showPhoto(file.path, ours: true);
     } on CameraException {
       // The shutter failed; the viewfinder stays and the user can try again.
     } finally {
@@ -152,10 +162,58 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
     final path = await ref.read(galleryPickerProvider).pick();
     if (!mounted || path == null) return;
     _deleteOwnedPhoto();
+    _showPhoto(path, ours: false);
+  }
+
+  void _showPhoto(String path, {required bool ours}) {
     setState(() {
       _photoPath = path;
-      _photoIsOurs = false;
+      _photoIsOurs = ours;
+      _quality = null;
     });
+    unawaited(_assess(path));
+  }
+
+  /// Runs the local checks in the background; the preview is usable at once.
+  Future<void> _assess(String path) async {
+    final check = ref.read(photoQualityProvider);
+    final quality = await check(path, checkPlate: !widget.sideView);
+    if (!mounted || _photoPath != path) return;
+    setState(() => _quality = quality);
+  }
+
+  double? get _shownPlate => _plateOverride != null
+      ? _plateOverride!.cm
+      : ref.read(currentSettingsProvider).plateDiameterCm;
+
+  Future<void> _choosePlate() async {
+    final l10n = context.l10n;
+    final messenger = ScaffoldMessenger.of(context);
+    final choice = await showPlateSheet(context, current: _shownPlate);
+    if (choice == null || !mounted) return;
+    if (!choice.remember) {
+      setState(() => _plateOverride = (cm: choice.diameterCm));
+      return;
+    }
+    try {
+      final settings = ref.read(currentSettingsProvider);
+      await ref
+          .read(settingsRepositoryProvider)
+          .save(settings.copyWith(plateDiameterCm: () => choice.diameterCm));
+      if (mounted) setState(() => _plateOverride = null);
+    } on Exception {
+      messenger.showSnackBar(SnackBar(content: Text(l10n.saveFailed)));
+    }
+  }
+
+  String? _plateLabel(BuildContext context) {
+    final l10n = context.l10n;
+    final cm = _shownPlate;
+    if (cm == null) return null;
+    final value = context.fmt.weight(cm);
+    return _plateOverride != null
+        ? l10n.plateChipOnce(value)
+        : l10n.plateChipUsual(value);
   }
 
   void _retake() {
@@ -163,6 +221,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
     setState(() {
       _photoPath = null;
       _photoIsOurs = false;
+      _quality = null;
     });
     if (_controller == null && _access == CameraAccess.granted) {
       unawaited(_openCamera());
@@ -182,7 +241,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
         top: PreparedPhoto(jpeg: jpeg, tempFile: draft?.tempPhotoFile),
       );
     } else {
-      source = AnalysisSource(path: path);
+      source = AnalysisSource(path: path, plateOverride: _plateOverride);
     }
     final exit = await context.push<AnalysisExit>(
       Routes.analysis,
@@ -239,6 +298,10 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
         child: _photoPath != null
             ? _Preview(
                 path: _photoPath!,
+                issues: _quality?.issues ?? const [],
+                plateLabel: _plateLabel(context),
+                showPlate: !widget.sideView,
+                onPlate: _choosePlate,
                 onRetake: _retake,
                 onAnalyze: _analyze,
               )
@@ -295,7 +358,14 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
               style: const TextStyle(color: Colors.white70),
             ),
           ),
-        Expanded(child: Center(child: CameraPreview(controller))),
+        Expanded(
+          child: Stack(
+            children: [
+              Center(child: CameraPreview(controller)),
+              if (!widget.sideView) const Positioned.fill(child: PlateGuide()),
+            ],
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 16),
           child: Row(
@@ -378,11 +448,21 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
 class _Preview extends StatelessWidget {
   const _Preview({
     required this.path,
+    required this.issues,
+    required this.plateLabel,
+    required this.showPlate,
+    required this.onPlate,
     required this.onRetake,
     required this.onAnalyze,
   });
 
   final String path;
+  final List<PhotoIssue> issues;
+
+  /// The chip text for the known plate; null when there is none yet.
+  final String? plateLabel;
+  final bool showPlate;
+  final VoidCallback onPlate;
   final VoidCallback onRetake;
   final VoidCallback onAnalyze;
 
@@ -403,27 +483,61 @@ class _Preview extends StatelessWidget {
             ),
           ),
         ),
+        if (issues.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: PhotoQualityBanner(issues: issues),
+          ),
+        if (showPlate)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: ActionChip(
+                key: const Key('plateChip'),
+                avatar: const Icon(Icons.circle_outlined, size: 18),
+                label: Text(plateLabel ?? l10n.plateChipAdd),
+                onPressed: onPlate,
+              ),
+            ),
+          ),
         Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
               Expanded(
-                child: OutlinedButton(
-                  key: const Key('retake'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                  ),
-                  onPressed: onRetake,
-                  child: Text(l10n.retake),
-                ),
+                // With advice to follow, retaking is the suggested action.
+                child: issues.isEmpty
+                    ? OutlinedButton(
+                        key: const Key('retake'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: onRetake,
+                        child: Text(l10n.retake),
+                      )
+                    : FilledButton(
+                        key: const Key('retake'),
+                        onPressed: onRetake,
+                        child: Text(l10n.retake),
+                      ),
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: FilledButton(
-                  key: const Key('analyze'),
-                  onPressed: onAnalyze,
-                  child: Text(l10n.analyze),
-                ),
+                child: issues.isEmpty
+                    ? FilledButton(
+                        key: const Key('analyze'),
+                        onPressed: onAnalyze,
+                        child: Text(l10n.analyze),
+                      )
+                    : OutlinedButton(
+                        key: const Key('analyze'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: onAnalyze,
+                        child: Text(l10n.analyze),
+                      ),
               ),
             ],
           ),

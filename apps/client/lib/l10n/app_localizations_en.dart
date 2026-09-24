@@ -565,7 +565,62 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsCalories => 'Calorie target';
 
   @override
-  String get settingsPlate => 'Plate diameter';
+  String get settingsPlate => 'My usual plate';
+
+  @override
+  String get plateGuideHint => 'Hold the camera directly above the plate';
+
+  @override
+  String get qualityTitle => 'Retake for a better estimate?';
+
+  @override
+  String get issueSteepAngle =>
+      'The plate is shot at a steep angle. For a more accurate portion estimate, take the photo from above.';
+
+  @override
+  String get issuePlateCutOff =>
+      'The plate does not fit in the frame. Step back a little so the whole plate is visible.';
+
+  @override
+  String get issueBlurry =>
+      'The photo looks blurry. Hold the phone steady and let it focus.';
+
+  @override
+  String get issueTooDark =>
+      'The photo is too dark. Move to better light or turn on the flash.';
+
+  @override
+  String get issueTooBright =>
+      'The photo is overexposed. Avoid glare and direct light.';
+
+  @override
+  String plateChipUsual(String value) {
+    return 'My usual plate: $value cm';
+  }
+
+  @override
+  String plateChipOnce(String value) {
+    return 'Plate for this photo: $value cm';
+  }
+
+  @override
+  String get plateChipAdd => 'Add plate size';
+
+  @override
+  String get plateSheetTitle => 'Plate size';
+
+  @override
+  String get plateSheetBody =>
+      'A known plate size helps to estimate the portion. Typical dinner plates are 24 to 28 cm.';
+
+  @override
+  String get plateOtherLabel => 'Other, cm';
+
+  @override
+  String get plateRemember => 'Remember as my usual plate';
+
+  @override
+  String get plateNone => 'No plate size';
 
   @override
   String get notSet => 'Not set';

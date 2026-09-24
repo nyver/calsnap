@@ -13,9 +13,13 @@ import '../domain/analysis.dart';
 
 /// The photo to analyze.
 class AnalysisSource {
-  const AnalysisSource({required this.path, this.top});
+  const AnalysisSource({required this.path, this.top, this.plateOverride});
 
   final String path;
+
+  /// A plate size chosen for this photo only. Null uses the saved setting;
+  /// a record with a null size means "no plate size" for this photo.
+  final ({double? cm})? plateOverride;
 
   /// Set when [path] is a side photo that refines the analysis of this
   /// already prepared main photo (its temporary file belongs to the draft).
@@ -158,7 +162,9 @@ class AnalysisController extends Notifier<AnalysisState> {
             locale: ref.read(effectiveLanguageCodeProvider),
             requestId: ref.read(idsProvider).newId(),
             config: config,
-            plateDiameterCm: settings.plateDiameterCm,
+            plateDiameterCm: source.plateOverride != null
+                ? source.plateOverride!.cm
+                : settings.plateDiameterCm,
             cancelToken: token,
           );
       if (_cancelled) return;

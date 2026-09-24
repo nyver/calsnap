@@ -160,6 +160,10 @@ The release manifest requests only `INTERNET` and `CAMERA`, disables cleartext t
 
 Meals, items, foods, settings and AI correction records live in SQLite on the device (Drift, schema version 1, WAL, foreign keys on). Photos are files under `meals/YYYY/MM/DD/`, never BLOBs. See [docs/security/privacy.md](docs/security/privacy.md).
 
+### Better photos, better portions
+
+The viewfinder shows a plate outline and "Hold the camera directly above the plate". After you take or pick a photo, the app checks it locally, without any AI call: blur, brightness, the camera angle (from the shape of the plate) and whether the plate fits in the frame. If something is off, a banner says what and suggests retaking, for example "The plate is shot at a steep angle. For a more accurate portion estimate, take the photo from above."; analyzing the photo anyway is always possible. The preview also has a plate chip: pick a size (20 to 30 cm or your own) and keep it as "My usual plate", or use it for this photo only; a known plate size is sent to the backend as a scale reference. The checks are heuristics tuned on synthetic images and lenient by design (see [ADR 009](docs/adr/009-local-photo-checks-and-plate-guide.md)); nothing from them leaves the device.
+
 ### Side photo for better volume estimates
 
 After a normal analysis the result screen offers "Improve accuracy": a second photo of the same meal taken from the side, which helps with rice, pasta, potatoes, salads, cakes and meat. It is optional and appears only when the backend advertises `maxImages` 2 in `GET /v1/config`; the usual single-photo flow is unchanged. Both photos are sent in one request (`image` and `sideImage`, see `protocol/api/openapi.yaml`), the result replaces the items of the current draft (after a confirmation when you already edited them) and the meal keeps its time, type and first photo. Details: [ADR 008](docs/adr/008-optional-side-photo.md).
@@ -229,6 +233,7 @@ python scripts/generate_app_icons.py
 
 * The unauthenticated backend relies on rate limits; there is no app attestation yet.
 * The in-progress recognition result is not persisted across process death; retake the photo.
+* The photo checks were tuned on synthetic images, not on a labeled set of real meal photos; an oval platter can trigger a wrong "steep angle" advice, and a missing or unusual plate simply gets no advice.
 * The side photo is offered for every fresh recognition (not only for bulky foods) and only the first photo is stored with the meal.
 * Personalized weights learn only from weight corrections of AI items; nutrition values are not personalized, and the food category is derived from the macros because the catalog has none.
 * The Go module path is a placeholder (`example.com/calsnap/server`).

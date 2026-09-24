@@ -23,7 +23,7 @@ Only when the user analyzes a photo, the app sends to the CalSnap backend over H
 * the plate diameter, if the user set one;
 * a random request id (`X-Request-Id`).
 
-Nothing else is sent: not the diary, not the settings, not device identifiers, no account (there is none).
+The local photo checks (blur, brightness, camera angle) run on the device and send nothing. Nothing else is sent: not the diary, not the settings, not device identifiers, no account (there is none).
 
 ## What the backend does with it
 

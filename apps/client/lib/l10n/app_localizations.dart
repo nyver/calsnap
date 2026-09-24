@@ -1103,8 +1103,98 @@ abstract class AppLocalizations {
   /// No description provided for @settingsPlate.
   ///
   /// In en, this message translates to:
-  /// **'Plate diameter'**
+  /// **'My usual plate'**
   String get settingsPlate;
+
+  /// No description provided for @plateGuideHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold the camera directly above the plate'**
+  String get plateGuideHint;
+
+  /// No description provided for @qualityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Retake for a better estimate?'**
+  String get qualityTitle;
+
+  /// No description provided for @issueSteepAngle.
+  ///
+  /// In en, this message translates to:
+  /// **'The plate is shot at a steep angle. For a more accurate portion estimate, take the photo from above.'**
+  String get issueSteepAngle;
+
+  /// No description provided for @issuePlateCutOff.
+  ///
+  /// In en, this message translates to:
+  /// **'The plate does not fit in the frame. Step back a little so the whole plate is visible.'**
+  String get issuePlateCutOff;
+
+  /// No description provided for @issueBlurry.
+  ///
+  /// In en, this message translates to:
+  /// **'The photo looks blurry. Hold the phone steady and let it focus.'**
+  String get issueBlurry;
+
+  /// No description provided for @issueTooDark.
+  ///
+  /// In en, this message translates to:
+  /// **'The photo is too dark. Move to better light or turn on the flash.'**
+  String get issueTooDark;
+
+  /// No description provided for @issueTooBright.
+  ///
+  /// In en, this message translates to:
+  /// **'The photo is overexposed. Avoid glare and direct light.'**
+  String get issueTooBright;
+
+  /// No description provided for @plateChipUsual.
+  ///
+  /// In en, this message translates to:
+  /// **'My usual plate: {value} cm'**
+  String plateChipUsual(String value);
+
+  /// No description provided for @plateChipOnce.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate for this photo: {value} cm'**
+  String plateChipOnce(String value);
+
+  /// No description provided for @plateChipAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add plate size'**
+  String get plateChipAdd;
+
+  /// No description provided for @plateSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Plate size'**
+  String get plateSheetTitle;
+
+  /// No description provided for @plateSheetBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A known plate size helps to estimate the portion. Typical dinner plates are 24 to 28 cm.'**
+  String get plateSheetBody;
+
+  /// No description provided for @plateOtherLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Other, cm'**
+  String get plateOtherLabel;
+
+  /// No description provided for @plateRemember.
+  ///
+  /// In en, this message translates to:
+  /// **'Remember as my usual plate'**
+  String get plateRemember;
+
+  /// No description provided for @plateNone.
+  ///
+  /// In en, this message translates to:
+  /// **'No plate size'**
+  String get plateNone;
 
   /// No description provided for @notSet.
   ///

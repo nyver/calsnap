@@ -270,7 +270,36 @@
   "settingsTitle": "Settings",
   "settingsTargetsSection": "Daily targets",
   "settingsCalories": "Calorie target",
-  "settingsPlate": "Plate diameter",
+  "settingsPlate": "My usual plate",
+  "plateGuideHint": "Hold the camera directly above the plate",
+  "qualityTitle": "Retake for a better estimate?",
+  "issueSteepAngle": "The plate is shot at a steep angle. For a more accurate portion estimate, take the photo from above.",
+  "issuePlateCutOff": "The plate does not fit in the frame. Step back a little so the whole plate is visible.",
+  "issueBlurry": "The photo looks blurry. Hold the phone steady and let it focus.",
+  "issueTooDark": "The photo is too dark. Move to better light or turn on the flash.",
+  "issueTooBright": "The photo is overexposed. Avoid glare and direct light.",
+  "plateChipUsual": "My usual plate: {value} cm",
+  "@plateChipUsual": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "plateChipOnce": "Plate for this photo: {value} cm",
+  "@plateChipOnce": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "plateChipAdd": "Add plate size",
+  "plateSheetTitle": "Plate size",
+  "plateSheetBody": "A known plate size helps to estimate the portion. Typical dinner plates are 24 to 28 cm.",
+  "plateOtherLabel": "Other, cm",
+  "plateRemember": "Remember as my usual plate",
+  "plateNone": "No plate size",
   "notSet": "Not set",
   "settingsPhotosSection": "Photos",
   "settingsSavePhotos": "Save meal photos",
