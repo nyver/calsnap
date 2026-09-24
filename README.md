@@ -105,6 +105,20 @@ The image is a static, non-root, distroless binary. The key is passed through th
 
 The rate limiter and the replay cache are per process, so run a single instance ([ADR 003](docs/adr/003-in-memory-idempotency-and-rate-limiting.md)).
 
+## Build script (Windows)
+
+`scripts/build.bat [debug|release] [all|server|android]` builds everything into `dist\` (ignored by Git): the server for Windows and Linux (`amd64`, no CGO) and the Android APKs (`release` is split per ABI). Configure it with environment variables:
+
+```bat
+set API_BASE_URL=https://calsnap.example.com   rem required for release, must be https://
+set PRIVACY_POLICY_URL=https://calsnap.example.com/privacy
+set VERSION=1.0.0                              rem default 0.0.0-dev
+scripts/build.bat release
+scripts/build.bat debug android               rem emulator build, API_BASE_URL defaults to http://10.0.2.2:8080
+```
+
+It needs Go and Flutter (with the Android toolchain) on `PATH`. Without `apps/client/android/key.properties` the release APKs are signed with the debug key and the script warns about it. The script only builds; run the tests separately.
+
 ## Android app
 
 ### Build
