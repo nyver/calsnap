@@ -110,11 +110,11 @@ The rate limiter and the replay cache are per process, so run a single instance 
 `scripts/build.bat [debug|release] [all|server|android]` builds everything into `dist\` (ignored by Git): the server for Windows and Linux (`amd64`, no CGO) and the Android APKs (`release` is split per ABI). Configure it with environment variables:
 
 ```bat
-set API_BASE_URL=https://calsnap.example.com   rem required for release, must be https://
+set API_BASE_URL=https://calsnap.example.com   rem optional default address, https:// for release
 set PRIVACY_POLICY_URL=https://calsnap.example.com/privacy
 set VERSION=1.0.0                              rem default 0.0.0-dev
 scripts/build.bat release
-scripts/build.bat debug android               rem emulator build, API_BASE_URL defaults to http://10.0.2.2:8080
+scripts/build.bat debug android               rem emulator build (the app defaults to http://10.0.2.2:8080)
 ```
 
 It needs Go and Flutter (with the Android toolchain) on `PATH`. Without `apps/client/android/key.properties` the release APKs are signed with the debug key and the script warns about it. The script only builds; run the tests separately.
@@ -123,7 +123,7 @@ It needs Go and Flutter (with the Android toolchain) on `PATH`. Without `apps/cl
 
 ### Build
 
-The backend URL is a build-time constant:
+The backend address is set **in the app** (Settings -> Server address) and stored on the device. `--dart-define=API_BASE_URL` only provides an optional default that applies until the user sets one; debug builds default to `http://10.0.2.2:8080` (the emulator host). Release builds accept `https://` addresses only. Without any address the app asks for one when a photo is analyzed; the diary works offline regardless.
 
 ```bash
 cd apps/client
@@ -131,11 +131,10 @@ flutter pub get
 dart run build_runner build          # only after changing Drift tables (generated files are committed)
 
 # debug (emulator; the debug build may use http://10.0.2.2:8080 with the fake provider)
-flutter build apk --debug --dart-define=API_BASE_URL=http://10.0.2.2:8080
+flutter build apk --debug
 
-# release: an https:// URL is mandatory, the app refuses to start otherwise
+# release (add --dart-define=API_BASE_URL=https://... to preset the server address)
 flutter build apk --release --split-per-abi \
-  --dart-define=API_BASE_URL=https://calsnap.example.com \
   --dart-define=PRIVACY_POLICY_URL=https://calsnap.example.com/privacy \
   --dart-define=APP_VERSION=1.0.0
 ```
@@ -186,7 +185,7 @@ scripts/sync-catalog.sh --check  # verify (both test suites also fail on drift)
 
 ## Troubleshooting
 
-* **Release app closes immediately** – the release build needs `--dart-define=API_BASE_URL=https://...`.
+* **"The server address is not set" when analyzing a photo** – open Settings -> Server address and enter your `https://` address (release builds reject `http://`).
 * **"Analysis service temporarily unavailable"** – check the backend logs by request id; the app shows the same id in nothing user-visible, but the `X-Request-Id` header is echoed by the API.
 * **Backend exits at startup** – the error names the invalid key (for example the environment variable that should hold the API key, never its value).
 * **Kotlin/Gradle errors like "Storage already registered" on Windows** – the project and the pub cache are on different drives; `kotlin.incremental=false` in `android/gradle.properties` works around it.

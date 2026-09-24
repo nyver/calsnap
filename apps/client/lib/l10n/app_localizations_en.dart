@@ -631,4 +631,29 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get privacyPolicyUnavailable => 'The link could not be opened.';
+
+  @override
+  String get settingsServerSection => 'Server';
+
+  @override
+  String get settingsServerUrl => 'Server address';
+
+  @override
+  String get serverUrlHelp =>
+      'Address of your CalSnap server, for example https://calsnap.example.com. Leave empty to use the default.';
+
+  @override
+  String get errServerUrlInvalid =>
+      'Enter a full address that starts with https://, without a login, query or #fragment.';
+
+  @override
+  String get errServerUrlInsecure =>
+      'Only secure https:// addresses are allowed.';
+
+  @override
+  String get errServerNotConfigured =>
+      'The server address is not set. Enter the address of your CalSnap server in the settings to analyze photos.';
+
+  @override
+  String get serverSettingsAction => 'Server settings';
 }

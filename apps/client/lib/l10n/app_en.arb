@@ -310,5 +310,12 @@
   "privacyNoStorage": "The CalSnap server does not store your photos after the request is finished.",
   "privacyProvider": "The retention and training terms of the AI provider apply to what it receives.",
   "privacyPolicyLink": "Full privacy policy",
-  "privacyPolicyUnavailable": "The link could not be opened."
+  "privacyPolicyUnavailable": "The link could not be opened.",
+  "settingsServerSection": "Server",
+  "settingsServerUrl": "Server address",
+  "serverUrlHelp": "Address of your CalSnap server, for example https://calsnap.example.com. Leave empty to use the default.",
+  "errServerUrlInvalid": "Enter a full address that starts with https://, without a login, query or #fragment.",
+  "errServerUrlInsecure": "Only secure https:// addresses are allowed.",
+  "errServerNotConfigured": "The server address is not set. Enter the address of your CalSnap server in the settings to analyze photos.",
+  "serverSettingsAction": "Server settings"
 }

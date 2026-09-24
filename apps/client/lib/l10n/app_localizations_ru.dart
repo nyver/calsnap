@@ -635,4 +635,29 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get privacyPolicyUnavailable => 'Не удалось открыть ссылку.';
+
+  @override
+  String get settingsServerSection => 'Сервер';
+
+  @override
+  String get settingsServerUrl => 'Адрес сервера';
+
+  @override
+  String get serverUrlHelp =>
+      'Адрес вашего сервера CalSnap, например https://calsnap.example.com. Оставьте пустым, чтобы использовать адрес по умолчанию.';
+
+  @override
+  String get errServerUrlInvalid =>
+      'Введите полный адрес, начинающийся с https://, без логина, параметров и #фрагмента.';
+
+  @override
+  String get errServerUrlInsecure =>
+      'Разрешены только защищённые адреса https://.';
+
+  @override
+  String get errServerNotConfigured =>
+      'Адрес сервера не задан. Укажите адрес вашего сервера CalSnap в настройках, чтобы анализировать фото.';
+
+  @override
+  String get serverSettingsAction => 'Настройки сервера';
 }

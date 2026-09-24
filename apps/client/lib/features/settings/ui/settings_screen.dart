@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
+import '../../../core/config/api_base_url.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/di/providers.dart';
 import '../../../core/utils/formatters.dart';
@@ -175,6 +176,33 @@ class SettingsScreen extends ConsumerWidget {
                     _save(ref, settings.copyWith(language: s.first)),
               ),
             ),
+          ),
+          const Divider(),
+          _Section(l10n.settingsServerSection),
+          ListTile(
+            key: const Key('settingServerUrl'),
+            leading: const Icon(Icons.dns_outlined),
+            title: Text(l10n.settingsServerUrl),
+            subtitle: Text(
+              ref.watch(apiBaseUrlProvider) ?? l10n.notSet,
+              key: const Key('serverUrlValue'),
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () async {
+              final result = await showDialog<String>(
+                context: context,
+                builder: (context) =>
+                    _ServerUrlDialog(initial: settings.apiBaseUrl ?? ''),
+              );
+              if (result != null) {
+                await _save(
+                  ref,
+                  settings.copyWith(
+                    apiBaseUrl: () => result.isEmpty ? null : result,
+                  ),
+                );
+              }
+            },
           ),
           const Divider(),
           _Section(l10n.settingsDataSection),
@@ -367,6 +395,79 @@ class _NumberDialogState extends State<_NumberDialog> {
         FilledButton(
           key: const Key('numberDialogApply'),
           onPressed: valid ? () => Navigator.pop(context, text) : null,
+          child: Text(l10n.apply),
+        ),
+      ],
+    );
+  }
+}
+
+/// Prompt for the backend address. Pops the normalized address, an empty string
+/// to fall back to the default, or null when cancelled.
+class _ServerUrlDialog extends StatefulWidget {
+  const _ServerUrlDialog({required this.initial});
+
+  final String initial;
+
+  @override
+  State<_ServerUrlDialog> createState() => _ServerUrlDialogState();
+}
+
+class _ServerUrlDialogState extends State<_ServerUrlDialog> {
+  // Owned by the dialog state so that it lives as long as the exit animation.
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initial,
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  ApiBaseUrlResult get _parsed =>
+      parseApiBaseUrl(_controller.text, requireHttps: AppConfig.requireHttps);
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final empty = _controller.text.trim().isEmpty;
+    final parsed = _parsed;
+    final error = empty
+        ? null
+        : switch (parsed.problem) {
+            ApiBaseUrlProblem.invalid => l10n.errServerUrlInvalid,
+            ApiBaseUrlProblem.insecure => l10n.errServerUrlInsecure,
+            null => null,
+          };
+    return AlertDialog(
+      title: Text(l10n.settingsServerUrl),
+      content: TextField(
+        key: const Key('serverUrlField'),
+        controller: _controller,
+        autofocus: true,
+        keyboardType: TextInputType.url,
+        autocorrect: false,
+        enableSuggestions: false,
+        decoration: InputDecoration(
+          hintText: 'https://calsnap.example.com',
+          helperText: l10n.serverUrlHelp,
+          helperMaxLines: 4,
+          errorText: error,
+          errorMaxLines: 4,
+        ),
+        onChanged: (_) => setState(() {}),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          key: const Key('serverUrlApply'),
+          onPressed: empty || parsed.url != null
+              ? () => Navigator.pop(context, parsed.url ?? '')
+              : null,
           child: Text(l10n.apply),
         ),
       ],

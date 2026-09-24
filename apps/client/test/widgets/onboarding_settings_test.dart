@@ -228,6 +228,46 @@ void main() {
       expect(find.text('0 / 1800 kcal'), findsOneWidget);
     });
 
+    settingsTest('the server address is validated, saved and can be reset', (
+      tester,
+      app,
+    ) async {
+      await app.completeOnboarding();
+      await openSettings(tester, app);
+      // Debug test builds start with the emulator default.
+      expect(find.text('http://10.0.2.2:8080'), findsOneWidget);
+
+      await tapKey(tester, 'settingServerUrl');
+      await settle(tester);
+      await enterKey(tester, 'serverUrlField', 'calsnap.example.com');
+      expect(find.textContaining('full address'), findsOneWidget);
+      expect(
+        tester
+            .widget<FilledButton>(find.byKey(const Key('serverUrlApply')))
+            .onPressed,
+        isNull,
+      );
+
+      await enterKey(
+        tester,
+        'serverUrlField',
+        ' https://calsnap.example.com/ ',
+      );
+      await tapKey(tester, 'serverUrlApply');
+      await settle(tester);
+      expect(find.text('https://calsnap.example.com'), findsOneWidget);
+      expect((await app.settings()).apiBaseUrl, 'https://calsnap.example.com');
+
+      // An empty value removes the override and the build default applies again.
+      await tapKey(tester, 'settingServerUrl');
+      await settle(tester);
+      await enterKey(tester, 'serverUrlField', '');
+      await tapKey(tester, 'serverUrlApply');
+      await settle(tester);
+      expect((await app.settings()).apiBaseUrl, isNull);
+      expect(find.text('http://10.0.2.2:8080'), findsOneWidget);
+    });
+
     settingsTest(
       'macro targets can be set and cleared, the plate diameter is validated',
       (tester, app) async {

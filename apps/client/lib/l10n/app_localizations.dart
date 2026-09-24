@@ -1219,6 +1219,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The link could not be opened.'**
   String get privacyPolicyUnavailable;
+
+  /// No description provided for @settingsServerSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Server'**
+  String get settingsServerSection;
+
+  /// No description provided for @settingsServerUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Server address'**
+  String get settingsServerUrl;
+
+  /// No description provided for @serverUrlHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Address of your CalSnap server, for example https://calsnap.example.com. Leave empty to use the default.'**
+  String get serverUrlHelp;
+
+  /// No description provided for @errServerUrlInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a full address that starts with https://, without a login, query or #fragment.'**
+  String get errServerUrlInvalid;
+
+  /// No description provided for @errServerUrlInsecure.
+  ///
+  /// In en, this message translates to:
+  /// **'Only secure https:// addresses are allowed.'**
+  String get errServerUrlInsecure;
+
+  /// No description provided for @errServerNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'The server address is not set. Enter the address of your CalSnap server in the settings to analyze photos.'**
+  String get errServerNotConfigured;
+
+  /// No description provided for @serverSettingsAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Server settings'**
+  String get serverSettingsAction;
 }
 
 class _AppLocalizationsDelegate

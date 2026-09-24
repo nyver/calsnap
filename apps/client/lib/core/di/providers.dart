@@ -15,6 +15,8 @@ import '../../features/recognition/data/analysis_api.dart';
 import '../../features/settings/data/drift_settings_repository.dart';
 import '../../features/settings/domain/settings_repository.dart';
 import '../../features/settings/domain/user_settings.dart';
+import '../config/api_base_url.dart';
+import '../config/app_config.dart';
 import '../database/app_database.dart';
 import '../database/database_opener.dart';
 import '../files/photo_storage.dart';
@@ -146,8 +148,25 @@ final effectiveLanguageCodeProvider = Provider<String>((ref) {
   return code == 'ru' ? 'ru' : 'en';
 });
 
+/// The backend address in effect: the one from the settings, otherwise the
+/// build-time default. Null when neither is usable, so that the app can ask
+/// for it instead of sending photos to a bad address.
+final apiBaseUrlProvider = Provider<String?>((ref) {
+  final saved = ref.watch(currentSettingsProvider.select((s) => s.apiBaseUrl));
+  for (final candidate in [saved, AppConfig.defaultApiBaseUrl]) {
+    if (candidate == null) continue;
+    final parsed = parseApiBaseUrl(
+      candidate,
+      requireHttps: AppConfig.requireHttps,
+    );
+    if (parsed.url != null) return parsed.url;
+  }
+  return null;
+});
+
+/// Rebuilt (and the old client closed) when the backend address changes.
 final dioProvider = Provider<Dio>((ref) {
-  final dio = createDio();
+  final dio = createDio(baseUrl: ref.watch(apiBaseUrlProvider) ?? '');
   ref.onDispose(() => dio.close(force: true));
   return dio;
 });

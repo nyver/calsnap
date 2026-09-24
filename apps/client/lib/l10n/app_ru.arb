@@ -186,5 +186,12 @@
   "privacyNoStorage": "Сервер CalSnap не хранит ваши фото после завершения запроса.",
   "privacyProvider": "К данным, полученным AI-провайдером, применяются его условия хранения и обучения.",
   "privacyPolicyLink": "Полная политика конфиденциальности",
-  "privacyPolicyUnavailable": "Не удалось открыть ссылку."
+  "privacyPolicyUnavailable": "Не удалось открыть ссылку.",
+  "settingsServerSection": "Сервер",
+  "settingsServerUrl": "Адрес сервера",
+  "serverUrlHelp": "Адрес вашего сервера CalSnap, например https://calsnap.example.com. Оставьте пустым, чтобы использовать адрес по умолчанию.",
+  "errServerUrlInvalid": "Введите полный адрес, начинающийся с https://, без логина, параметров и #фрагмента.",
+  "errServerUrlInsecure": "Разрешены только защищённые адреса https://.",
+  "errServerNotConfigured": "Адрес сервера не задан. Укажите адрес вашего сервера CalSnap в настройках, чтобы анализировать фото.",
+  "serverSettingsAction": "Настройки сервера"
 }

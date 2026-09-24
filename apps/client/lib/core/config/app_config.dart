@@ -1,12 +1,17 @@
+import 'package:flutter/foundation.dart';
+
 /// Build-time configuration passed with `--dart-define`.
 abstract final class AppConfig {
-  /// Base URL of the CalSnap backend, e.g. `https://calsnap.example.com`.
-  /// Release builds must use HTTPS; the default points at the Android emulator
-  /// host alias and only works with a debug build (cleartext exception).
-  static const String apiBaseUrl = String.fromEnvironment(
+  /// Backend address used until the user sets one in the settings. Debug builds
+  /// default to the Android emulator host alias (cleartext is allowed there
+  /// only); release builds have no default unless `API_BASE_URL` is defined.
+  static const String defaultApiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:8080',
+    defaultValue: kDebugMode ? 'http://10.0.2.2:8080' : '',
   );
+
+  /// Release builds talk to the backend over HTTPS only.
+  static const bool requireHttps = kReleaseMode;
 
   /// Location of the full privacy policy, shown on the privacy screen.
   static const String privacyPolicyUrl = String.fromEnvironment(
@@ -19,20 +24,4 @@ abstract final class AppConfig {
     'APP_VERSION',
     defaultValue: '1.0.0',
   );
-
-  /// Fails fast when a release build would talk to the backend in cleartext.
-  static void validate({
-    required bool isReleaseMode,
-    String baseUrl = apiBaseUrl,
-  }) {
-    final uri = Uri.tryParse(baseUrl);
-    if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
-      throw StateError('API_BASE_URL is not a valid URL: $baseUrl');
-    }
-    if (isReleaseMode && uri.scheme != 'https') {
-      throw StateError(
-        'Release builds require an https:// API_BASE_URL (got ${uri.scheme}).',
-      );
-    }
-  }
 }

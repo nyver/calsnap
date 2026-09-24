@@ -33,6 +33,7 @@ class DriftSettingsRepository implements SettingsRepository {
       SettingKeys.onboardingCompleted,
       s.onboardingCompleted.toString(),
     );
+    await _put(SettingKeys.apiBaseUrl, s.apiBaseUrl);
   });
 
   @override
@@ -72,6 +73,7 @@ class DriftSettingsRepository implements SettingsRepository {
       savePhotos: map[SettingKeys.savePhotos] != 'false',
       language: AppLanguage.fromName(map[SettingKeys.language]),
       onboardingCompleted: map[SettingKeys.onboardingCompleted] == 'true',
+      apiBaseUrl: map[SettingKeys.apiBaseUrl],
     );
   }
 

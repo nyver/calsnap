@@ -9,6 +9,7 @@ class AppSettings {
     this.savePhotos = true,
     this.language = AppLanguage.system,
     this.onboardingCompleted = false,
+    this.apiBaseUrl,
   });
 
   static const int defaultKcalTarget = 2000;
@@ -21,6 +22,9 @@ class AppSettings {
   final bool savePhotos;
   final AppLanguage language;
   final bool onboardingCompleted;
+
+  /// Backend address chosen by the user; null falls back to the build default.
+  final String? apiBaseUrl;
 
   /// Metric units are the only unit system in the MVP.
   String get unitSystem => 'metric';
@@ -36,6 +40,7 @@ class AppSettings {
     bool? savePhotos,
     AppLanguage? language,
     bool? onboardingCompleted,
+    String? Function()? apiBaseUrl,
   }) => AppSettings(
     dailyKcalTarget: dailyKcalTarget != null
         ? dailyKcalTarget()
@@ -55,6 +60,7 @@ class AppSettings {
     savePhotos: savePhotos ?? this.savePhotos,
     language: language ?? this.language,
     onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
+    apiBaseUrl: apiBaseUrl != null ? apiBaseUrl() : this.apiBaseUrl,
   );
 }
 

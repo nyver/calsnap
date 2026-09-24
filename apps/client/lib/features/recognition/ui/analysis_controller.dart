@@ -114,6 +114,13 @@ class AnalysisController extends Notifier<AnalysisState> {
 
   Future<void> _run() async {
     _cancelled = false;
+    if (ref.read(apiBaseUrlProvider) == null) {
+      state = const AnalysisState(
+        phase: AnalysisPhase.failed,
+        failure: ServerNotConfiguredFailure(),
+      );
+      return;
+    }
     state = const AnalysisState();
     final token = _cancelToken = CancelToken();
     try {

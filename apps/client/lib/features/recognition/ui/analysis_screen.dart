@@ -92,6 +92,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
                       context.pushReplacement(Routes.newMeal);
                     },
                     onAnother: () => _leave(AnalysisExit.tryAnother),
+                    onServerSettings: () => context.go(Routes.settings),
                   )
                 : _Progress(
                     stage: state.uploading ? _stage + 1 : 0,
@@ -182,12 +183,14 @@ class _Failure extends StatelessWidget {
     required this.onRetry,
     required this.onManual,
     required this.onAnother,
+    required this.onServerSettings,
   });
 
   final AnalysisFailure failure;
   final VoidCallback onRetry;
   final VoidCallback onManual;
   final VoidCallback onAnother;
+  final VoidCallback onServerSettings;
 
   static String message(AppLocalizations l10n, AnalysisFailure failure) =>
       switch (failure) {
@@ -201,6 +204,7 @@ class _Failure extends StatelessWidget {
           BadImageReason.tooLarge => l10n.imageTooLarge,
           BadImageReason.rejected => l10n.errBadImage,
         },
+        ServerNotConfiguredFailure() => l10n.errServerNotConfigured,
         UnknownFailure() => l10n.errUnknown,
       };
 
@@ -226,7 +230,13 @@ class _Failure extends StatelessWidget {
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: 32),
-        if (photoProblem)
+        if (failure is ServerNotConfiguredFailure)
+          FilledButton(
+            key: const Key('openServerSettings'),
+            onPressed: onServerSettings,
+            child: Text(l10n.serverSettingsAction),
+          )
+        else if (photoProblem)
           FilledButton(
             key: const Key('tryAnotherPhoto'),
             onPressed: onAnother,
@@ -244,6 +254,12 @@ class _Failure extends StatelessWidget {
           onPressed: onManual,
           child: Text(l10n.addManually),
         ),
+        if (failure is OfflineFailure || failure is UnknownFailure)
+          TextButton(
+            key: const Key('checkServerSettings'),
+            onPressed: onServerSettings,
+            child: Text(l10n.serverSettingsAction),
+          ),
       ],
     );
   }

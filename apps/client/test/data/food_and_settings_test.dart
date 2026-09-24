@@ -274,6 +274,27 @@ void main() {
       expect(s.dailyKcalTarget, 2200);
     });
 
+    test(
+      'the server address is stored and removed like other settings',
+      () async {
+        await r.settings.save(
+          const AppSettings(apiBaseUrl: 'https://calsnap.example.com'),
+        );
+        var s = await r.settings.read();
+        expect(s.apiBaseUrl, 'https://calsnap.example.com');
+        // Saving other settings keeps it; clearing it removes the row.
+        await r.settings.save(s.copyWith(savePhotos: false));
+        expect(
+          (await r.settings.read()).apiBaseUrl,
+          'https://calsnap.example.com',
+        );
+        await r.settings.save(s.copyWith(apiBaseUrl: () => null));
+        s = await r.settings.read();
+        expect(s.apiBaseUrl, isNull);
+        expect(await r.settings.getRaw(SettingKeys.apiBaseUrl), isNull);
+      },
+    );
+
     test('watch emits changes immediately', () async {
       final values = <int?>[];
       final sub = r.settings.watch().listen(

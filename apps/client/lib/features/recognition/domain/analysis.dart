@@ -175,6 +175,11 @@ class NotRecognizedFailure extends AnalysisFailure {
   const NotRecognizedFailure();
 }
 
+/// No backend address is configured (none in the settings and no default).
+class ServerNotConfiguredFailure extends AnalysisFailure {
+  const ServerNotConfiguredFailure();
+}
+
 class UnknownFailure extends AnalysisFailure {
   const UnknownFailure();
 }
