@@ -9,7 +9,7 @@ void main() {
         '  https://calsnap.example.com/  ': 'https://calsnap.example.com',
         'https://calsnap.example.com///': 'https://calsnap.example.com',
         'https://example.com/calsnap/': 'https://example.com/calsnap',
-        'http://10.0.2.2:8080': 'http://10.0.2.2:8080',
+        'http://10.0.2.2:8445': 'http://10.0.2.2:8445',
         'HTTPS://Example.com:8443': 'HTTPS://Example.com:8443',
       };
       for (final entry in cases.entries) {
@@ -24,7 +24,7 @@ void main() {
         '',
         '   ',
         'calsnap.example.com',
-        '192.168.1.5:8080',
+        '192.168.1.5:8445',
         'ftp://example.com',
         'file:///etc/passwd',
         'https://',

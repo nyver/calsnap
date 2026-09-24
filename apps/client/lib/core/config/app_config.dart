@@ -7,7 +7,7 @@ abstract final class AppConfig {
   /// only); release builds have no default unless `API_BASE_URL` is defined.
   static const String defaultApiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: kDebugMode ? 'http://10.0.2.2:8080' : '',
+    defaultValue: kDebugMode ? 'http://10.0.2.2:8445' : '',
   );
 
   /// Release builds talk to the backend over HTTPS only.

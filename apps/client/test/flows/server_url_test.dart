@@ -29,12 +29,12 @@ void main() {
     test('an unusable saved address falls back to the build default', () {
       final c = containerWith(const AppSettings(apiBaseUrl: 'garbage'));
       // Tests run in debug mode, where the default is the emulator alias.
-      expect(c.read(apiBaseUrlProvider), 'http://10.0.2.2:8080');
+      expect(c.read(apiBaseUrlProvider), 'http://10.0.2.2:8445');
     });
 
     test('nothing saved uses the build default', () {
       final c = containerWith(const AppSettings());
-      expect(c.read(apiBaseUrlProvider), 'http://10.0.2.2:8080');
+      expect(c.read(apiBaseUrlProvider), 'http://10.0.2.2:8445');
     });
   });
 

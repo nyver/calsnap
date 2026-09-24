@@ -114,7 +114,7 @@ set API_BASE_URL=https://calsnap.example.com   rem optional default address, htt
 set PRIVACY_POLICY_URL=https://calsnap.example.com/privacy
 set VERSION=1.0.0                              rem default 0.0.0-dev
 scripts/build.bat release
-scripts/build.bat debug android               rem emulator build (the app defaults to http://10.0.2.2:8080)
+scripts/build.bat debug android               rem emulator build (the app defaults to http://10.0.2.2:8445)
 ```
 
 It needs Go and Flutter (with the Android toolchain) on `PATH`. Without `apps/client/android/key.properties` the release APKs are signed with the debug key and the script warns about it. The script only builds; run the tests separately.
@@ -123,14 +123,14 @@ It needs Go and Flutter (with the Android toolchain) on `PATH`. Without `apps/cl
 
 ### Build
 
-The backend address is set **in the app** (Settings -> Server address) and stored on the device. `--dart-define=API_BASE_URL` only provides an optional default that applies until the user sets one; debug builds default to `http://10.0.2.2:8080` (the emulator host). Release builds accept `https://` addresses only. Without any address the app asks for one when a photo is analyzed; the diary works offline regardless.
+The backend address is set **in the app** (Settings -> Server address) and stored on the device. `--dart-define=API_BASE_URL` only provides an optional default that applies until the user sets one; debug builds default to `http://10.0.2.2:8445` (the emulator host). Release builds accept `https://` addresses only. Without any address the app asks for one when a photo is analyzed; the diary works offline regardless.
 
 ```bash
 cd apps/client
 flutter pub get
 dart run build_runner build          # only after changing Drift tables (generated files are committed)
 
-# debug (emulator; the debug build may use http://10.0.2.2:8080 with the fake provider)
+# debug (emulator; the debug build may use http://10.0.2.2:8445 with the fake provider)
 flutter build apk --debug
 
 # release (add --dart-define=API_BASE_URL=https://... to preset the server address)

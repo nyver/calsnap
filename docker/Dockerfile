@@ -16,6 +16,6 @@ RUN CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=${VERSION}"
 FROM gcr.io/distroless/static:nonroot
 COPY --from=build /out/calsnap-server /calsnap-server
 USER nonroot:nonroot
-EXPOSE 8080
+EXPOSE 8445
 ENTRYPOINT ["/calsnap-server"]
 CMD ["-config", "/etc/calsnap/config.yaml"]

@@ -30,7 +30,7 @@ services:
     read_only: true
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
-    expose: ["8080"]
+    expose: ["8445"]
     networks: [calsnap]
 
   caddy:

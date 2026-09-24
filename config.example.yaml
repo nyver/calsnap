@@ -11,7 +11,7 @@
 
 server:
   # Address the API listens on.
-  listen: ":8080"
+  listen: ":8445"
   # "development" or "production". The fake AI provider is refused in production.
   environment: development
   # Serve plain HTTP. Required when no TLS files are set (e.g. behind Caddy/nginx

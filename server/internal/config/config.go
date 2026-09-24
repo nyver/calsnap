@@ -140,7 +140,7 @@ type LogConfig struct {
 func Default() Config {
 	return Config{
 		Server: ServerConfig{
-			Listen:          ":8080",
+			Listen:          ":8445",
 			Environment:     EnvDevelopment,
 			ReadHeaderTime:  10 * time.Second,
 			ReadTimeout:     60 * time.Second,

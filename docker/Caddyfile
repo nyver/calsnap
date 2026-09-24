@@ -4,5 +4,5 @@
 	request_body {
 		max_size 5MB
 	}
-	reverse_proxy calsnap:8080
+	reverse_proxy calsnap:8445
 }

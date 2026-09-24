@@ -235,7 +235,7 @@ void main() {
       await app.completeOnboarding();
       await openSettings(tester, app);
       // Debug test builds start with the emulator default.
-      expect(find.text('http://10.0.2.2:8080'), findsOneWidget);
+      expect(find.text('http://10.0.2.2:8445'), findsOneWidget);
 
       await tapKey(tester, 'settingServerUrl');
       await settle(tester);
@@ -265,7 +265,7 @@ void main() {
       await tapKey(tester, 'serverUrlApply');
       await settle(tester);
       expect((await app.settings()).apiBaseUrl, isNull);
-      expect(find.text('http://10.0.2.2:8080'), findsOneWidget);
+      expect(find.text('http://10.0.2.2:8445'), findsOneWidget);
     });
 
     settingsTest(
