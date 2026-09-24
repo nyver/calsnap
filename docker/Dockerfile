@@ -20,6 +20,9 @@ RUN mkdir -p /out/state
 FROM gcr.io/distroless/static:nonroot
 COPY --from=build /out/calsnap-server /calsnap-server
 COPY --from=build --chown=65532:65532 /out/state /var/lib/calsnap
+# Relative paths from the config (the default server.tls.self_signed_dir "certs")
+# resolve to the writable volume instead of the read-only root file system.
+WORKDIR /var/lib/calsnap
 USER nonroot:nonroot
 EXPOSE 8445
 ENTRYPOINT ["/calsnap-server"]

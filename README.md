@@ -107,7 +107,7 @@ docker build -f docker/Dockerfile -t calsnap-server --build-arg VERSION=1.0.0 .
 docker compose -f docker/compose.yaml up -d --build
 ```
 
-The image is a static, non-root, distroless binary. The key is passed through the environment, never written to the image. For a self-signed certificate set `server.tls.self_signed: true` and `server.tls.self_signed_dir: /var/lib/calsnap/tls` in `config.yaml`; compose mounts the `calsnap_tls` volume there so that the certificate survives restarts and rebuilds.
+The image is a static, non-root, distroless binary. The key is passed through the environment, never written to the image. For a self-signed certificate set `server.tls.self_signed: true` in `config.yaml` (and your host's LAN address in `server.tls.self_signed_hosts`). The container's working directory `/var/lib/calsnap` is the `calsnap_tls` volume, so the default `self_signed_dir: certs` is writable and the certificate survives restarts and rebuilds. The image must be rebuilt (`docker compose ... up -d --build`) after updating.
 
 ### Observability, cost and abuse
 
