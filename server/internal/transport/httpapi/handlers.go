@@ -24,6 +24,9 @@ const (
 	maxFieldBytes     = 64
 	minPlateCm        = 10
 	maxPlateCm        = 40
+	// maxImages is the number of photos one request may carry: the main photo
+	// and an optional side view. It is advertised in GET /v1/config.
+	maxImages = 2
 )
 
 // Analyzer is the use case consumed by the analyze endpoint.
@@ -43,6 +46,9 @@ type ClientConfig struct {
 	ImageJPEGQuality      int   `json:"imageJpegQuality"`
 	MaxUploadBytes        int64 `json:"maxUploadBytes"`
 	AnalyzeTimeoutSeconds int   `json:"analyzeTimeoutSeconds"`
+	// MaxImages tells clients whether a side photo is accepted (2) or not (1).
+	// It is set by the handler, not by the operator.
+	MaxImages int `json:"maxImages"`
 }
 
 // Deps are the collaborators of the HTTP transport.
@@ -91,7 +97,9 @@ func (h *handlers) healthz(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (h *handlers) config(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, h.ClientConfig)
+	cfg := h.ClientConfig
+	cfg.MaxImages = maxImages
+	writeJSON(w, http.StatusOK, cfg)
 }
 
 func (h *handlers) analyze(w http.ResponseWriter, r *http.Request) {
@@ -110,7 +118,7 @@ func (h *handlers) analyze(w http.ResponseWriter, r *http.Request) {
 		writeAPIError(w, r, aerr)
 		return
 	}
-	info.imageBytes = len(form.image)
+	info.imageBytes = len(form.image) + len(form.sideImage)
 
 	locale, plate, aerr := parseContext(form.locale, form.plate)
 	if aerr != nil {
@@ -128,6 +136,14 @@ func (h *handlers) analyze(w http.ResponseWriter, r *http.Request) {
 		Locale:          locale,
 		PlateDiameterCm: plate,
 		RequestID:       requestIDFrom(r.Context()),
+	}
+	if form.sideImage != nil {
+		side, aerr := inspectImage(form.sideImage, h.MaxImageDimensionPx)
+		if aerr != nil {
+			writeAPIError(w, r, aerr)
+			return
+		}
+		req.SideImage = &analysis.Image{Data: form.sideImage, MIMEType: side.mime, Width: side.width, Height: side.height}
 	}
 	if info.clientID {
 		req.ClientRequestID = req.RequestID
@@ -158,20 +174,22 @@ func (h *handlers) analyze(w http.ResponseWriter, r *http.Request) {
 
 // form holds the parts of an analyze request.
 type form struct {
-	image  []byte
-	plate  string
-	locale string
+	image []byte
+	// sideImage is the optional second view of the meal; nil when absent.
+	sideImage []byte
+	plate     string
+	locale    string
 }
 
 // readForm reads the multipart body as a stream. Nothing touches the disk: the
-// image lives in one in-memory buffer bounded by the upload limit.
+// images live in in-memory buffers, each bounded by the upload limit.
 func (h *handlers) readForm(w http.ResponseWriter, r *http.Request) (form, *apiError) {
 	var f form
 	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil || mediaType != "multipart/form-data" {
 		return f, newError(CodeInvalidRequest, "Content-Type must be multipart/form-data.")
 	}
-	limit := h.MaxUploadBytes + multipartOverhead
+	limit := maxImages*h.MaxUploadBytes + multipartOverhead
 	if r.ContentLength > limit {
 		return f, newError(CodeImageTooLarge)
 	}
@@ -196,16 +214,25 @@ func (h *handlers) readForm(w http.ResponseWriter, r *http.Request) (form, *apiE
 			if haveImage {
 				return f, newError(CodeInvalidImage, "Exactly one image part is required.")
 			}
-			data, err := io.ReadAll(io.LimitReader(part, h.MaxUploadBytes+1))
-			if err != nil {
-				return f, bodyError(err, CodeInvalidRequest, "Malformed multipart body.")
-			}
-			if int64(len(data)) > h.MaxUploadBytes {
-				return f, newError(CodeImageTooLarge)
+			data, aerr := h.readImage(part)
+			if aerr != nil {
+				return f, aerr
 			}
 			f.image, haveImage = data, true
+		case name == "sideImage":
+			if f.sideImage != nil {
+				return f, newError(CodeInvalidImage, "At most one sideImage part is allowed.")
+			}
+			data, aerr := h.readImage(part)
+			if aerr != nil {
+				return f, aerr
+			}
+			if len(data) == 0 {
+				return f, newError(CodeInvalidImage, "The sideImage part is empty.")
+			}
+			f.sideImage = data
 		case part.FileName() != "":
-			return f, newError(CodeInvalidImage, "Exactly one file part named image is allowed.")
+			return f, newError(CodeInvalidImage, "Only file parts named image and sideImage are allowed.")
 		case name == "plateDiameterCm" || name == "locale":
 			v, aerr := readField(part)
 			if aerr != nil {
@@ -228,6 +255,18 @@ func (h *handlers) readForm(w http.ResponseWriter, r *http.Request) (form, *apiE
 		return f, newError(CodeInvalidImage, "An image part is required.")
 	}
 	return f, nil
+}
+
+// readImage reads one image part, refusing more than MaxUploadBytes.
+func (h *handlers) readImage(part io.Reader) ([]byte, *apiError) {
+	data, err := io.ReadAll(io.LimitReader(part, h.MaxUploadBytes+1))
+	if err != nil {
+		return nil, bodyError(err, CodeInvalidRequest, "Malformed multipart body.")
+	}
+	if int64(len(data)) > h.MaxUploadBytes {
+		return nil, newError(CodeImageTooLarge)
+	}
+	return data, nil
 }
 
 func readField(part io.Reader) (string, *apiError) {

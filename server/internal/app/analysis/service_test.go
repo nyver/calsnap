@@ -18,10 +18,22 @@ import (
 type stubVision struct {
 	calls atomic.Int32
 	fn    func(ctx context.Context, call int) (analysis.Result, error)
+
+	mu     sync.Mutex
+	lastRC analysis.RequestContext
 }
 
-func (s *stubVision) Analyze(ctx context.Context, _ analysis.Image, _ analysis.RequestContext) (analysis.Result, error) {
+func (s *stubVision) Analyze(ctx context.Context, _ analysis.Image, rc analysis.RequestContext) (analysis.Result, error) {
+	s.mu.Lock()
+	s.lastRC = rc
+	s.mu.Unlock()
 	return s.fn(ctx, int(s.calls.Add(1)))
+}
+
+func (s *stubVision) lastContext() analysis.RequestContext {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.lastRC
 }
 
 type recordingMetrics struct {
@@ -514,6 +526,49 @@ func TestReplayServesRetryWithoutSecondAICall(t *testing.T) {
 	}
 	if got := h.vision.calls.Load(); got != 2 {
 		t.Errorf("provider calls after TTL = %d, want 2", got)
+	}
+}
+
+func withSide(req analysis.Request, data string) analysis.Request {
+	req.SideImage = &analysis.Image{Data: []byte(data), MIMEType: "image/jpeg", Width: 10, Height: 10}
+	return req
+}
+
+func TestSideImageReachesTheProvider(t *testing.T) {
+	t.Parallel()
+
+	h := newHarness(t, nil, returns(fixtureResult(t, "ai-result-full.json")))
+	if _, err := h.svc.Analyze(context.Background(), request("")); err != nil {
+		t.Fatal(err)
+	}
+	if h.vision.lastContext().SideImage != nil {
+		t.Error("a single photo request must not carry a side image")
+	}
+	if _, err := h.svc.Analyze(context.Background(), withSide(request(""), "side-bytes")); err != nil {
+		t.Fatal(err)
+	}
+	if got := h.vision.lastContext().SideImage; got == nil || string(got.Data) != "side-bytes" {
+		t.Errorf("side image = %+v", got)
+	}
+}
+
+func TestReplayKeyCoversTheSideImage(t *testing.T) {
+	t.Parallel()
+
+	h := newHarness(t, nil, returns(fixtureResult(t, "ai-result-full.json")))
+	const id = "0190f7a2-1b2c"
+	analyze := func(req analysis.Request) {
+		t.Helper()
+		if _, err := h.svc.Analyze(context.Background(), req); err != nil {
+			t.Fatal(err)
+		}
+	}
+	analyze(request(id))
+	analyze(withSide(request(id), "side-1")) // same id and main photo, new side view
+	analyze(withSide(request(id), "side-1")) // a retry of that request
+	analyze(withSide(request(id), "side-2"))
+	if got := h.vision.calls.Load(); got != 3 {
+		t.Errorf("provider calls = %d, want 3 (single, side-1, side-2)", got)
 	}
 }
 

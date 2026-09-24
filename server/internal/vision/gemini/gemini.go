@@ -142,19 +142,20 @@ func parseResponse(data []byte) (analysis.Result, error) {
 }
 
 func buildRequest(img analysis.Image, rc analysis.RequestContext) map[string]any {
+	parts := []any{
+		map[string]any{"text": prompt.User(rc)},
+		inlineImage(img),
+	}
+	if rc.SideImage != nil {
+		parts = append(parts, inlineImage(*rc.SideImage))
+	}
 	return map[string]any{
 		"systemInstruction": map[string]any{
 			"parts": []any{map[string]any{"text": prompt.System}},
 		},
 		"contents": []any{map[string]any{
-			"role": "user",
-			"parts": []any{
-				map[string]any{"text": prompt.User(rc)},
-				map[string]any{"inlineData": map[string]any{
-					"mimeType": img.MIMEType,
-					"data":     base64.StdEncoding.EncodeToString(img.Data),
-				}},
-			},
+			"role":  "user",
+			"parts": parts,
 		}},
 		"generationConfig": map[string]any{
 			"responseMimeType": "application/json",
@@ -163,6 +164,13 @@ func buildRequest(img analysis.Image, rc analysis.RequestContext) map[string]any
 			"maxOutputTokens":  maxOutputTokens,
 		},
 	}
+}
+
+func inlineImage(img analysis.Image) map[string]any {
+	return map[string]any{"inlineData": map[string]any{
+		"mimeType": img.MIMEType,
+		"data":     base64.StdEncoding.EncodeToString(img.Data),
+	}}
 }
 
 // ResponseSchema returns the Gemini responseSchema equivalent of

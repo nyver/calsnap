@@ -68,6 +68,9 @@ type RequestContext struct {
 	RequestID       string
 	Locale          string  // "en" or "ru"
 	PlateDiameterCm float64 // 0 when unknown
+	// SideImage is a second photo of the same meal taken from the side; nil for
+	// the usual single top-down photo. Providers send it after the main image.
+	SideImage *Image
 }
 
 // Nutrition holds values per 100 g of food.
@@ -183,7 +186,9 @@ func (NopMetrics) AIUsage(int, int) {}
 
 // Request is a validated analysis request.
 type Request struct {
-	Image           Image
+	Image Image
+	// SideImage is the optional second view of the meal (see RequestContext).
+	SideImage       *Image
 	Locale          string
 	PlateDiameterCm float64
 	// RequestID is the effective correlation id.

@@ -294,6 +294,86 @@ func TestAnalyzeRejectsBadImages(t *testing.T) {
 	}
 }
 
+func sidePart(t *testing.T, fixture string) part {
+	t.Helper()
+	p := imagePart(t, fixture)
+	p.name = "sideImage"
+	return p
+}
+
+func TestAnalyzeForwardsTheSideImage(t *testing.T) {
+	t.Parallel()
+
+	e := newEnv(t)
+	rec := e.post(t, nil, imagePart(t, "sample.jpg"), sidePart(t, "sample.png"), part{name: "locale", content: "ru"})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+	got := e.analyzer.last(t)
+	if got.Image.MIMEType != "image/jpeg" {
+		t.Errorf("main image = %+v", got.Image)
+	}
+	if got.SideImage == nil || got.SideImage.MIMEType != "image/png" || got.SideImage.Width != 64 || got.SideImage.Height != 48 {
+		t.Errorf("side image = %+v", got.SideImage)
+	}
+}
+
+func TestAnalyzeWithoutSideImageStaysSingle(t *testing.T) {
+	t.Parallel()
+
+	e := newEnv(t)
+	if rec := e.post(t, nil, imagePart(t, "sample.jpg")); rec.Code != http.StatusOK {
+		t.Fatalf("status = %d", rec.Code)
+	}
+	if got := e.analyzer.last(t); got.SideImage != nil {
+		t.Errorf("side image = %+v, want nil", got.SideImage)
+	}
+}
+
+func TestAnalyzeRejectsBadSideImages(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		parts  []part
+		status int
+		code   string
+	}{
+		{"side without main", []part{sidePart(t, "sample.jpg")}, 400, "INVALID_IMAGE"},
+		{"two side parts", []part{imagePart(t, "sample.jpg"), sidePart(t, "sample.jpg"), sidePart(t, "sample.png")}, 400, "INVALID_IMAGE"},
+		{"empty side", []part{imagePart(t, "sample.jpg"), {name: "sideImage", filename: "s.jpg", content: ""}}, 400, "INVALID_IMAGE"},
+		{"side gif", []part{imagePart(t, "sample.jpg"), sidePart(t, "sample.gif")}, 415, "UNSUPPORTED_IMAGE_FORMAT"},
+		{"side corrupt", []part{imagePart(t, "sample.jpg"), sidePart(t, "corrupt.jpg")}, 400, "INVALID_IMAGE"},
+		{"side over the limit", []part{imagePart(t, "sample.jpg"), {name: "sideImage", filename: "s.jpg", content: "ÿØÿ" + strings.Repeat("A", maxBytes)}}, 413, "IMAGE_TOO_LARGE"},
+		{"a third file part", []part{imagePart(t, "sample.jpg"), sidePart(t, "sample.jpg"), {name: "other", filename: "c.jpg", content: "zzz"}}, 400, "INVALID_IMAGE"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			e := newEnv(t)
+			expectError(t, e.post(t, nil, tt.parts...), tt.status, tt.code)
+			if e.analyzer.calls() != 0 {
+				t.Error("rejected input must not reach the analyzer")
+			}
+		})
+	}
+}
+
+func TestAnalyzeAllowsTwoFullSizeImages(t *testing.T) {
+	t.Parallel()
+
+	// Each image may use the whole upload limit, so the body limit covers both.
+	e := newEnv(t)
+	main := imagePart(t, "sample.jpg")
+	side := sidePart(t, "sample.jpg")
+	pad := strings.Repeat("A", maxBytes-len(main.content)-10)
+	main.content += pad
+	side.content += pad
+	if rec := e.post(t, nil, main, side); rec.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
 func TestAnalyzeRejectsWrongContentType(t *testing.T) {
 	t.Parallel()
 
@@ -513,7 +593,7 @@ func TestConfigAndHealth(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
 		t.Fatal(err)
 	}
-	want := map[string]any{"imageMaxLongSidePx": 1280.0, "imageJpegQuality": 80.0, "maxUploadBytes": float64(maxBytes), "analyzeTimeoutSeconds": 60.0}
+	want := map[string]any{"imageMaxLongSidePx": 1280.0, "imageJpegQuality": 80.0, "maxUploadBytes": float64(maxBytes), "analyzeTimeoutSeconds": 60.0, "maxImages": 2.0}
 	if fmt.Sprint(got) != fmt.Sprint(want) {
 		t.Errorf("config = %v, want %v", got, want)
 	}

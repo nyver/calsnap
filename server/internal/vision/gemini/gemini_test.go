@@ -96,6 +96,38 @@ func TestAnalyzeSuccessAndRequestShape(t *testing.T) {
 	}
 }
 
+func TestAnalyzeSendsTheSideImageAfterTheMainOne(t *testing.T) {
+	t.Parallel()
+
+	side := analysis.Image{Data: []byte("side-bytes"), MIMEType: "image/png", Width: 8, Height: 8}
+	var raw string
+	p := newProvider(t, func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		raw = string(b)
+		respond(http.StatusOK, envelope(`{"items":[]}`, "STOP"))(w, r)
+	})
+	if _, err := p.Analyze(context.Background(), testImage, analysis.RequestContext{Locale: "en", SideImage: &side}); err != nil {
+		t.Fatal(err)
+	}
+	top := strings.Index(raw, base64.StdEncoding.EncodeToString(testImage.Data))
+	sideAt := strings.Index(raw, base64.StdEncoding.EncodeToString(side.Data))
+	if top < 0 || sideAt < 0 || top > sideAt {
+		t.Errorf("images must be sent main first, side second (positions %d, %d)", top, sideAt)
+	}
+	for _, want := range []string{"image/png", "from above", "from the side"} {
+		if !strings.Contains(raw, want) {
+			t.Errorf("request does not contain %q", want)
+		}
+	}
+
+	if _, err := p.Analyze(context.Background(), testImage, analysis.RequestContext{Locale: "en"}); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(raw, "from the side") || strings.Count(raw, "inlineData") != 1 {
+		t.Errorf("a single photo request must stay single: %s", raw)
+	}
+}
+
 func TestAnalyzeOmitsPlateWhenUnknown(t *testing.T) {
 	t.Parallel()
 

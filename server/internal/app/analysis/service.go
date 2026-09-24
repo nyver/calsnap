@@ -98,8 +98,14 @@ func (s *Service) Analyze(ctx context.Context, req Request) (Response, error) {
 
 	// The image hash is part of the key so that a request id alone can never
 	// retrieve somebody else's result.
-	sum := sha256.Sum256(req.Image.Data)
-	key := req.ClientRequestID + ":" + hex.EncodeToString(sum[:16])
+	h := sha256.New()
+	h.Write(req.Image.Data)
+	if req.SideImage != nil {
+		// A separator keeps "ab"+"c" and "a"+"bc" apart.
+		h.Write([]byte{0})
+		h.Write(req.SideImage.Data)
+	}
+	key := req.ClientRequestID + ":" + hex.EncodeToString(h.Sum(nil)[:16])
 
 	if resp, ok := s.replay.get(key); ok {
 		return resp, nil
@@ -183,7 +189,12 @@ func (s *Service) contextError(ctx context.Context) error {
 }
 
 func (s *Service) callProvider(ctx context.Context, req Request) (Result, error) {
-	rc := RequestContext{RequestID: req.RequestID, Locale: req.Locale, PlateDiameterCm: req.PlateDiameterCm}
+	rc := RequestContext{
+		RequestID:       req.RequestID,
+		Locale:          req.Locale,
+		PlateDiameterCm: req.PlateDiameterCm,
+		SideImage:       req.SideImage,
+	}
 	log := s.d.Logger.With("request_id", req.RequestID)
 	var transient, invalid int
 

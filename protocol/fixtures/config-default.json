@@ -2,5 +2,6 @@
   "imageMaxLongSidePx": 1280,
   "imageJpegQuality": 80,
   "maxUploadBytes": 4194304,
-  "analyzeTimeoutSeconds": 60
+  "analyzeTimeoutSeconds": 60,
+  "maxImages": 2
 }

@@ -191,16 +191,24 @@ func extractJSON(text string) string {
 	return strings.TrimSpace(t)
 }
 
-func (p *Provider) buildRequest(img analysis.Image, rc analysis.RequestContext) map[string]any {
+func imagePart(img analysis.Image) map[string]any {
 	dataURL := "data:" + img.MIMEType + ";base64," + base64.StdEncoding.EncodeToString(img.Data)
+	return map[string]any{"type": "image_url", "image_url": map[string]any{"url": dataURL}}
+}
+
+func (p *Provider) buildRequest(img analysis.Image, rc analysis.RequestContext) map[string]any {
+	content := []any{
+		map[string]any{"type": "text", "text": prompt.User(rc)},
+		imagePart(img),
+	}
+	if rc.SideImage != nil {
+		content = append(content, imagePart(*rc.SideImage))
+	}
 	return map[string]any{
 		"model": p.cfg.Model,
 		"messages": []any{
 			map[string]any{"role": "system", "content": prompt.System},
-			map[string]any{"role": "user", "content": []any{
-				map[string]any{"type": "text", "text": prompt.User(rc)},
-				map[string]any{"type": "image_url", "image_url": map[string]any{"url": dataURL}},
-			}},
+			map[string]any{"role": "user", "content": content},
 		},
 		"temperature": 0.2,
 		"max_tokens":  maxOutputTokens,

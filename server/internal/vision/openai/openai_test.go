@@ -92,6 +92,36 @@ func TestAnalyzeSuccessAndRequestShape(t *testing.T) {
 	}
 }
 
+func TestAnalyzeSendsTheSideImageAfterTheMainOne(t *testing.T) {
+	t.Parallel()
+
+	side := analysis.Image{Data: []byte("side-bytes"), MIMEType: "image/png", Width: 8, Height: 8}
+	var raw string
+	p := newProvider(t, func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		raw = string(b)
+		respond(http.StatusOK, completion(`{"items":[]}`, "stop"))(w, r)
+	})
+	if _, err := p.Analyze(context.Background(), testImage, analysis.RequestContext{Locale: "en", SideImage: &side}); err != nil {
+		t.Fatal(err)
+	}
+	top := strings.Index(raw, "data:image/jpeg;base64,"+base64.StdEncoding.EncodeToString(testImage.Data))
+	sideAt := strings.Index(raw, "data:image/png;base64,"+base64.StdEncoding.EncodeToString(side.Data))
+	if top < 0 || sideAt < 0 || top > sideAt {
+		t.Errorf("images must be sent main first, side second (positions %d, %d)", top, sideAt)
+	}
+	if !strings.Contains(raw, "from the side") {
+		t.Error("the prompt must explain the two views")
+	}
+
+	if _, err := p.Analyze(context.Background(), testImage, analysis.RequestContext{Locale: "en"}); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(raw, "from the side") || strings.Count(raw, "image_url") != 2 { // type + key of one part
+		t.Errorf("a single photo request must stay single: %s", raw)
+	}
+}
+
 func TestAnalyzeAcceptsFencedAndPartListContent(t *testing.T) {
 	t.Parallel()
 

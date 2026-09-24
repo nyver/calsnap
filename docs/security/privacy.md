@@ -18,7 +18,7 @@ The app declares `allowBackup="false"`: the diary is not copied to Google cloud 
 
 Only when the user analyzes a photo, the app sends to the CalSnap backend over HTTPS:
 
-* the prepared photo: downscaled, orientation applied, re-encoded as JPEG so that all metadata (EXIF, including GPS) is removed;
+* the prepared photo: downscaled, orientation applied, re-encoded as JPEG so that all metadata (EXIF, including GPS) is removed; when the user chooses "Improve accuracy", a second photo of the same meal taken from the side, prepared the same way, is sent in the same request;
 * the app language (`ru` or `en`);
 * the plate diameter, if the user set one;
 * a random request id (`X-Request-Id`).

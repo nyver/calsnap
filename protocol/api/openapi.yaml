@@ -3,8 +3,9 @@ info:
   title: CalSnap API
   version: v1
   description: |
-    Stateless backend for CalSnap. It analyzes one meal photo and returns
-    recognized foods with estimated weights and nutrition per 100 g.
+    Stateless backend for CalSnap. It analyzes one meal photo, optionally
+    together with a second photo of the same meal taken from the side, and
+    returns recognized foods with estimated weights and nutrition per 100 g.
     Images are processed in memory only and are never stored.
 servers:
   - url: https://calsnap.example.com
@@ -12,7 +13,7 @@ paths:
   /v1/meals/analyze:
     post:
       operationId: analyzeMeal
-      summary: Analyze a meal photo
+      summary: Analyze a meal photo (optionally with a side view)
       parameters:
         - $ref: '#/components/parameters/RequestId'
       requestBody:
@@ -26,7 +27,16 @@ paths:
                 image:
                   type: string
                   format: binary
-                  description: Exactly one JPEG, PNG or WebP file (detected by content).
+                  description: Exactly one JPEG, PNG or WebP file (detected by content). The meal seen from above.
+                sideImage:
+                  type: string
+                  format: binary
+                  description: |
+                    Optional second photo of the same meal taken from the side, same
+                    formats and size limit as `image`. It helps to judge the height and
+                    volume of bulky foods. Servers that advertise `maxImages` 1 (or omit
+                    it) in `/v1/config` reject it, so clients send it only when
+                    `maxImages` is 2. The request counts as one request for rate limiting.
                 plateDiameterCm:
                   type: number
                   minimum: 10
@@ -201,7 +211,7 @@ components:
     ClientConfig:
       type: object
       additionalProperties: false
-      required: [imageMaxLongSidePx, imageJpegQuality, maxUploadBytes, analyzeTimeoutSeconds]
+      required: [imageMaxLongSidePx, imageJpegQuality, maxUploadBytes, analyzeTimeoutSeconds, maxImages]
       properties:
         imageMaxLongSidePx:
           type: integer
@@ -216,6 +226,13 @@ components:
         analyzeTimeoutSeconds:
           type: integer
           minimum: 1
+        maxImages:
+          type: integer
+          minimum: 1
+          maximum: 2
+          description: |
+            Photos per analyze request: 2 means an optional `sideImage` is accepted.
+            Absent in responses of servers that predate the side view; treat that as 1.
     Error:
       type: object
       additionalProperties: false
