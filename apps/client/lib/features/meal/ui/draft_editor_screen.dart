@@ -527,6 +527,7 @@ class _ItemCard extends StatelessWidget {
     final isEstimate =
         item.source == RecognitionSource.ai &&
         item.weightG == item.estimatedWeightG;
+    final personalized = item.isPersonalized;
 
     return Card(
       key: Key('item-${item.id}'),
@@ -587,6 +588,17 @@ class _ItemCard extends StatelessWidget {
                   style: theme.textTheme.bodySmall,
                 ),
               ),
+            if (personalized)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  l10n.personalizedWeightNote(
+                    fmt.weight(item.estimatedWeightG!),
+                  ),
+                  key: Key('personalized-${item.id}'),
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
             const SizedBox(height: 4),
             Row(
               children: [
@@ -598,7 +610,8 @@ class _ItemCard extends StatelessWidget {
                       avatar: const Icon(Icons.scale_outlined, size: 18),
                       label: Text(
                         '${fmt.weight(item.weightG)} ${l10n.gramsUnit}'
-                        '${isEstimate ? ' · ${l10n.estimatedWeight}' : ''}',
+                        '${isEstimate ? ' · ${l10n.estimatedWeight}' : ''}'
+                        '${personalized ? ' · ${l10n.personalizedWeight}' : ''}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),

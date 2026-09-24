@@ -8,6 +8,7 @@ import '../domain/meal.dart';
 import '../domain/meal_draft.dart';
 import '../domain/meal_repository.dart';
 import '../domain/nutrition_calculator.dart';
+import '../domain/portion_calibration.dart';
 
 /// Meals over Drift/SQLite. Writes run in one transaction each, so a failure
 /// leaves previously stored data unchanged.
@@ -106,9 +107,12 @@ class DriftMealRepository implements MealRepository {
                 (i) => OrderingTerm.asc(i.id),
               ]))
             .get();
+    final corrected = await _correctedIds(itemRows.map((i) => i.id));
     final byMeal = <String, List<MealItem>>{};
     for (final row in itemRows) {
-      byMeal.putIfAbsent(row.mealId, () => []).add(_toItem(row));
+      byMeal
+          .putIfAbsent(row.mealId, () => [])
+          .add(_toItem(row, corrected.contains(row.id)));
     }
     return [for (final m in meals) _toMeal(m, byMeal[m.id] ?? const [])];
   }
@@ -127,8 +131,73 @@ class DriftMealRepository implements MealRepository {
                 (i) => OrderingTerm.asc(i.id),
               ]))
             .get();
-    return _toMeal(row, [for (final i in items) _toItem(i)]);
+    final corrected = await _correctedIds(items.map((i) => i.id));
+    return _toMeal(row, [
+      for (final i in items) _toItem(i, corrected.contains(i.id)),
+    ]);
   }
+
+  Future<Set<String>> _correctedIds(Iterable<String> itemIds) async {
+    final ids = itemIds.toList();
+    if (ids.isEmpty) return const {};
+    final rows = await (_db.select(
+      _db.aiCorrections,
+    )..where((c) => c.id.isIn(ids))).get();
+    return {for (final r in rows) r.id};
+  }
+
+  /// Rows scanned for learning; older corrections no longer influence the
+  /// moving average anyway.
+  static const int _maxCorrectionSamples = 1000;
+
+  @override
+  Future<List<CorrectionSample>> correctionSamples() async {
+    final rows =
+        await (_db.select(_db.aiCorrections)
+              ..orderBy([
+                (c) => OrderingTerm.desc(c.createdAt),
+                (c) => OrderingTerm.desc(c.id),
+              ])
+              ..limit(_maxCorrectionSamples))
+            .get();
+    if (rows.isEmpty) return const [];
+
+    // Foods are looked up by name once, not per row. A catalog row wins over
+    // a cached AI estimate, as everywhere else.
+    final names = {for (final r in rows) r.normalizedFoodName}.toList();
+    final foodRows = await (_db.select(
+      _db.foods,
+    )..where((f) => f.normalizedName.isIn(names))).get();
+    final categories = <String, PortionCategory>{};
+    for (final f in foodRows..sort(_catalogFirst)) {
+      categories.putIfAbsent(
+        f.normalizedName!,
+        () => PortionCategory.of(
+          Nutrition(
+            kcal: f.kcalPer100g,
+            protein: f.proteinPer100g,
+            fat: f.fatPer100g,
+            carbs: f.carbsPer100g,
+          ),
+        ),
+      );
+    }
+    return [
+      for (final r in rows.reversed)
+        CorrectionSample(
+          normalizedName: r.normalizedFoodName,
+          aiWeightG: r.aiWeightG,
+          userWeightG: r.userWeightG,
+          createdAtMs: r.createdAt,
+          category: categories[r.normalizedFoodName],
+        ),
+    ];
+  }
+
+  static int _catalogFirst(FoodRow a, FoodRow b) =>
+      (a.source == NutritionSourceName.catalog ? 0 : 1).compareTo(
+        b.source == NutritionSourceName.catalog ? 0 : 1,
+      );
 
   @override
   Future<String> save(MealDraft draft, {String? photoPath}) async {
@@ -145,6 +214,7 @@ class DriftMealRepository implements MealRepository {
           confidence: it.confidence,
           source: it.source,
           wasCorrected: it.wasCorrected,
+          weightCorrected: it.weightCorrected,
           foodId: it.foodId,
           nutritionSource: it.nutritionSource,
           normalizedName: it.normalizedName,
@@ -197,6 +267,7 @@ class DriftMealRepository implements MealRepository {
           confidence: it.confidence,
           source: it.recognitionSource,
           wasCorrected: it.wasCorrected,
+          weightCorrected: it.weightCorrected,
           foodId: it.foodId,
           createdAtMs: it.createdAt.toUtc().millisecondsSinceEpoch,
         ),
@@ -295,11 +366,7 @@ class DriftMealRepository implements MealRepository {
     int nowMs,
   ) async {
     final estimate = item.estimatedWeightG;
-    final corrected =
-        item.source == RecognitionSource.ai &&
-        estimate != null &&
-        item.weightG != estimate;
-    if (!corrected) {
+    if (!item.weightCorrected || estimate == null) {
       await (_db.delete(
         _db.aiCorrections,
       )..where((c) => c.id.equals(item.id))).go();
@@ -398,7 +465,7 @@ class DriftMealRepository implements MealRepository {
     updatedAt: DateTime.fromMillisecondsSinceEpoch(r.updatedAt),
   );
 
-  MealItem _toItem(MealItemRow r) => MealItem(
+  MealItem _toItem(MealItemRow r, bool weightCorrected) => MealItem(
     id: r.id,
     mealId: r.mealId,
     foodId: r.foodId,
@@ -414,6 +481,7 @@ class DriftMealRepository implements MealRepository {
     confidence: r.confidence,
     recognitionSource: RecognitionSource.fromName(r.recognitionSource),
     wasCorrected: r.wasCorrected,
+    weightCorrected: weightCorrected,
     createdAt: DateTime.fromMillisecondsSinceEpoch(r.createdAt),
     updatedAt: DateTime.fromMillisecondsSinceEpoch(r.updatedAt),
   );
@@ -428,6 +496,7 @@ class _ItemToWrite {
     required this.per100,
     required this.source,
     required this.wasCorrected,
+    required this.weightCorrected,
     this.estimatedWeightG,
     this.confidence,
     this.foodId,
@@ -444,6 +513,7 @@ class _ItemToWrite {
   final double? confidence;
   final RecognitionSource? source;
   final bool wasCorrected;
+  final bool weightCorrected;
   final String? foodId;
   final String? nutritionSource;
   final String? normalizedName;

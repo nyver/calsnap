@@ -228,6 +228,14 @@ class SettingsScreen extends ConsumerWidget {
             title: Text(l10n.settingsExportJson),
             onTap: () => _export(context, ref, ExportFormat.json),
           ),
+          SwitchListTile(
+            key: const Key('settingPersonalizePortions'),
+            title: Text(l10n.settingsPersonalizePortions),
+            subtitle: Text(l10n.settingsPersonalizePortionsHint),
+            value: settings.personalizePortions,
+            onChanged: (v) =>
+                _save(ref, settings.copyWith(personalizePortions: v)),
+          ),
           ListTile(
             key: const Key('clearData'),
             leading: Icon(

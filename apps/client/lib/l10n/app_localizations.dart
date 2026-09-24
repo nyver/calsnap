@@ -758,6 +758,18 @@ abstract class AppLocalizations {
   /// **'estimate'**
   String get estimatedWeight;
 
+  /// No description provided for @personalizedWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'adjusted'**
+  String get personalizedWeight;
+
+  /// No description provided for @personalizedWeightNote.
+  ///
+  /// In en, this message translates to:
+  /// **'AI estimated {weight} g. Adjusted to your usual portions.'**
+  String personalizedWeightNote(String weight);
+
   /// No description provided for @pleaseCheck.
   ///
   /// In en, this message translates to:
@@ -1063,6 +1075,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'When off, photos are deleted after the analysis. Existing photos are kept.'**
   String get settingsSavePhotosHint;
+
+  /// No description provided for @settingsPersonalizePortions.
+  ///
+  /// In en, this message translates to:
+  /// **'Adapt weights to my corrections'**
+  String get settingsPersonalizePortions;
+
+  /// No description provided for @settingsPersonalizePortionsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Learns from the weights you change and adjusts later estimates. Everything stays on this device.'**
+  String get settingsPersonalizePortionsHint;
 
   /// No description provided for @settingsLanguage.
   ///

@@ -1,5 +1,6 @@
 import 'meal.dart';
 import 'meal_draft.dart';
+import 'portion_calibration.dart';
 
 /// Access to saved meals. Every write is a single transaction.
 abstract interface class MealRepository {
@@ -30,4 +31,8 @@ abstract interface class MealRepository {
 
   /// Re-creates a deleted meal from its snapshot.
   Future<void> restore(Meal snapshot);
+
+  /// The most recent weight corrections, oldest first, for learning portion
+  /// factors. Bounded, so the cost stays flat as the diary grows.
+  Future<List<CorrectionSample>> correctionSamples();
 }

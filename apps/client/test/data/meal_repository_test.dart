@@ -1,5 +1,7 @@
 import 'package:calsnap/core/domain/nutrition.dart';
 import 'package:calsnap/features/meal/domain/meal.dart';
+import 'package:calsnap/features/meal/domain/meal_draft.dart';
+import 'package:calsnap/features/meal/domain/portion_calibration.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter_test/flutter_test.dart';
 
@@ -211,6 +213,158 @@ void main() {
         'ai': 170.0,
         'user': 120.0,
       });
+    });
+  });
+
+  group('personalized weights', () {
+    // The AI said 170 g; the app proposed 220 g from earlier corrections.
+    DraftItem proposed(String id, {double? weight}) => DraftItem(
+      id: id,
+      name: 'Rice',
+      weightG: weight ?? 220,
+      per100: const Nutrition(kcal: 130, protein: 2.7, fat: 0.3, carbs: 28),
+      source: RecognitionSource.ai,
+      estimatedWeightG: 170,
+      suggestedWeightG: 220,
+      confidence: 0.86,
+      nutritionSource: NutritionSourceName.catalog,
+      normalizedName: 'rice',
+      originalName: 'Rice',
+      originalPer100: const Nutrition(
+        kcal: 130,
+        protein: 2.7,
+        fat: 0.3,
+        carbs: 28,
+      ),
+    );
+
+    test(
+      'accepting the proposal keeps the raw estimate and records nothing',
+      () async {
+        final id = await r.meals.save(draftOf([proposed('p1')]));
+        final item = (await r.meals.getMeal(id))!.items.single;
+        expect((item.estimatedWeightG, item.weightG), (170.0, 220.0));
+        expect(item.wasCorrected, isFalse);
+        expect(item.weightCorrected, isFalse);
+        expect(await r.db.select(r.db.aiCorrections).get(), isEmpty);
+      },
+    );
+
+    test(
+      'changing the proposal records the raw estimate against the new weight',
+      () async {
+        await r.meals.save(draftOf([proposed('p1', weight: 200)]));
+        final row = (await r.db.select(r.db.aiCorrections).get()).single;
+        expect((row.aiWeightG, row.userWeightG), (170.0, 200.0));
+      },
+    );
+
+    test(
+      're-saving an accepted proposal does not turn it into a correction',
+      () async {
+        final id = await r.meals.save(draftOf([proposed('p1')]));
+        final meal = (await r.meals.getMeal(id))!;
+        final loaded = meal.items.single;
+        // What the editor builds for a saved item that was never corrected.
+        final reopened = DraftItem(
+          id: loaded.id,
+          name: loaded.name,
+          weightG: loaded.weightG,
+          per100: loaded.per100,
+          source: RecognitionSource.ai,
+          estimatedWeightG: loaded.estimatedWeightG,
+          suggestedWeightG: loaded.weightCorrected
+              ? loaded.estimatedWeightG
+              : loaded.weightG,
+          nutritionSource: NutritionSourceName.catalog,
+          normalizedName: 'rice',
+          originalName: loaded.name,
+          originalPer100: loaded.per100,
+        );
+        await r.meals.save(
+          draftOf([reopened], editing: id, createdAt: meal.createdAt),
+        );
+        expect(await r.db.select(r.db.aiCorrections).get(), isEmpty);
+
+        // Now the user really changes it.
+        await r.meals.save(
+          draftOf(
+            [reopened.copyWith(weightG: 250)],
+            editing: id,
+            createdAt: meal.createdAt,
+          ),
+        );
+        final row = (await r.db.select(r.db.aiCorrections).get()).single;
+        expect((row.aiWeightG, row.userWeightG), (170.0, 250.0));
+      },
+    );
+
+    test('undo of a deleted meal restores an accepted proposal without a correction', () async {
+      final id = await r.meals.save(draftOf([proposed('p1')]));
+      final snapshot = (await r.meals.delete(id))!;
+      expect(snapshot.items.single.weightCorrected, isFalse);
+      await r.meals.restore(snapshot);
+      expect(await r.db.select(r.db.aiCorrections).get(), isEmpty);
+    });
+  });
+
+  group('correction samples', () {
+    test('are ordered oldest first and carry the food category', () async {
+      await r.foods.seedCatalog(readCatalogJson());
+      await r.meals.save(draftOf([aiItem('a', estimated: 170, weight: 200)]));
+      r.clock.advance(const Duration(hours: 1));
+      await r.meals.save(
+        draftOf([
+          aiItem(
+            'b',
+            name: 'Chicken breast',
+            normalized: 'chicken_breast',
+            estimated: 100,
+            weight: 150,
+            per100: const Nutrition(kcal: 165, protein: 31, fat: 3.6),
+          ),
+        ]),
+      );
+      r.clock.advance(const Duration(hours: 1));
+      await r.meals.save(
+        draftOf([
+          aiItem(
+            'c',
+            name: 'Mystery',
+            normalized: 'mystery',
+            estimated: 100,
+            weight: 90,
+          ),
+        ]),
+      );
+
+      final samples = await r.meals.correctionSamples();
+      expect(samples.map((s) => s.normalizedName), [
+        'rice',
+        'chicken_breast',
+        'mystery',
+      ]);
+      expect(samples.map((s) => (s.aiWeightG, s.userWeightG)), [
+        (170.0, 200.0),
+        (100.0, 150.0),
+        (100.0, 90.0),
+      ]);
+      expect(samples[0].category, PortionCategory.carb);
+      expect(samples[1].category, PortionCategory.protein);
+      expect(samples[2].category, isNull, reason: 'not a known food');
+    });
+
+    test('deleting the meal removes its samples', () async {
+      final id = await r.meals.save(
+        draftOf([aiItem('a', estimated: 170, weight: 200)]),
+      );
+      expect(await r.meals.correctionSamples(), hasLength(1));
+      await r.meals.delete(id);
+      expect(await r.meals.correctionSamples(), isEmpty);
+    });
+
+    test('an empty history gives an empty list', () async {
+      expect(await r.meals.correctionSamples(), isEmpty);
     });
   });
 

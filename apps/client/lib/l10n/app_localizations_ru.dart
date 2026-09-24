@@ -376,6 +376,14 @@ class AppLocalizationsRu extends AppLocalizations {
   String get estimatedWeight => 'оценка';
 
   @override
+  String get personalizedWeight => 'с поправкой';
+
+  @override
+  String personalizedWeightNote(String weight) {
+    return 'ИИ оценил $weight г. Скорректировано под ваши обычные порции.';
+  }
+
+  @override
   String get pleaseCheck => 'Проверьте';
 
   @override
@@ -544,6 +552,13 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get settingsSavePhotosHint =>
       'Если выключено, фото удаляются после анализа. Уже сохранённые фото остаются.';
+
+  @override
+  String get settingsPersonalizePortions => 'Учитывать мои исправления веса';
+
+  @override
+  String get settingsPersonalizePortionsHint =>
+      'Приложение учится на весах, которые вы меняете, и корректирует следующие оценки. Всё хранится только на устройстве.';
 
   @override
   String get settingsLanguage => 'Язык';

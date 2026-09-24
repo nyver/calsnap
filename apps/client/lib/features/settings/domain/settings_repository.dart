@@ -21,6 +21,7 @@ abstract final class SettingKeys {
   static const dailyCarbsTargetG = 'daily_carbs_target_g';
   static const plateDiameterCm = 'plate_diameter_cm';
   static const savePhotos = 'save_meal_photos';
+  static const personalizePortions = 'personalize_portions';
   static const language = 'language';
   static const unitSystem = 'unit_system';
   static const onboardingCompleted = 'onboarding_completed';

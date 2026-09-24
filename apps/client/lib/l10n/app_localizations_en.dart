@@ -373,6 +373,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get estimatedWeight => 'estimate';
 
   @override
+  String get personalizedWeight => 'adjusted';
+
+  @override
+  String personalizedWeightNote(String weight) {
+    return 'AI estimated $weight g. Adjusted to your usual portions.';
+  }
+
+  @override
   String get pleaseCheck => 'Please check';
 
   @override
@@ -541,6 +549,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsSavePhotosHint =>
       'When off, photos are deleted after the analysis. Existing photos are kept.';
+
+  @override
+  String get settingsPersonalizePortions => 'Adapt weights to my corrections';
+
+  @override
+  String get settingsPersonalizePortionsHint =>
+      'Learns from the weights you change and adjusts later estimates. Everything stays on this device.';
 
   @override
   String get settingsLanguage => 'Language';

@@ -38,8 +38,8 @@ Dependency direction inside a feature: `ui -> domain <- data`.
 1. Capture or pick a photo, then preview.
 2. The photo is prepared in an isolate and uploaded with a fresh `X-Request-Id`.
 3. The backend validates the upload, calls the AI provider, validates and filters the result, resolves nutrition and answers with items and warnings.
-4. The client builds an in-memory `MealDraft`; the user edits it; totals are recomputed locally on every change.
-5. Save writes the meal in one transaction, records AI corrections for weights that differ from the estimate, caches recognized foods, and stores the photo as a file (if enabled).
+4. The client builds an in-memory `MealDraft`, proposing weights adjusted to the user's past corrections ([ADR 007](../adr/007-personal-portion-calibration.md)); the user edits it; totals are recomputed locally on every change.
+5. Save writes the meal in one transaction, records AI corrections for weights that differ from what the app proposed, caches recognized foods, and stores the photo as a file (if enabled).
 
 ## Versioned formats
 

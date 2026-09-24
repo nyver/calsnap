@@ -182,6 +182,15 @@
     }
   },
   "estimatedWeight": "estimate",
+  "personalizedWeight": "adjusted",
+  "personalizedWeightNote": "AI estimated {weight} g. Adjusted to your usual portions.",
+  "@personalizedWeightNote": {
+    "placeholders": {
+      "weight": {
+        "type": "String"
+      }
+    }
+  },
   "pleaseCheck": "Please check",
   "partialBanner": "Some ingredients may have been missed. Check the result before saving.",
   "estimatedNutritionNote": "Nutrition values for this item are estimated.",
@@ -257,6 +266,8 @@
   "settingsPhotosSection": "Photos",
   "settingsSavePhotos": "Save meal photos",
   "settingsSavePhotosHint": "When off, photos are deleted after the analysis. Existing photos are kept.",
+  "settingsPersonalizePortions": "Adapt weights to my corrections",
+  "settingsPersonalizePortionsHint": "Learns from the weights you change and adjusts later estimates. Everything stays on this device.",
   "settingsLanguage": "Language",
   "languageSystem": "System default",
   "languageRussian": "Русский",

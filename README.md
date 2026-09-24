@@ -160,6 +160,10 @@ The release manifest requests only `INTERNET` and `CAMERA`, disables cleartext t
 
 Meals, items, foods, settings and AI correction records live in SQLite on the device (Drift, schema version 1, WAL, foreign keys on). Photos are files under `meals/YYYY/MM/DD/`, never BLOBs. See [docs/security/privacy.md](docs/security/privacy.md).
 
+### Personalized portions
+
+When you change an AI weight, the app records the AI value and yours. From the next photo on, weights are proposed with your usual bias applied (for example the AI says 190 g of buckwheat and you usually serve about 1.3 times that, so the app proposes about 247 g; the item is labeled "adjusted" and shows the AI value). A factor is learned per food, then per food category (light, carb, protein, fat, mixed), then over all foods, from the first level with at least 3 corrections; it is limited to 0.6 .. 1.6, and newer corrections count more. Accepting a proposal is not a correction. Everything is computed on the device from the local diary; nothing extra is sent to the server. Turn it off in Settings ("Adapt weights to my corrections"). Details: [ADR 007](docs/adr/007-personal-portion-calibration.md).
+
 ### Export format
 
 Settings offers CSV (RFC 4180, one row per item, spreadsheet-formula guard) and JSON (`format: calsnap-export`, `formatVersion: 1`). Photos are not embedded.
@@ -221,5 +225,5 @@ python scripts/generate_app_icons.py
 
 * The unauthenticated backend relies on rate limits; there is no app attestation yet.
 * The in-progress recognition result is not persisted across process death; retake the photo.
-* Personal correction coefficients are recorded but not applied.
+* Personalized weights learn only from weight corrections of AI items; nutrition values are not personalized, and the food category is derived from the macros because the catalog has none.
 * The Go module path is a placeholder (`example.com/calsnap/server`).

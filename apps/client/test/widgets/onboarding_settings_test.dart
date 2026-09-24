@@ -466,6 +466,25 @@ void main() {
       expect((await app.settings()).savePhotos, isFalse);
     });
 
+    settingsTest(
+      'portion personalization is on by default and can be turned off',
+      (tester, app) async {
+        await app.completeOnboarding();
+        await openSettings(tester, app);
+        final toggle = find.byKey(const Key('settingPersonalizePortions'));
+        await tester.scrollUntilVisible(
+          toggle,
+          100,
+          scrollable: find.byType(Scrollable).first,
+        );
+
+        expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
+        await tester.tap(toggle);
+        await settle(tester);
+        expect((await app.settings()).personalizePortions, isFalse);
+      },
+    );
+
     settingsTest('the language can be switched to Russian and back', (
       tester,
       app,

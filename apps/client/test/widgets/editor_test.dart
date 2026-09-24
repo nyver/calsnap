@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/app_harness.dart';
+import '../support/fixtures.dart';
 
 /// Recognition result of the full fixture (rice 170 g, chicken 135 g, cucumber
 /// 80 g, tomato 65 g): 221 + 222.75 + 12 + 11.7 = 467.45 kcal.
@@ -23,7 +24,117 @@ Future<void> setWeight(WidgetTester tester, Finder chip, String grams) async {
   await settle(tester, frames: 8);
 }
 
+/// Three earlier meals in which the user raised the rice from 170 g to 220 g.
+Future<void> seedRiceCorrections(TestApp app) async {
+  for (var i = 0; i < 3; i++) {
+    await app.saveMeal(
+      draftOf([
+        aiItem('seed$i', estimated: 170, weight: 220),
+      ], time: DateTime(2026, 3, 1 + i, 12)),
+    );
+  }
+}
+
+Future<void> openFullResultAfterSeeding(
+  WidgetTester tester,
+  TestApp app,
+) async {
+  await app.completeOnboarding();
+  await seedRiceCorrections(app);
+  await tester.pumpWidget(app.app());
+  await settle(tester);
+  await openRecognition(tester, 'analyze-response-full.json');
+}
+
 void main() {
+  group('personalized weights', () {
+    appTest('past corrections adjust the proposed weights and say so', (
+      tester,
+      app,
+    ) async {
+      await openFullResultAfterSeeding(tester, app);
+
+      // Rice has its own factor (220 / 170); the other foods use the global one.
+      expect(weightChip('220 g · adjusted'), findsOneWidget);
+      expect(weightChip('175 g · adjusted'), findsOneWidget);
+      expect(
+        find.text('AI estimated 170 g. Adjusted to your usual portions.'),
+        findsOneWidget,
+      );
+      expect(weightChip('170 g · estimate'), findsNothing);
+    });
+
+    appTest(
+      'accepting the proposal saves the AI estimate and adds no correction',
+      (tester, app) async {
+        await openFullResultAfterSeeding(tester, app);
+        await tapKey(tester, 'saveMeal');
+        await pumpUntil(
+          tester,
+          () => find.byKey(const Key('kcalProgress')).evaluate().isNotEmpty,
+        );
+        await settle(tester);
+
+        final rice = (await app.itemRows()).firstWhere(
+          (i) => i.name == 'Рис' && i.weightG == 220,
+        );
+        expect(
+          (rice.estimatedWeightG, rice.weightG, rice.wasCorrected),
+          (170.0, 220.0, false),
+        );
+        final corrections = await app.real(
+          () => app.db.select(app.db.aiCorrections).get(),
+        );
+        expect(corrections, hasLength(3), reason: 'only the seeded ones');
+      },
+    );
+
+    appTest('changing the proposal is recorded against the raw AI estimate', (
+      tester,
+      app,
+    ) async {
+      await openFullResultAfterSeeding(tester, app);
+      await setWeight(tester, weightChip('220 g · adjusted'), '200');
+      expect(weightChip('200 g'), findsOneWidget);
+      expect(find.textContaining('Adjusted to your usual'), findsNWidgets(3));
+
+      await tapKey(tester, 'saveMeal');
+      await pumpUntil(
+        tester,
+        () => find.byKey(const Key('kcalProgress')).evaluate().isNotEmpty,
+      );
+      await settle(tester);
+
+      final corrections = await app.real(
+        () => app.db.select(app.db.aiCorrections).get(),
+      );
+      expect(
+        corrections.map((c) => (c.aiWeightG, c.userWeightG)),
+        contains((170.0, 200.0)),
+      );
+    });
+
+    appTest('turning the setting off starts from the AI estimates again', (
+      tester,
+      app,
+    ) async {
+      await app.completeOnboarding();
+      await seedRiceCorrections(app);
+      final settings = await app.settings();
+      await app.real(
+        () => app.services.settings.save(
+          settings.copyWith(personalizePortions: false),
+        ),
+      );
+      await tester.pumpWidget(app.app());
+      await settle(tester);
+      await openRecognition(tester, 'analyze-response-full.json');
+
+      expect(weightChip('170 g · estimate'), findsOneWidget);
+      expect(find.textContaining('Adjusted to your usual'), findsNothing);
+    });
+  });
+
   group('recognition result', () {
     appTest(
       'lists the recognized items with estimated weights and an approximate total',

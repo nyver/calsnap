@@ -10,6 +10,8 @@ This document is the source for the in-app privacy screen and the public privacy
 | Meal photos | Files under `meals/YYYY/MM/DD/` in the app-private documents directory; only the relative path is stored in SQLite | Until the meal is deleted, or never stored when "Save meal photos" is off |
 | Temporary photos (capture, exports) | App cache / temp directories | Deleted after analysis or discard, and swept at every app start |
 
+AI correction records (the AI weight and the weight the user chose, per food) are also used on the device to adjust later weight proposals to the user's usual portions. This never leaves the device and can be turned off in Settings.
+
 The app declares `allowBackup="false"`: the diary is not copied to Google cloud backup. The only supported way to take data off the device is the user-initiated CSV/JSON export.
 
 ## What leaves the device

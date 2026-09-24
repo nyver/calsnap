@@ -52,6 +52,7 @@ class MealItem {
     this.confidence,
     this.recognitionSource,
     this.wasCorrected = false,
+    this.weightCorrected = false,
   });
 
   final String id;
@@ -66,6 +67,11 @@ class MealItem {
   final double? confidence;
   final RecognitionSource? recognitionSource;
   final bool wasCorrected;
+
+  /// True when the user changed the weight the app proposed, i.e. a correction
+  /// record exists. An accepted personalized weight differs from
+  /// [estimatedWeightG] but is not a correction.
+  final bool weightCorrected;
   final DateTime createdAt;
   final DateTime updatedAt;
 

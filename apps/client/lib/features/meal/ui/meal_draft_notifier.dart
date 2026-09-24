@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:logging/logging.dart';
 
 import '../../../core/di/providers.dart';
 import '../../../core/domain/nutrition.dart';
@@ -6,10 +7,13 @@ import '../../foods/domain/food.dart';
 import '../../recognition/domain/analysis.dart';
 import '../domain/meal.dart';
 import '../domain/meal_draft.dart';
+import '../domain/portion_calibration.dart';
 
 /// Holds the meal that is being built or edited. One draft exists at a time:
 /// the recognition result, a manual entry or a saved meal opened for editing.
 /// It survives in-app navigation but not process death.
+final _log = Logger('MealDraft');
+
 class MealDraftNotifier extends Notifier<MealDraft?> {
   MealDraft? _initial;
 
@@ -19,22 +23,37 @@ class MealDraftNotifier extends Notifier<MealDraft?> {
   DateTime _now() => ref.read(clockProvider)();
 
   /// Starts a draft from a successful analysis. Unit data (pieces, portions,
-  /// density) is looked up in the local food cache.
+  /// density) is looked up in the local food cache. Unless the user turned it
+  /// off, the proposed weights are adjusted to their past corrections; the raw
+  /// AI estimate is kept on each item.
   Future<void> startFromRecognition(
     AnalysisResult result, {
     String? tempPhotoFile,
   }) async {
     final ids = ref.read(idsProvider);
     final foods = ref.read(foodRepositoryProvider);
+    final calibration = await _loadCalibration();
     final items = <DraftItem>[];
     for (final it in result.items) {
       final food = await foods.findByNormalizedName(it.normalizedName);
+      var adjustment = calibration?.adjustmentFor(
+        normalizedName: it.normalizedName,
+        per100: it.per100,
+      );
+      var proposed = adjustment?.apply(it.estimatedWeightG);
+      if (proposed == it.estimatedWeightG) {
+        // Rounding on a tiny portion can cancel the factor out.
+        adjustment = null;
+        proposed = null;
+      }
       items.add(
         DraftItem(
           id: ids.newId(),
           foodId: food?.id,
           name: it.name,
-          weightG: it.estimatedWeightG,
+          weightG: proposed ?? it.estimatedWeightG,
+          suggestedWeightG: proposed,
+          adjustment: adjustment,
           per100: it.per100,
           source: RecognitionSource.ai,
           estimatedWeightG: it.estimatedWeightG,
@@ -58,6 +77,21 @@ class MealDraftNotifier extends Notifier<MealDraft?> {
         fromRecognition: true,
       ),
     );
+  }
+
+  /// Null when personalization is off or fails: the draft then simply starts
+  /// from the AI estimates.
+  Future<PortionCalibration?> _loadCalibration() async {
+    try {
+      final settings = await ref.read(settingsRepositoryProvider).read();
+      if (!settings.personalizePortions) return null;
+      return PortionCalibration(
+        await ref.read(mealRepositoryProvider).correctionSamples(),
+      );
+    } on Exception catch (e) {
+      _log.warning('Portion personalization skipped', e);
+      return null;
+    }
   }
 
   /// Starts an empty draft for manual entry.
@@ -91,6 +125,11 @@ class MealDraftNotifier extends Notifier<MealDraft?> {
           originalName: it.name,
           originalPer100: it.per100,
           previouslyCorrected: it.wasCorrected,
+          // A weight the user never changed is what the app proposed; only a
+          // recorded correction is measured against the raw AI estimate.
+          suggestedWeightG: it.weightCorrected
+              ? it.estimatedWeightG
+              : it.weightG,
           units: _unitsOf(food),
         ),
       );

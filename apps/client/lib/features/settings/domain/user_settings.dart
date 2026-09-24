@@ -9,6 +9,7 @@ class AppSettings {
     this.dailyCarbsTargetG,
     this.plateDiameterCm,
     this.savePhotos = true,
+    this.personalizePortions = true,
     this.language = AppLanguage.system,
     this.onboardingCompleted = false,
     this.apiBaseUrl,
@@ -23,6 +24,9 @@ class AppSettings {
   final int? dailyCarbsTargetG;
   final double? plateDiameterCm;
   final bool savePhotos;
+
+  /// Start AI results from weights adjusted to the user's past corrections.
+  final bool personalizePortions;
   final AppLanguage language;
   final bool onboardingCompleted;
 
@@ -44,6 +48,7 @@ class AppSettings {
     int? Function()? dailyCarbsTargetG,
     double? Function()? plateDiameterCm,
     bool? savePhotos,
+    bool? personalizePortions,
     AppLanguage? language,
     bool? onboardingCompleted,
     String? Function()? apiBaseUrl,
@@ -65,6 +70,7 @@ class AppSettings {
         ? plateDiameterCm()
         : this.plateDiameterCm,
     savePhotos: savePhotos ?? this.savePhotos,
+    personalizePortions: personalizePortions ?? this.personalizePortions,
     language: language ?? this.language,
     onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
     apiBaseUrl: apiBaseUrl != null ? apiBaseUrl() : this.apiBaseUrl,

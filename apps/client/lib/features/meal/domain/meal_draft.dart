@@ -1,6 +1,7 @@
 import '../../../core/domain/nutrition.dart';
 import 'meal.dart';
 import 'nutrition_calculator.dart';
+import 'portion_calibration.dart';
 
 /// Unit conversion data of a food (not persisted with meal items).
 class FoodUnits {
@@ -32,6 +33,8 @@ class DraftItem {
     this.normalizedName,
     this.previouslyCorrected = false,
     this.units,
+    this.suggestedWeightG,
+    this.adjustment,
   });
 
   /// A manually added item (from search or a custom product).
@@ -66,7 +69,8 @@ class DraftItem {
   final Nutrition per100;
   final RecognitionSource source;
 
-  /// The AI weight estimate; null for manual items.
+  /// The raw AI weight estimate; null for manual items. Personalization never
+  /// changes it, so that recorded corrections stay comparable to the AI.
   final double? estimatedWeightG;
   final double? confidence;
 
@@ -86,6 +90,25 @@ class DraftItem {
   /// Piece, portion and density data, when the food is known locally.
   final FoodUnits? units;
 
+  /// The weight the app proposed to the user. Null means the AI estimate.
+  /// An accepted proposal is not a correction; only a different weight is.
+  final double? suggestedWeightG;
+
+  /// The learned portion factor behind [suggestedWeightG], for a new
+  /// recognition only (it is not persisted).
+  final PortionAdjustment? adjustment;
+
+  /// True when the user changed the proposed weight of an AI item.
+  bool get weightCorrected {
+    final estimate = estimatedWeightG;
+    return source == RecognitionSource.ai &&
+        estimate != null &&
+        weightG != (suggestedWeightG ?? estimate);
+  }
+
+  /// True while the item still carries a personalized proposal.
+  bool get isPersonalized => adjustment != null && weightG == suggestedWeightG;
+
   Nutrition get values => NutritionCalculator.forWeight(weightG, per100);
 
   /// An AI item counts as corrected once its weight, name or nutrition was
@@ -93,7 +116,7 @@ class DraftItem {
   bool get wasCorrected =>
       source == RecognitionSource.ai &&
       (previouslyCorrected ||
-          weightG != estimatedWeightG ||
+          weightCorrected ||
           name != originalName ||
           per100 != originalPer100);
 
@@ -121,6 +144,8 @@ class DraftItem {
     originalPer100: originalPer100,
     previouslyCorrected: previouslyCorrected,
     units: units ?? this.units,
+    suggestedWeightG: suggestedWeightG,
+    adjustment: adjustment,
   );
 }
 

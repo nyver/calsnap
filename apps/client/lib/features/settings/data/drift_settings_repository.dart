@@ -28,6 +28,10 @@ class DriftSettingsRepository implements SettingsRepository {
     await _put(SettingKeys.dailyCarbsTargetG, s.dailyCarbsTargetG?.toString());
     await _put(SettingKeys.plateDiameterCm, s.plateDiameterCm?.toString());
     await _put(SettingKeys.savePhotos, s.savePhotos.toString());
+    await _put(
+      SettingKeys.personalizePortions,
+      s.personalizePortions.toString(),
+    );
     await _put(SettingKeys.language, s.language.name);
     await _put(SettingKeys.unitSystem, s.unitSystem);
     await _put(
@@ -73,6 +77,8 @@ class DriftSettingsRepository implements SettingsRepository {
       plateDiameterCm: double.tryParse(map[SettingKeys.plateDiameterCm] ?? ''),
       // Photos are saved unless the user turned it off.
       savePhotos: map[SettingKeys.savePhotos] != 'false',
+      // On unless the user turned it off.
+      personalizePortions: map[SettingKeys.personalizePortions] != 'false',
       language: AppLanguage.fromName(map[SettingKeys.language]),
       onboardingCompleted: map[SettingKeys.onboardingCompleted] == 'true',
       apiBaseUrl: map[SettingKeys.apiBaseUrl],
