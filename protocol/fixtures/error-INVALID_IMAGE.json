@@ -1,0 +1,5 @@
+{
+  "code": "INVALID_IMAGE",
+  "message": "The image is missing or cannot be decoded.",
+  "requestId": "0190f7a2-1b2c-7d3e-8f40-123456789abc"
+}

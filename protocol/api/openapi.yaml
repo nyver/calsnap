@@ -1,0 +1,246 @@
+openapi: 3.0.3
+info:
+  title: CalSnap API
+  version: v1
+  description: |
+    Stateless backend for CalSnap. It analyzes one meal photo and returns
+    recognized foods with estimated weights and nutrition per 100 g.
+    Images are processed in memory only and are never stored.
+servers:
+  - url: https://calsnap.example.com
+paths:
+  /v1/meals/analyze:
+    post:
+      operationId: analyzeMeal
+      summary: Analyze a meal photo
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: Exactly one JPEG, PNG or WebP file (detected by content).
+                plateDiameterCm:
+                  type: number
+                  minimum: 10
+                  maximum: 40
+                  description: Optional plate diameter used as sizing context.
+                locale:
+                  type: string
+                  enum: [ru, en]
+                  description: Locale of returned display names. Unknown values fall back to `en`.
+      responses:
+        '200':
+          description: Analysis result. An empty `items` array with `NO_FOOD_DETECTED` means no food was found.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyzeResponse'
+        '400':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '415':
+          $ref: '#/components/responses/Error'
+        '429':
+          description: Rate limit exceeded.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+            Retry-After:
+              description: Seconds until the next request may succeed.
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+        '502':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+  /v1/config:
+    get:
+      operationId: getConfig
+      summary: Client-safe tunables
+      responses:
+        '200':
+          description: Configuration values the client may use for image preparation.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientConfig'
+  /healthz:
+    get:
+      operationId: healthz
+      summary: Liveness probe
+      responses:
+        '200':
+          description: The process is serving requests.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+components:
+  parameters:
+    RequestId:
+      name: X-Request-Id
+      in: header
+      required: false
+      description: |
+        Client-supplied correlation id, 8-64 characters of `[A-Za-z0-9-]`.
+        Invalid values are replaced by a generated UUIDv7. Analyze requests
+        with the same id are deduplicated (in-flight sharing and a short replay window).
+      schema:
+        type: string
+        pattern: '^[A-Za-z0-9-]{8,64}$'
+  headers:
+    RequestId:
+      description: Effective request id.
+      schema:
+        type: string
+  responses:
+    Error:
+      description: Error. See `code` for the machine-readable reason.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/RequestId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    AnalyzeResponse:
+      type: object
+      additionalProperties: false
+      required: [requestId, items, warnings]
+      properties:
+        requestId:
+          type: string
+        items:
+          type: array
+          maxItems: 20
+          items:
+            $ref: '#/components/schemas/Item'
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/Warning'
+    Item:
+      type: object
+      additionalProperties: false
+      required: [id, name, normalizedName, estimatedWeightG, confidence, nutritionSource, nutrition]
+      properties:
+        id:
+          type: string
+          description: Unique within the response.
+        name:
+          type: string
+          description: Display name in the requested locale.
+        normalizedName:
+          type: string
+          description: Stable snake_case key. The catalog id when nutritionSource is `catalog`.
+        estimatedWeightG:
+          type: number
+          exclusiveMinimum: true
+          minimum: 0
+          maximum: 3000
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        nutritionSource:
+          type: string
+          enum: [catalog, ai_estimate]
+        nutrition:
+          $ref: '#/components/schemas/Nutrition'
+    Nutrition:
+      type: object
+      additionalProperties: false
+      required: [kcalPer100g, proteinPer100g, fatPer100g, carbsPer100g]
+      properties:
+        kcalPer100g:
+          type: number
+          minimum: 0
+          maximum: 900
+        proteinPer100g:
+          type: number
+          minimum: 0
+          maximum: 100
+        fatPer100g:
+          type: number
+          minimum: 0
+          maximum: 100
+        carbsPer100g:
+          type: number
+          minimum: 0
+          maximum: 100
+    Warning:
+      type: string
+      enum: [NO_FOOD_DETECTED, PARTIAL_RECOGNITION, LOW_CONFIDENCE, NUTRITION_ESTIMATED]
+    ClientConfig:
+      type: object
+      additionalProperties: false
+      required: [imageMaxLongSidePx, imageJpegQuality, maxUploadBytes, analyzeTimeoutSeconds]
+      properties:
+        imageMaxLongSidePx:
+          type: integer
+          minimum: 256
+        imageJpegQuality:
+          type: integer
+          minimum: 30
+          maximum: 100
+        maxUploadBytes:
+          type: integer
+          minimum: 1
+        analyzeTimeoutSeconds:
+          type: integer
+          minimum: 1
+    Error:
+      type: object
+      additionalProperties: false
+      required: [code, message, requestId]
+      properties:
+        code:
+          type: string
+          enum:
+            - INVALID_REQUEST
+            - INVALID_IMAGE
+            - IMAGE_TOO_LARGE
+            - UNSUPPORTED_IMAGE_FORMAT
+            - RATE_LIMITED
+            - AI_PROVIDER_UNAVAILABLE
+            - AI_INVALID_RESPONSE
+            - NUTRITION_MATCH_FAILED
+            - IMAGE_ANALYSIS_FAILED
+            - INTERNAL_ERROR
+          description: |
+            HTTP status by code: INVALID_REQUEST, INVALID_IMAGE 400; IMAGE_TOO_LARGE 413;
+            UNSUPPORTED_IMAGE_FORMAT 415; RATE_LIMITED 429; AI_INVALID_RESPONSE,
+            NUTRITION_MATCH_FAILED, IMAGE_ANALYSIS_FAILED 502; AI_PROVIDER_UNAVAILABLE 503;
+            INTERNAL_ERROR 500.
+        message:
+          type: string
+          description: Short English developer-facing text. Never contains internal details.
+        requestId:
+          type: string

@@ -1,0 +1,62 @@
+{
+  "requestId": "0190f7a2-1b2c-7d3e-8f40-123456789abc",
+  "items": [
+    {
+      "id": "temp-1",
+      "name": "Рис",
+      "normalizedName": "rice",
+      "estimatedWeightG": 170,
+      "confidence": 0.86,
+      "nutritionSource": "catalog",
+      "nutrition": {
+        "kcalPer100g": 130,
+        "proteinPer100g": 2.7,
+        "fatPer100g": 0.3,
+        "carbsPer100g": 28
+      }
+    },
+    {
+      "id": "temp-2",
+      "name": "Куриная грудка",
+      "normalizedName": "chicken_breast",
+      "estimatedWeightG": 135,
+      "confidence": 0.92,
+      "nutritionSource": "catalog",
+      "nutrition": {
+        "kcalPer100g": 165,
+        "proteinPer100g": 31,
+        "fatPer100g": 3.6,
+        "carbsPer100g": 0
+      }
+    },
+    {
+      "id": "temp-3",
+      "name": "Огурец",
+      "normalizedName": "cucumber",
+      "estimatedWeightG": 80,
+      "confidence": 0.81,
+      "nutritionSource": "catalog",
+      "nutrition": {
+        "kcalPer100g": 15,
+        "proteinPer100g": 0.7,
+        "fatPer100g": 0.1,
+        "carbsPer100g": 3.6
+      }
+    },
+    {
+      "id": "temp-4",
+      "name": "Помидор",
+      "normalizedName": "tomato",
+      "estimatedWeightG": 65,
+      "confidence": 0.78,
+      "nutritionSource": "catalog",
+      "nutrition": {
+        "kcalPer100g": 18,
+        "proteinPer100g": 0.9,
+        "fatPer100g": 0.2,
+        "carbsPer100g": 3.9
+      }
+    }
+  ],
+  "warnings": []
+}

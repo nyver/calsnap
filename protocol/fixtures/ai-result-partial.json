@@ -1,0 +1,40 @@
+{
+  "items": [
+    {
+      "name": "pasta",
+      "displayName": "Pasta",
+      "estimatedWeightG": 200,
+      "confidence": 0.9,
+      "nutritionPer100g": {
+        "kcal": 158,
+        "protein": 5.8,
+        "fat": 0.9,
+        "carbs": 31
+      }
+    },
+    {
+      "name": "tomato sauce",
+      "displayName": "Tomato sauce",
+      "estimatedWeightG": 60,
+      "confidence": 0.35,
+      "nutritionPer100g": {
+        "kcal": 40,
+        "protein": 1.5,
+        "fat": 1,
+        "carbs": 7
+      }
+    },
+    {
+      "name": "parsley garnish",
+      "displayName": "Parsley garnish",
+      "estimatedWeightG": 5,
+      "confidence": 0.1,
+      "nutritionPer100g": {
+        "kcal": 36,
+        "protein": 3,
+        "fat": 0.8,
+        "carbs": 6.3
+      }
+    }
+  ]
+}

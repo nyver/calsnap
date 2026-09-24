@@ -1,0 +1,36 @@
+{
+  "requestId": "0190f7a2-1b2c-7d3e-8f40-123456789abc",
+  "items": [
+    {
+      "id": "temp-1",
+      "name": "Grandma's special casserole",
+      "normalizedName": "grandmas_special_casserole",
+      "estimatedWeightG": 250,
+      "confidence": 0.55,
+      "nutritionSource": "ai_estimate",
+      "nutrition": {
+        "kcalPer100g": 180,
+        "proteinPer100g": 8,
+        "fatPer100g": 9,
+        "carbsPer100g": 17
+      }
+    },
+    {
+      "id": "temp-2",
+      "name": "Rice",
+      "normalizedName": "rice",
+      "estimatedWeightG": 100,
+      "confidence": 0.9,
+      "nutritionSource": "catalog",
+      "nutrition": {
+        "kcalPer100g": 130,
+        "proteinPer100g": 2.7,
+        "fatPer100g": 0.3,
+        "carbsPer100g": 28
+      }
+    }
+  ],
+  "warnings": [
+    "NUTRITION_ESTIMATED"
+  ]
+}

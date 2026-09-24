@@ -1,0 +1,16 @@
+{
+  "items": [
+    {
+      "name": "rice",
+      "displayName": "Rice",
+      "estimatedWeightG": 100,
+      "confidence": 0.9,
+      "nutritionPer100g": {
+        "kcal": 950,
+        "protein": 2.7,
+        "fat": 0.3,
+        "carbs": 28
+      }
+    }
+  ]
+}

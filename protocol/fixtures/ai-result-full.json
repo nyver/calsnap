@@ -1,0 +1,53 @@
+{
+  "items": [
+    {
+      "name": "grilled chicken breast",
+      "displayName": "Куриная грудка на гриле",
+      "estimatedWeightG": 135,
+      "confidence": 0.92,
+      "nutritionPer100g": {
+        "kcal": 165,
+        "protein": 31,
+        "fat": 3.6,
+        "carbs": 0
+      },
+      "cookingMethod": "grilled"
+    },
+    {
+      "name": "white rice",
+      "displayName": "Рис",
+      "estimatedWeightG": 170,
+      "confidence": 0.86,
+      "nutritionPer100g": {
+        "kcal": 130,
+        "protein": 2.7,
+        "fat": 0.3,
+        "carbs": 28
+      }
+    },
+    {
+      "name": "cucumber",
+      "displayName": "Огурцы",
+      "estimatedWeightG": 80,
+      "confidence": 0.81,
+      "nutritionPer100g": {
+        "kcal": 15,
+        "protein": 0.7,
+        "fat": 0.1,
+        "carbs": 3.6
+      }
+    },
+    {
+      "name": "tomato",
+      "displayName": "Помидоры",
+      "estimatedWeightG": 65,
+      "confidence": 0.78,
+      "nutritionPer100g": {
+        "kcal": 18,
+        "protein": 0.9,
+        "fat": 0.2,
+        "carbs": 3.9
+      }
+    }
+  ]
+}

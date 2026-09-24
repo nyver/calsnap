@@ -1,0 +1,28 @@
+{
+  "items": [
+    {
+      "name": "grandma's special casserole",
+      "displayName": "Grandma's special casserole",
+      "estimatedWeightG": 250,
+      "confidence": 0.55,
+      "nutritionPer100g": {
+        "kcal": 180,
+        "protein": 8,
+        "fat": 9,
+        "carbs": 17
+      }
+    },
+    {
+      "name": "rice",
+      "displayName": "Rice",
+      "estimatedWeightG": 100,
+      "confidence": 0.9,
+      "nutritionPer100g": {
+        "kcal": 130,
+        "protein": 2.7,
+        "fat": 0.3,
+        "carbs": 28
+      }
+    }
+  ]
+}

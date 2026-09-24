@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calsnap.example.com/protocol/ai/food-vision-result.schema.json",
+  "title": "FoodVisionResult",
+  "description": "Structured output requested from the AI vision provider. The backend validates every field again before use.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["items"],
+  "properties": {
+    "items": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "displayName", "estimatedWeightG", "confidence"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Canonical English food name."
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Food name in the requested locale."
+          },
+          "estimatedWeightG": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 3000
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "cookingMethod": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "nutritionPer100g": {
+            "type": "object",
+            "description": "The provider's own per-100 g estimate. Used only when the catalog has no match; an unmatched item without it fails with NUTRITION_MATCH_FAILED.",
+            "additionalProperties": false,
+            "required": ["kcal", "protein", "fat", "carbs"],
+            "properties": {
+              "kcal": { "type": "number", "minimum": 0, "maximum": 900 },
+              "protein": { "type": "number", "minimum": 0, "maximum": 100 },
+              "fat": { "type": "number", "minimum": 0, "maximum": 100 },
+              "carbs": { "type": "number", "minimum": 0, "maximum": 100 }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "requestId": "0190f7a2-1b2c-7d3e-8f40-123456789abc",
+  "items": [
+    {
+      "id": "temp-1",
+      "name": "Pasta",
+      "normalizedName": "pasta",
+      "estimatedWeightG": 200,
+      "confidence": 0.9,
+      "nutritionSource": "catalog",
+      "nutrition": {
+        "kcalPer100g": 158,
+        "proteinPer100g": 5.8,
+        "fatPer100g": 0.9,
+        "carbsPer100g": 31
+      }
+    },
+    {
+      "id": "temp-2",
+      "name": "Tomato sauce",
+      "normalizedName": "tomato_sauce",
+      "estimatedWeightG": 60,
+      "confidence": 0.35,
+      "nutritionSource": "catalog",
+      "nutrition": {
+        "kcalPer100g": 40,
+        "proteinPer100g": 1.5,
+        "fatPer100g": 1,
+        "carbsPer100g": 7
+      }
+    }
+  ],
+  "warnings": [
+    "PARTIAL_RECOGNITION",
+    "LOW_CONFIDENCE"
+  ]
+}

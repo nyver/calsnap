@@ -1,0 +1,10 @@
+{
+  "items": [
+    {
+      "name": "grandma's special casserole",
+      "displayName": "Grandma's special casserole",
+      "estimatedWeightG": 250,
+      "confidence": 0.55
+    }
+  ]
+}
