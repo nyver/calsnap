@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calsnap.example.com/protocol/ai/nutrition-label-result.schema.json",
+  "title": "NutritionLabelResult",
+  "description": "Structured output requested from the AI vision provider when it reads a nutrition facts table. A transcription: values exactly as printed, absent when not visible. The backend validates every field again and normalizes to 100 g.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "found",
+    "confidence"
+  ],
+  "properties": {
+    "found": {
+      "type": "boolean",
+      "description": "False when the photo shows no readable nutrition table; everything else is then omitted."
+    },
+    "productName": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "basis": {
+      "type": "string",
+      "enum": [
+        "per_100g",
+        "per_100ml",
+        "per_serving"
+      ],
+      "description": "What the printed numbers are for. Required when found is true."
+    },
+    "servingSizeG": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 2000,
+      "description": "Serving size in grams or millilitres. Required for per_serving."
+    },
+    "energyKcal": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 5000
+    },
+    "energyKj": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 20920
+    },
+    "protein": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1000
+    },
+    "fat": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1000
+    },
+    "carbohydrates": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1000
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    }
+  }
+}

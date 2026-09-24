@@ -1,0 +1,11 @@
+{
+  "requestId": "0190f7a2-1b2c-7d3e-8f40-123456789abc",
+  "name": "Chocolate hazelnut spread",
+  "nutrition": {
+    "kcalPer100g": 220,
+    "proteinPer100g": 8.4,
+    "fatPer100g": 12.1,
+    "carbsPer100g": 18.2
+  },
+  "warnings": []
+}

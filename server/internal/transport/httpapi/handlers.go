@@ -49,6 +49,9 @@ type ClientConfig struct {
 	// BarcodeLookup tells clients whether GET /v1/products/{barcode} exists. It
 	// is set by the handler from the presence of the use case.
 	BarcodeLookup bool `json:"barcodeLookup"`
+	// LabelReading tells clients whether POST /v1/labels/analyze exists. It is
+	// set by the handler from the presence of the use case.
+	LabelReading bool `json:"labelReading"`
 	// MaxImages tells clients whether a side photo is accepted (2) or not (1).
 	// It is set by the handler, not by the operator.
 	MaxImages int `json:"maxImages"`
@@ -57,6 +60,8 @@ type ClientConfig struct {
 // Deps are the collaborators of the HTTP transport.
 type Deps struct {
 	Analyzer Analyzer
+	// Labels is the nutrition label reading use case; nil disables the endpoint.
+	Labels LabelReader
 	// Products is the barcode lookup use case; nil disables the endpoint.
 	Products ProductLookup
 	Limiter  *ratelimit.Limiter
@@ -108,6 +113,7 @@ func (h *handlers) config(w http.ResponseWriter, _ *http.Request) {
 	cfg := h.ClientConfig
 	cfg.MaxImages = maxImages
 	cfg.BarcodeLookup = h.Products != nil
+	cfg.LabelReading = h.Labels != nil
 	writeJSON(w, http.StatusOK, cfg)
 }
 

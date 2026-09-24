@@ -410,7 +410,7 @@ func TestBarcodeLookupEndToEnd(t *testing.T) {
 	if status, body = get("/v1/products/4006381333932"); status != http.StatusBadRequest {
 		t.Errorf("bad check digit: %d %s", status, body)
 	}
-	if _, body = get("/v1/config"); !strings.Contains(body, `"barcodeLookup":true`) {
+	if _, body = get("/v1/config"); !strings.Contains(body, `"barcodeLookup":true`) || !strings.Contains(body, `"labelReading":true`) {
 		t.Errorf("config = %s", body)
 	}
 }
@@ -435,5 +435,34 @@ func TestBarcodeLookupCanBeDisabled(t *testing.T) {
 		if rec.Code != want.status || !strings.Contains(rec.Body.String(), want.body) {
 			t.Errorf("%s: %d %s", path, rec.Code, rec.Body.String())
 		}
+	}
+}
+
+func TestLabelReadingEndToEnd(t *testing.T) {
+	t.Parallel()
+
+	cfg := testConfig(t, "server:\n  allow_plain_http: true\n")
+	rt, err := build(cfg, slog.New(slog.DiscardHandler))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ct, body := multipartImage(t)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/v1/labels/analyze", body)
+	req.Header.Set("Content-Type", ct)
+	rec := httptest.NewRecorder()
+	rt.api.Handler.ServeHTTP(rec, req)
+	// The fake provider answers with one of its canned tables, or with a photo
+	// that has none; both go through the real use case and transport.
+	switch rec.Code {
+	case http.StatusOK:
+		if !strings.Contains(rec.Body.String(), `"nutrition"`) {
+			t.Errorf("body = %s", rec.Body.String())
+		}
+	case http.StatusUnprocessableEntity:
+		if !strings.Contains(rec.Body.String(), "LABEL_NOT_RECOGNIZED") {
+			t.Errorf("body = %s", rec.Body.String())
+		}
+	default:
+		t.Errorf("status = %d: %s", rec.Code, rec.Body.String())
 	}
 }

@@ -4,5 +4,6 @@
   "maxUploadBytes": 4194304,
   "analyzeTimeoutSeconds": 60,
   "maxImages": 2,
-  "barcodeLookup": true
+  "barcodeLookup": true,
+  "labelReading": true
 }

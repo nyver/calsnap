@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"example.com/calsnap/server/internal/app/analysis"
+	"example.com/calsnap/server/internal/app/label"
 	"example.com/calsnap/server/internal/vision/prompt"
 )
 
@@ -39,7 +40,10 @@ type Provider struct {
 	client *http.Client
 }
 
-var _ analysis.FoodVisionProvider = (*Provider)(nil)
+var (
+	_ analysis.FoodVisionProvider = (*Provider)(nil)
+	_ label.Reader                = (*Provider)(nil)
+)
 
 // New creates a Provider that sends requests with client, which must have a
 // timeout configured.
@@ -53,13 +57,42 @@ func New(cfg Config, client *http.Client) *Provider {
 // NOTE: the request id is not forwarded: the protocol has no request metadata
 // field, and the routing services would only see it as an unknown header.
 func (p *Provider) Analyze(ctx context.Context, img analysis.Image, rc analysis.RequestContext) (analysis.Result, error) {
-	body, err := json.Marshal(p.buildRequest(img, rc))
+	text, usage, err := p.chat(ctx, p.buildRequest(img, rc))
 	if err != nil {
-		return analysis.Result{}, fmt.Errorf("encode chat request: %w", err)
+		return analysis.Result{}, err
+	}
+	res, err := analysis.ParseResult([]byte(extractJSON(text)))
+	if err != nil {
+		return analysis.Result{}, err
+	}
+	res.Usage = usage
+	return res, nil
+}
+
+// ReadLabel implements label.Reader: it transcribes the nutrition table on a
+// package photo.
+func (p *Provider) ReadLabel(ctx context.Context, img analysis.Image, rc analysis.RequestContext) (label.Extraction, error) {
+	text, usage, err := p.chat(ctx, p.buildLabelRequest(img, rc))
+	if err != nil {
+		return label.Extraction{}, err
+	}
+	ext, err := label.ParseExtraction([]byte(extractJSON(text)))
+	if err != nil {
+		return label.Extraction{}, err
+	}
+	ext.Usage = usage
+	return ext, nil
+}
+
+// chat sends one chat-completions request and returns the message text.
+func (p *Provider) chat(ctx context.Context, request map[string]any) (string, analysis.Usage, error) {
+	body, err := json.Marshal(request)
+	if err != nil {
+		return "", analysis.Usage{}, fmt.Errorf("encode chat request: %w", err)
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, p.cfg.BaseURL+"/chat/completions", bytes.NewReader(body))
 	if err != nil {
-		return analysis.Result{}, fmt.Errorf("build chat request: %w", err)
+		return "", analysis.Usage{}, fmt.Errorf("build chat request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	// The key travels in a header, never in the URL, because URLs get logged.
@@ -71,22 +104,22 @@ func (p *Provider) Analyze(ctx context.Context, img analysis.Image, rc analysis.
 		if errors.As(err, &uerr) {
 			err = uerr.Err // drop the URL from the message
 		}
-		return analysis.Result{}, fmt.Errorf("%w: chat request failed: %w", analysis.ErrUnavailable, err)
+		return "", analysis.Usage{}, fmt.Errorf("%w: chat request failed: %w", analysis.ErrUnavailable, err)
 	}
 	defer resp.Body.Close()
 
 	// Error bodies are drained but never included in errors or logs.
 	data, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes+1))
 	if err != nil {
-		return analysis.Result{}, fmt.Errorf("%w: reading chat response: %w", analysis.ErrUnavailable, err)
+		return "", analysis.Usage{}, fmt.Errorf("%w: reading chat response: %w", analysis.ErrUnavailable, err)
 	}
 	if err := classifyStatus(resp.StatusCode); err != nil {
-		return analysis.Result{}, err
+		return "", analysis.Usage{}, err
 	}
 	if len(data) > maxResponseBytes {
-		return analysis.Result{}, fmt.Errorf("%w: response exceeds %d bytes", analysis.ErrInvalidResponse, maxResponseBytes)
+		return "", analysis.Usage{}, fmt.Errorf("%w: response exceeds %d bytes", analysis.ErrInvalidResponse, maxResponseBytes)
 	}
-	return parseResponse(data)
+	return parseEnvelope(data)
 }
 
 // classifyStatus maps HTTP statuses: 408, 429 and 5xx are transient, other
@@ -119,31 +152,28 @@ type chatResponse struct {
 	} `json:"usage"`
 }
 
-func parseResponse(data []byte) (analysis.Result, error) {
+// parseEnvelope extracts the message text and the token usage from a
+// chat-completions response.
+func parseEnvelope(data []byte) (string, analysis.Usage, error) {
 	var cr chatResponse
 	if err := json.Unmarshal(data, &cr); err != nil {
-		return analysis.Result{}, fmt.Errorf("%w: chat envelope: %v", analysis.ErrInvalidResponse, err)
+		return "", analysis.Usage{}, fmt.Errorf("%w: chat envelope: %v", analysis.ErrInvalidResponse, err)
 	}
 	if cr.Error != nil {
-		return analysis.Result{}, classifyEmbeddedError(cr.Error.Code)
+		return "", analysis.Usage{}, classifyEmbeddedError(cr.Error.Code)
 	}
 	if len(cr.Choices) == 0 {
-		return analysis.Result{}, fmt.Errorf("%w: no choices returned", analysis.ErrInvalidResponse)
+		return "", analysis.Usage{}, fmt.Errorf("%w: no choices returned", analysis.ErrInvalidResponse)
 	}
 	choice := cr.Choices[0]
 	if choice.FinishReason == "length" || choice.FinishReason == "content_filter" {
-		return analysis.Result{}, fmt.Errorf("%w: finish reason %s", analysis.ErrInvalidResponse, choice.FinishReason)
+		return "", analysis.Usage{}, fmt.Errorf("%w: finish reason %s", analysis.ErrInvalidResponse, choice.FinishReason)
 	}
 	text, err := contentText(choice.Message.Content)
 	if err != nil {
-		return analysis.Result{}, err
+		return "", analysis.Usage{}, err
 	}
-	res, err := analysis.ParseResult([]byte(extractJSON(text)))
-	if err != nil {
-		return analysis.Result{}, err
-	}
-	res.Usage = analysis.Usage{InputTokens: cr.Usage.PromptTokens, OutputTokens: cr.Usage.CompletionTokens}
-	return res, nil
+	return text, analysis.Usage{InputTokens: cr.Usage.PromptTokens, OutputTokens: cr.Usage.CompletionTokens}, nil
 }
 
 // classifyEmbeddedError treats an error object inside an HTTP 200 like the
@@ -204,10 +234,22 @@ func (p *Provider) buildRequest(img analysis.Image, rc analysis.RequestContext) 
 	if rc.SideImage != nil {
 		content = append(content, imagePart(*rc.SideImage))
 	}
+	return p.chatRequest(prompt.System, content, "food_vision_result", ResponseSchema())
+}
+
+func (p *Provider) buildLabelRequest(img analysis.Image, rc analysis.RequestContext) map[string]any {
+	content := []any{
+		map[string]any{"type": "text", "text": prompt.LabelUser(rc)},
+		imagePart(img),
+	}
+	return p.chatRequest(prompt.LabelSystem, content, "nutrition_label_result", LabelResponseSchema())
+}
+
+func (p *Provider) chatRequest(system string, content []any, schemaName string, schema map[string]any) map[string]any {
 	return map[string]any{
 		"model": p.cfg.Model,
 		"messages": []any{
-			map[string]any{"role": "system", "content": prompt.System},
+			map[string]any{"role": "system", "content": system},
 			map[string]any{"role": "user", "content": content},
 		},
 		"temperature": 0.2,
@@ -217,11 +259,34 @@ func (p *Provider) buildRequest(img analysis.Image, rc analysis.RequestContext) 
 		"response_format": map[string]any{
 			"type": "json_schema",
 			"json_schema": map[string]any{
-				"name":   "food_vision_result",
+				"name":   schemaName,
 				"strict": false,
-				"schema": ResponseSchema(),
+				"schema": schema,
 			},
 		},
+	}
+}
+
+// LabelResponseSchema returns the JSON Schema sent as response_format for a
+// nutrition label. It mirrors protocol/ai/nutrition-label-result.schema.json.
+func LabelResponseSchema() map[string]any {
+	num := map[string]any{"type": "number", "minimum": 0}
+	return map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"properties": map[string]any{
+			"found":         map[string]any{"type": "boolean"},
+			"productName":   map[string]any{"type": "string", "maxLength": 100},
+			"basis":         map[string]any{"type": "string", "enum": []any{"per_100g", "per_100ml", "per_serving"}},
+			"servingSizeG":  map[string]any{"type": "number", "exclusiveMinimum": 0, "maximum": 2000},
+			"energyKcal":    num,
+			"energyKj":      num,
+			"protein":       num,
+			"fat":           num,
+			"carbohydrates": num,
+			"confidence":    map[string]any{"type": "number", "minimum": 0, "maximum": 1},
+		},
+		"required": []any{"found", "confidence"},
 	}
 }
 

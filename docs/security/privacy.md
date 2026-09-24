@@ -25,6 +25,8 @@ Only when the user analyzes a photo, the app sends to the CalSnap backend over H
 
 The local photo checks (blur, brightness, camera angle) run on the device and send nothing.
 
+When the user photographs a nutrition label (for a barcode nobody knows, or in the custom product form), the prepared photo (no metadata) and the app language are sent to the CalSnap backend, which has the AI provider read the table, exactly as for a meal photo: the photo is processed in memory, never stored, and the values that come back are only saved on the device after the user confirms them.
+
 When the user scans a product barcode, the code is read on the device and only its number is sent to the CalSnap backend, which asks Open Food Facts for the product (Open Food Facts sees the backend, not the user's device). The barcode is not logged by the backend. Products found this way are cached in the local database. The scanner library (Google ML Kit, on-device) may send anonymous technical usage metrics to Google; it does not receive camera images or barcodes.
 
  Nothing else is sent: not the diary, not the settings, not device identifiers, no account (there is none).

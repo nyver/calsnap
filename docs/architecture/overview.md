@@ -20,6 +20,7 @@ Principles: the diary lives on the device; the backend keeps no state beyond bou
 * `internal/nutrition` – the embedded catalog, name normalization, and the matching pipeline: exact id, alias, then fuzzy (token containment and Levenshtein similarity, with numbers in names required to agree and a length prefilter), falling back to the AI estimate. `NUTRITION_ESTIMATED` marks fallbacks.
 * `internal/ratelimit`, `internal/metrics`, `internal/config` – token buckets with bounded memory, Prometheus collectors, YAML configuration with fail-fast validation.
 
+* `internal/app/label` – label reading: the provider transcribes the nutrition table (`label.Reader`, implemented by the Gemini and OpenAI-compatible providers), the use case validates it, normalizes it to 100 g and reports warnings ([ADR 011](../adr/011-nutrition-label-reading.md)).
 * `internal/app/product`, `internal/productsource/openfoodfacts` – barcode lookup: GTIN validation, a bounded in-memory cache and the Open Food Facts client with plausibility checks.
 
 The API contract is `protocol/api/openapi.yaml`; the AI output contract is `protocol/ai/food-vision-result.schema.json`. Tests compare handler output with `protocol/fixtures`.
@@ -31,6 +32,7 @@ The API contract is `protocol/api/openapi.yaml`; the AI output contract is `prot
 * `features/recognition` – `AnalysisApi` (Dio, retry interceptor for connection errors and 502/503/504 with the same request id), remote config cache, and the analysis controller (prepare, upload, cancel, map failures to localized messages).
 * `features/camera` – capture screen (`camera`, `image_picker`, `permission_handler`) and image preparation in an isolate (decode, bake orientation, downscale, re-encode as JPEG without metadata).
 * `features/barcode` – the scanner screen (`mobile_scanner`), GTIN validation and the product lookup (local cache first, then the backend); found products are cached in `foods` as `packaged` ([ADR 010](../adr/010-barcode-lookup-via-backend.md)).
+* `features/label` – label reading over `POST /v1/labels/analyze`; the capture screen has a label mode and the confirmation is the custom product form of `features/foods`.
 * `features/diary`, `foods`, `statistics`, `export`, `settings`, `onboarding` – screens and their data access.
 * One draft editor serves the recognition result, manual entry and editing of saved meals.
 

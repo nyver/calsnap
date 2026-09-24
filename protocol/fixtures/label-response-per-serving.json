@@ -1,0 +1,13 @@
+{
+  "requestId": "0190f7a2-1b2c-7d3e-8f40-123456789abc",
+  "servingSizeG": 30,
+  "nutrition": {
+    "kcalPer100g": 399.9,
+    "proteinPer100g": 10,
+    "fatPer100g": 20,
+    "carbsPer100g": 45
+  },
+  "warnings": [
+    "VALUES_CONVERTED"
+  ]
+}

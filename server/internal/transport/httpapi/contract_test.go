@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"example.com/calsnap/server/internal/app/analysis"
+	"example.com/calsnap/server/internal/app/label"
 	"example.com/calsnap/server/internal/nutrition"
 	"example.com/calsnap/server/internal/ratelimit"
 	"example.com/calsnap/server/internal/testutil"
@@ -198,6 +199,7 @@ func TestClientConfigMatchesFixture(t *testing.T) {
 		Analyzer: &stubAnalyzer{}, Observer: &observer{}, Logger: slog.New(slog.DiscardHandler),
 		Limiter:        ratelimit.New(ratelimit.Config{PerMinute: 10, Burst: 3, MaxClients: 1, IdleTTL: time.Minute}),
 		Products:       &stubProducts{},
+		Labels:         &stubLabels{},
 		MaxUploadBytes: 4 << 20, MaxImageDimensionPx: 4096,
 		ClientConfig: httpapi.ClientConfig{ImageMaxLongSidePx: 1280, ImageJPEGQuality: 80, MaxUploadBytes: 4 << 20, AnalyzeTimeoutSeconds: 60},
 	})
@@ -222,11 +224,21 @@ func TestOpenAPIEnumsMatchCode(t *testing.T) {
 		httpapi.CodeInvalidRequest, httpapi.CodeInvalidImage, httpapi.CodeImageTooLarge, httpapi.CodeUnsupportedImageFormat,
 		httpapi.CodeRateLimited, httpapi.CodeAIProviderUnavailable, httpapi.CodeAIInvalidResponse,
 		httpapi.CodeNutritionMatchFailed, httpapi.CodeImageAnalysisFailed, httpapi.CodeInternalError,
-		httpapi.CodeProductNotFound, httpapi.CodeProductSourceUnavailable,
+		httpapi.CodeProductNotFound, httpapi.CodeProductSourceUnavailable, httpapi.CodeLabelNotRecognized,
 	}
 	sort.Strings(wantCodes)
 	if !reflect.DeepEqual(codes, wantCodes) {
 		t.Errorf("error codes in OpenAPI %v != code %v", codes, wantCodes)
+	}
+
+	labelWarnings := enumOf(schemas["LabelWarning"])
+	wantLabelWarnings := []string{
+		label.WarningEnergyEstimated, label.WarningEnergyMismatch, label.WarningLowConfidence,
+		label.WarningValuesConverted, label.WarningVolumeBasis,
+	}
+	sort.Strings(wantLabelWarnings)
+	if !reflect.DeepEqual(labelWarnings, wantLabelWarnings) {
+		t.Errorf("label warnings in OpenAPI %v != code %v", labelWarnings, wantLabelWarnings)
 	}
 
 	warnings := enumOf(schemas["Warning"])

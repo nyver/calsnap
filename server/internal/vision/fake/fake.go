@@ -8,13 +8,17 @@ import (
 	"crypto/sha256"
 
 	"example.com/calsnap/server/internal/app/analysis"
+	"example.com/calsnap/server/internal/app/label"
 )
 
 // Provider returns one of a few canned results chosen by the hash of the image,
 // so the same photo always yields the same answer.
 type Provider struct{}
 
-var _ analysis.FoodVisionProvider = Provider{}
+var (
+	_ analysis.FoodVisionProvider = Provider{}
+	_ label.Reader                = Provider{}
+)
 
 // Analyze implements analysis.FoodVisionProvider.
 func (Provider) Analyze(ctx context.Context, img analysis.Image, _ analysis.RequestContext) (analysis.Result, error) {
@@ -52,5 +56,33 @@ func Results() []analysis.Result {
 			item("rice", "Rice", 100, 0.9, "", 130, 2.7, 0.3, 28),
 		}},
 		{Items: []analysis.RecognizedItem{}},
+	}
+}
+
+// ReadLabel implements label.Reader with canned tables chosen by the hash of
+// the image: a per 100 g table, a per serving table and a photo without a
+// table.
+func (Provider) ReadLabel(ctx context.Context, img analysis.Image, _ analysis.RequestContext) (label.Extraction, error) {
+	if err := ctx.Err(); err != nil {
+		return label.Extraction{}, err
+	}
+	scenarios := LabelResults()
+	sum := sha256.Sum256(img.Data)
+	return scenarios[int(sum[0])%len(scenarios)], nil
+}
+
+// LabelResults returns the canned label readings in scenario order.
+func LabelResults() []label.Extraction {
+	num := func(v float64) *float64 { return &v }
+	return []label.Extraction{
+		{
+			Found: true, ProductName: "Chocolate hazelnut spread", Basis: label.BasisPer100g,
+			EnergyKcal: num(220), EnergyKJ: num(920), Protein: num(8.4), Fat: num(12.1), Carbohydrates: num(18.2), Confidence: 0.9,
+		},
+		{
+			Found: true, Basis: label.BasisPerServing, ServingSizeG: num(30),
+			EnergyKcal: num(120), Protein: num(3), Fat: num(6), Carbohydrates: num(13.5), Confidence: 0.8,
+		},
+		{Found: false, Confidence: 0.9},
 	}
 }

@@ -6,7 +6,8 @@ info:
     Stateless backend for CalSnap. It analyzes one meal photo, optionally
     together with a second photo of the same meal taken from the side, and
     returns recognized foods with estimated weights and nutrition per 100 g.
-    It also looks packaged products up by barcode. Images are processed in
+    It also looks packaged products up by barcode and reads the nutrition
+    facts table on a package photo. Images are processed in
     memory only and are never stored.
 servers:
   - url: https://calsnap.example.com
@@ -62,6 +63,71 @@ paths:
         '413':
           $ref: '#/components/responses/Error'
         '415':
+          $ref: '#/components/responses/Error'
+        '429':
+          description: Rate limit exceeded.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+            Retry-After:
+              description: Seconds until the next request may succeed.
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/Error'
+        '502':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+  /v1/labels/analyze:
+    post:
+      operationId: analyzeLabel
+      summary: Read the nutrition facts table on a package photo
+      description: |
+        Transcribes the table with the AI vision provider and returns values per 100 g.
+        A table printed per serving is converted with the printed serving size. Values the
+        table did not show are omitted, never zero, so a client can ask the user for them.
+        The values are a transcription of a photo and can be wrong: clients show them for
+        confirmation before saving. Only available when `/v1/config` reports
+        `labelReading: true`. Shares the analysis rate limit.
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: Exactly one JPEG, PNG or WebP file (detected by content) of the table.
+                locale:
+                  type: string
+                  enum: [ru, en]
+      responses:
+        '200':
+          description: The table, normalized to 100 g.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LabelResponse'
+        '400':
+          $ref: '#/components/responses/Error'
+        '413':
+          $ref: '#/components/responses/Error'
+        '415':
+          $ref: '#/components/responses/Error'
+        '422':
           $ref: '#/components/responses/Error'
         '429':
           description: Rate limit exceeded.
@@ -216,6 +282,56 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Warning'
+    LabelResponse:
+      type: object
+      additionalProperties: false
+      required: [requestId, nutrition, warnings]
+      properties:
+        requestId:
+          type: string
+        name:
+          type: string
+          description: Product name as printed on the package. Omitted when not read.
+        servingSizeG:
+          type: number
+          exclusiveMinimum: true
+          minimum: 0
+          maximum: 2000
+          description: The serving size the package states, in grams. Omitted when unknown.
+        nutrition:
+          type: object
+          additionalProperties: false
+          description: Values per 100 g; each is omitted when the table did not show it.
+          properties:
+            kcalPer100g:
+              type: number
+              minimum: 0
+              maximum: 900
+            proteinPer100g:
+              type: number
+              minimum: 0
+              maximum: 100
+            fatPer100g:
+              type: number
+              minimum: 0
+              maximum: 100
+            carbsPer100g:
+              type: number
+              minimum: 0
+              maximum: 100
+        warnings:
+          type: array
+          items:
+            $ref: '#/components/schemas/LabelWarning'
+    LabelWarning:
+      type: string
+      description: |
+        LOW_CONFIDENCE: the provider was unsure about the digits. ENERGY_MISMATCH: the energy
+        is far from what the macros imply (fibre, polyols and alcohol explain small gaps).
+        ENERGY_ESTIMATED: the table showed no energy; it was computed from the macros.
+        VALUES_CONVERTED: the table was per serving and was converted to 100 g.
+        VOLUME_BASIS: the table was per 100 ml; the values are used as per 100 g.
+      enum: [LOW_CONFIDENCE, ENERGY_MISMATCH, ENERGY_ESTIMATED, VALUES_CONVERTED, VOLUME_BASIS]
     Product:
       type: object
       additionalProperties: false
@@ -296,7 +412,7 @@ components:
     ClientConfig:
       type: object
       additionalProperties: false
-      required: [imageMaxLongSidePx, imageJpegQuality, maxUploadBytes, analyzeTimeoutSeconds, maxImages, barcodeLookup]
+      required: [imageMaxLongSidePx, imageJpegQuality, maxUploadBytes, analyzeTimeoutSeconds, maxImages, barcodeLookup, labelReading]
       properties:
         imageMaxLongSidePx:
           type: integer
@@ -311,6 +427,11 @@ components:
         analyzeTimeoutSeconds:
           type: integer
           minimum: 1
+        labelReading:
+          type: boolean
+          description: |
+            True when `POST /v1/labels/analyze` is available. Absent in responses of servers
+            that predate label reading; treat that as false.
         barcodeLookup:
           type: boolean
           description: |
@@ -343,11 +464,12 @@ components:
             - INTERNAL_ERROR
             - PRODUCT_NOT_FOUND
             - PRODUCT_SOURCE_UNAVAILABLE
+            - LABEL_NOT_RECOGNIZED
           description: |
             HTTP status by code: INVALID_REQUEST, INVALID_IMAGE 400; IMAGE_TOO_LARGE 413;
             UNSUPPORTED_IMAGE_FORMAT 415; RATE_LIMITED 429; AI_INVALID_RESPONSE,
             NUTRITION_MATCH_FAILED, IMAGE_ANALYSIS_FAILED 502; AI_PROVIDER_UNAVAILABLE 503;
-            INTERNAL_ERROR 500; PRODUCT_NOT_FOUND 404; PRODUCT_SOURCE_UNAVAILABLE 503.
+            INTERNAL_ERROR 500; PRODUCT_NOT_FOUND 404; PRODUCT_SOURCE_UNAVAILABLE 503; LABEL_NOT_RECOGNIZED 422.
         message:
           type: string
           description: Short English developer-facing text. Never contains internal details.

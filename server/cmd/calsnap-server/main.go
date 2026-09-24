@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"example.com/calsnap/server/internal/app/analysis"
+	"example.com/calsnap/server/internal/app/label"
 	"example.com/calsnap/server/internal/app/product"
 	"example.com/calsnap/server/internal/config"
 	"example.com/calsnap/server/internal/metrics"
@@ -184,6 +185,17 @@ func build(cfg *config.Config, log *slog.Logger) (*app, error) {
 		IdleTTL:    limiterIdleTTL,
 	})
 
+	var labels httpapi.LabelReader
+	if reader, ok := vision.(label.Reader); ok {
+		labels = label.NewService(label.Config{
+			ProviderName:   cfg.AI.Provider,
+			CallTimeout:    cfg.AI.CallTimeout,
+			OverallTimeout: cfg.AI.OverallTimeout,
+			MaxConcurrent:  cfg.Limits.MaxConcurrentAnalyses,
+			QueueWait:      cfg.Limits.QueueWait,
+		}, label.Deps{Reader: reader, Metrics: m, Logger: log})
+	}
+
 	limiters := []*ratelimit.Limiter{limiter}
 	var products httpapi.ProductLookup
 	var productLimiter *ratelimit.Limiter
@@ -210,6 +222,7 @@ func build(cfg *config.Config, log *slog.Logger) (*app, error) {
 
 	handler := httpapi.NewHandler(httpapi.Deps{
 		Analyzer:            svc,
+		Labels:              labels,
 		Products:            products,
 		ProductLimiter:      productLimiter,
 		Limiter:             limiter,
