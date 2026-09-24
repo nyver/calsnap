@@ -288,3 +288,41 @@ func TestCompatKeyIsOnlyResolvedForSelectedProvider(t *testing.T) {
 		t.Error("keys of unselected providers must not be loaded")
 	}
 }
+
+func TestProductsDefaultsAndValidation(t *testing.T) {
+	t.Parallel()
+
+	cfg, err := Parse([]byte(validGemini+"ai:\n  provider: fake\n"), env(nil))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	p := cfg.Products
+	if !p.Enabled || p.BaseURL != "https://world.openfoodfacts.org" || p.Timeout != 5*time.Second ||
+		p.CacheTTL != 24*time.Hour || p.CacheMaxEntries != 5000 || p.UserAgent != "" {
+		t.Errorf("unexpected product defaults: %+v", p)
+	}
+	if cfg.Limits.ProductRatePerMinute != 60 || cfg.Limits.ProductRateBurst != 10 {
+		t.Errorf("unexpected product limits: %+v", cfg.Limits)
+	}
+
+	bad := map[string]string{
+		"products.base_url":              "products:\n  base_url: ftp://example.com\n",
+		"products.timeout":               "products:\n  timeout: 0s\n",
+		"products.cache_ttl":             "products:\n  cache_ttl: -1h\n",
+		"products.cache_max_entries":     "products:\n  cache_max_entries: 0\n",
+		"products.user_agent":            "products:\n  user_agent: \"a\\nb\"\n",
+		"limits.product_rate_per_minute": "limits:\n  product_rate_per_minute: 0\n",
+		"limits.product_rate_burst":      "limits:\n  product_rate_burst: 0\n",
+	}
+	for key, doc := range bad {
+		_, err := Parse([]byte(validGemini+"ai:\n  provider: fake\n"+doc), env(nil))
+		if err == nil || !strings.Contains(err.Error(), key) {
+			t.Errorf("%s: err = %v", key, err)
+		}
+	}
+
+	// A disabled lookup does not validate its settings.
+	if _, err := Parse([]byte(validGemini+"ai:\n  provider: fake\nproducts:\n  enabled: false\n  base_url: nonsense\n"), env(nil)); err != nil {
+		t.Errorf("disabled products: %v", err)
+	}
+}

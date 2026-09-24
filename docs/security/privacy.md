@@ -6,7 +6,7 @@ This document is the source for the in-app privacy screen and the public privacy
 
 | Data | Where | Retention |
 |---|---|---|
-| Meals, items, nutrition values, settings, AI correction records, custom products | SQLite database in the app-private directory of the device | Until the user deletes it (Settings, "Clear all data") or uninstalls the app |
+| Meals, items, nutrition values, settings, AI correction records, custom products, cached barcode products | SQLite database in the app-private directory of the device | Until the user deletes it (Settings, "Clear all data") or uninstalls the app |
 | Meal photos | Files under `meals/YYYY/MM/DD/` in the app-private documents directory; only the relative path is stored in SQLite | Until the meal is deleted, or never stored when "Save meal photos" is off |
 | Temporary photos (capture, exports) | App cache / temp directories | Deleted after analysis or discard, and swept at every app start |
 
@@ -23,7 +23,11 @@ Only when the user analyzes a photo, the app sends to the CalSnap backend over H
 * the plate diameter, if the user set one;
 * a random request id (`X-Request-Id`).
 
-The local photo checks (blur, brightness, camera angle) run on the device and send nothing. Nothing else is sent: not the diary, not the settings, not device identifiers, no account (there is none).
+The local photo checks (blur, brightness, camera angle) run on the device and send nothing.
+
+When the user scans a product barcode, the code is read on the device and only its number is sent to the CalSnap backend, which asks Open Food Facts for the product (Open Food Facts sees the backend, not the user's device). The barcode is not logged by the backend. Products found this way are cached in the local database. The scanner library (Google ML Kit, on-device) may send anonymous technical usage metrics to Google; it does not receive camera images or barcodes.
+
+ Nothing else is sent: not the diary, not the settings, not device identifiers, no account (there is none).
 
 ## What the backend does with it
 

@@ -93,17 +93,19 @@ func (o *observer) RateLimited() {
 type env struct {
 	handler  http.Handler
 	analyzer *stubAnalyzer
+	products *stubProducts
 	obs      *observer
 	logs     *bytes.Buffer
 }
 
 type envOpts struct {
-	burst int
+	burst        int
+	productBurst int
 }
 
 func newEnv(t *testing.T, opts ...func(*envOpts)) *env {
 	t.Helper()
-	o := envOpts{burst: 1000}
+	o := envOpts{burst: 1000, productBurst: 1000}
 	for _, f := range opts {
 		f(&o)
 	}
@@ -115,10 +117,13 @@ func newEnv(t *testing.T, opts ...func(*envOpts)) *env {
 	logs := &bytes.Buffer{}
 	log := slog.New(slog.NewJSONHandler(&syncWriter{w: logs}, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	lim := ratelimit.New(ratelimit.Config{PerMinute: 10, Burst: o.burst, MaxClients: 100, IdleTTL: time.Minute})
+	productLim := ratelimit.New(ratelimit.Config{PerMinute: 10, Burst: o.productBurst, MaxClients: 100, IdleTTL: time.Minute})
+	products := &stubProducts{}
 	return &env{
-		analyzer: an, obs: obs, logs: logs,
+		analyzer: an, products: products, obs: obs, logs: logs,
 		handler: httpapi.NewHandler(httpapi.Deps{
 			Analyzer: an, Limiter: lim, Observer: obs, Logger: log,
+			Products: products, ProductLimiter: productLim,
 			MaxUploadBytes: maxBytes, MaxImageDimensionPx: 4096,
 			ClientConfig: httpapi.ClientConfig{ImageMaxLongSidePx: 1280, ImageJPEGQuality: 80, MaxUploadBytes: maxBytes, AnalyzeTimeoutSeconds: 60},
 		}),
@@ -593,7 +598,7 @@ func TestConfigAndHealth(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
 		t.Fatal(err)
 	}
-	want := map[string]any{"imageMaxLongSidePx": 1280.0, "imageJpegQuality": 80.0, "maxUploadBytes": float64(maxBytes), "analyzeTimeoutSeconds": 60.0, "maxImages": 2.0}
+	want := map[string]any{"imageMaxLongSidePx": 1280.0, "imageJpegQuality": 80.0, "maxUploadBytes": float64(maxBytes), "analyzeTimeoutSeconds": 60.0, "maxImages": 2.0, "barcodeLookup": true}
 	if fmt.Sprint(got) != fmt.Sprint(want) {
 		t.Errorf("config = %v, want %v", got, want)
 	}

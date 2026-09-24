@@ -46,6 +46,9 @@ type ClientConfig struct {
 	ImageJPEGQuality      int   `json:"imageJpegQuality"`
 	MaxUploadBytes        int64 `json:"maxUploadBytes"`
 	AnalyzeTimeoutSeconds int   `json:"analyzeTimeoutSeconds"`
+	// BarcodeLookup tells clients whether GET /v1/products/{barcode} exists. It
+	// is set by the handler from the presence of the use case.
+	BarcodeLookup bool `json:"barcodeLookup"`
 	// MaxImages tells clients whether a side photo is accepted (2) or not (1).
 	// It is set by the handler, not by the operator.
 	MaxImages int `json:"maxImages"`
@@ -53,8 +56,13 @@ type ClientConfig struct {
 
 // Deps are the collaborators of the HTTP transport.
 type Deps struct {
-	Analyzer       Analyzer
-	Limiter        *ratelimit.Limiter
+	Analyzer Analyzer
+	// Products is the barcode lookup use case; nil disables the endpoint.
+	Products ProductLookup
+	Limiter  *ratelimit.Limiter
+	// ProductLimiter limits lookups separately from analyses: they are cheap
+	// and scanning several products in a row is normal. Nil means unlimited.
+	ProductLimiter *ratelimit.Limiter
 	TrustedProxies []netip.Prefix
 	Observer       Observer
 	Logger         *slog.Logger
@@ -99,6 +107,7 @@ func (h *handlers) healthz(w http.ResponseWriter, _ *http.Request) {
 func (h *handlers) config(w http.ResponseWriter, _ *http.Request) {
 	cfg := h.ClientConfig
 	cfg.MaxImages = maxImages
+	cfg.BarcodeLookup = h.Products != nil
 	writeJSON(w, http.StatusOK, cfg)
 }
 

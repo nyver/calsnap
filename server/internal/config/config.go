@@ -37,6 +37,7 @@ type Config struct {
 	Client    ClientConfig    `yaml:"client"`
 	AI        AIConfig        `yaml:"ai"`
 	Nutrition NutritionConfig `yaml:"nutrition"`
+	Products  ProductsConfig  `yaml:"products"`
 	Metrics   MetricsConfig   `yaml:"metrics"`
 	Log       LogConfig       `yaml:"log"`
 }
@@ -87,6 +88,11 @@ type LimitsConfig struct {
 	QueueWait             time.Duration `yaml:"queue_wait"`
 	ReplayTTL             time.Duration `yaml:"replay_ttl"`
 	ReplayMaxEntries      int           `yaml:"replay_max_entries"`
+
+	// Barcode lookups are cheap and often come in bursts (scanning a whole
+	// shopping bag), so they get their own, more generous bucket.
+	ProductRatePerMinute float64 `yaml:"product_rate_per_minute"`
+	ProductRateBurst     int     `yaml:"product_rate_burst"`
 }
 
 // ClientConfig contains values exposed to the client through GET /v1/config.
@@ -137,6 +143,25 @@ type NutritionConfig struct {
 	FuzzyThreshold float64 `yaml:"fuzzy_threshold"`
 }
 
+// ProductsConfig configures the barcode lookup (GET /v1/products/{barcode}),
+// which reads Open Food Facts. The data is crowd-sourced and ODbL-licensed.
+type ProductsConfig struct {
+	// Enabled turns the endpoint on. The server then makes outbound HTTPS
+	// requests to base_url; disable it on hosts that must not.
+	Enabled bool `yaml:"enabled"`
+	// BaseURL is the Open Food Facts root, or a compatible mirror.
+	BaseURL string `yaml:"base_url"`
+	// UserAgent identifies this server to Open Food Facts (it asks for an app
+	// name and a contact). Empty selects "CalSnap-server/<version>".
+	UserAgent string `yaml:"user_agent"`
+	// Timeout bounds one request to the product source.
+	Timeout time.Duration `yaml:"timeout"`
+	// CacheTTL is how long a found product is served from memory.
+	CacheTTL time.Duration `yaml:"cache_ttl"`
+	// CacheMaxEntries bounds that cache.
+	CacheMaxEntries int `yaml:"cache_max_entries"`
+}
+
 // MetricsConfig configures the Prometheus listener.
 type MetricsConfig struct {
 	Listen string `yaml:"listen"`
@@ -171,6 +196,8 @@ func Default() Config {
 			QueueWait:             2 * time.Second,
 			ReplayTTL:             10 * time.Minute,
 			ReplayMaxEntries:      1000,
+			ProductRatePerMinute:  60,
+			ProductRateBurst:      10,
 		},
 		Client: ClientConfig{
 			ImageMaxLongSidePx:    1280,
@@ -199,8 +226,15 @@ func Default() Config {
 			},
 		},
 		Nutrition: NutritionConfig{FuzzyThreshold: 0.85},
-		Metrics:   MetricsConfig{Listen: "127.0.0.1:9090"},
-		Log:       LogConfig{Level: "info", Format: "json"},
+		Products: ProductsConfig{
+			Enabled:         true,
+			BaseURL:         "https://world.openfoodfacts.org",
+			Timeout:         5 * time.Second,
+			CacheTTL:        24 * time.Hour,
+			CacheMaxEntries: 5000,
+		},
+		Metrics: MetricsConfig{Listen: "127.0.0.1:9090"},
+		Log:     LogConfig{Level: "info", Format: "json"},
 	}
 }
 
@@ -321,6 +355,12 @@ func (c *Config) Validate() error {
 	if l.ReplayMaxEntries < 1 {
 		bad("limits.replay_max_entries must be at least 1")
 	}
+	if l.ProductRatePerMinute <= 0 || l.ProductRatePerMinute > 6000 {
+		bad("limits.product_rate_per_minute must be in (0, 6000], got %v", l.ProductRatePerMinute)
+	}
+	if l.ProductRateBurst < 1 || l.ProductRateBurst > 1000 {
+		bad("limits.product_rate_burst must be between 1 and 1000, got %d", l.ProductRateBurst)
+	}
 
 	cl := c.Client
 	if cl.ImageMaxLongSidePx < 256 || cl.ImageMaxLongSidePx > l.MaxImageDimensionPx {
@@ -371,6 +411,23 @@ func (c *Config) Validate() error {
 
 	if t := c.Nutrition.FuzzyThreshold; t <= 0 || t > 1 {
 		bad("nutrition.fuzzy_threshold must be in (0, 1], got %v", t)
+	}
+	if p := c.Products; p.Enabled {
+		if u, err := url.Parse(p.BaseURL); err != nil || u.Host == "" || (u.Scheme != "https" && u.Scheme != "http") {
+			bad("products.base_url must be an http(s) URL")
+		}
+		if p.Timeout <= 0 {
+			bad("products.timeout must be positive")
+		}
+		if p.CacheTTL <= 0 {
+			bad("products.cache_ttl must be positive")
+		}
+		if p.CacheMaxEntries < 1 {
+			bad("products.cache_max_entries must be at least 1")
+		}
+		if strings.ContainsAny(p.UserAgent, "\r\n") {
+			bad("products.user_agent must be a single line")
+		}
 	}
 	if c.Metrics.Listen == "" {
 		bad("metrics.listen must not be empty")

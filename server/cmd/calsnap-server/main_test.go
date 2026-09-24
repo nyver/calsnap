@@ -17,6 +17,7 @@ import (
 	"mime/multipart"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -355,5 +356,84 @@ func TestRunConfigurationErrors(t *testing.T) {
 				t.Errorf("stdout=%q stderr=%q", stdout.String(), stderr.String())
 			}
 		})
+	}
+}
+
+func TestBarcodeLookupEndToEnd(t *testing.T) {
+	t.Parallel()
+
+	var hits int
+	var agent string
+	off := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits++
+		agent = r.Header.Get("User-Agent")
+		_, _ = io.WriteString(w, `{"status":1,"product":{"product_name_en":"Plain yogurt","brands":"Danone","serving_quantity":150,`+
+			`"nutriments":{"energy-kcal_100g":61,"proteins_100g":3.5,"fat_100g":2.1,"carbohydrates_100g":7.6}}}`)
+	}))
+	defer off.Close()
+
+	cfg := testConfig(t, "server:\n  allow_plain_http: true\nproducts:\n  base_url: "+off.URL+"\n")
+	rt, err := build(cfg, slog.New(slog.DiscardHandler))
+	if err != nil {
+		t.Fatal(err)
+	}
+	apiLn, metricsLn := listen(t), listen(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	served := make(chan error, 1)
+	go func() { served <- rt.serve(ctx, apiLn, metricsLn) }()
+	defer func() {
+		cancel()
+		<-served
+	}()
+
+	get := func(path string) (int, string) {
+		req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://"+apiLn.Addr().String()+path, http.NoBody)
+		resp, err := (&http.Client{Timeout: 5 * time.Second}).Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		b, _ := io.ReadAll(resp.Body)
+		return resp.StatusCode, string(b)
+	}
+
+	status, body := get("/v1/products/4006381333931")
+	if status != http.StatusOK || !strings.Contains(body, `"name":"Plain yogurt"`) || !strings.Contains(body, `"servingSizeG":150`) {
+		t.Fatalf("lookup: %d %s", status, body)
+	}
+	if status, _ = get("/v1/products/4006381333931"); status != http.StatusOK || hits != 1 {
+		t.Errorf("the second lookup must come from the cache: status %d, source hits %d", status, hits)
+	}
+	if !strings.HasPrefix(agent, "CalSnap-server/") {
+		t.Errorf("User-Agent = %q", agent)
+	}
+	if status, body = get("/v1/products/4006381333932"); status != http.StatusBadRequest {
+		t.Errorf("bad check digit: %d %s", status, body)
+	}
+	if _, body = get("/v1/config"); !strings.Contains(body, `"barcodeLookup":true`) {
+		t.Errorf("config = %s", body)
+	}
+}
+
+func TestBarcodeLookupCanBeDisabled(t *testing.T) {
+	t.Parallel()
+
+	cfg := testConfig(t, "server:\n  allow_plain_http: true\nproducts:\n  enabled: false\n")
+	rt, err := build(cfg, slog.New(slog.DiscardHandler))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for path, want := range map[string]struct {
+		status int
+		body   string
+	}{
+		"/v1/products/4006381333931": {http.StatusNotFound, ""},
+		"/v1/config":                 {http.StatusOK, `"barcodeLookup":false`},
+	} {
+		rec := httptest.NewRecorder()
+		rt.api.Handler.ServeHTTP(rec, httptest.NewRequestWithContext(context.Background(), http.MethodGet, path, http.NoBody))
+		if rec.Code != want.status || !strings.Contains(rec.Body.String(), want.body) {
+			t.Errorf("%s: %d %s", path, rec.Code, rec.Body.String())
+		}
 	}
 }

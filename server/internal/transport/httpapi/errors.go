@@ -23,6 +23,9 @@ const (
 	CodeNutritionMatchFailed   = "NUTRITION_MATCH_FAILED"
 	CodeImageAnalysisFailed    = "IMAGE_ANALYSIS_FAILED"
 	CodeInternalError          = "INTERNAL_ERROR"
+
+	CodeProductNotFound          = "PRODUCT_NOT_FOUND"
+	CodeProductSourceUnavailable = "PRODUCT_SOURCE_UNAVAILABLE"
 )
 
 // statusClientClosed is the de-facto status for requests the client abandoned.
@@ -40,6 +43,9 @@ var codeStatus = map[string]int{
 	CodeImageAnalysisFailed:    http.StatusBadGateway,
 	CodeAIProviderUnavailable:  http.StatusServiceUnavailable,
 	CodeInternalError:          http.StatusInternalServerError,
+
+	CodeProductNotFound:          http.StatusNotFound,
+	CodeProductSourceUnavailable: http.StatusServiceUnavailable,
 }
 
 // defaultMessages are short English developer-facing texts. They never contain
@@ -55,6 +61,9 @@ var defaultMessages = map[string]string{
 	CodeNutritionMatchFailed:   "Nutrition data could not be determined.",
 	CodeImageAnalysisFailed:    "The meal could not be analyzed.",
 	CodeInternalError:          "Internal error.",
+
+	CodeProductNotFound:          "No nutrition data was found for this barcode.",
+	CodeProductSourceUnavailable: "The product database is temporarily unavailable.",
 }
 
 // apiError is an error that maps directly to a response.

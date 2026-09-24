@@ -1,0 +1,13 @@
+{
+  "barcode": "4006381333931",
+  "name": "Plain yogurt",
+  "brand": "Danone",
+  "servingSizeG": 150,
+  "nutrition": {
+    "kcalPer100g": 61,
+    "proteinPer100g": 3.5,
+    "fatPer100g": 2.1,
+    "carbsPer100g": 7.6
+  },
+  "source": "openfoodfacts"
+}

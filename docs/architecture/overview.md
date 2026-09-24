@@ -20,6 +20,8 @@ Principles: the diary lives on the device; the backend keeps no state beyond bou
 * `internal/nutrition` – the embedded catalog, name normalization, and the matching pipeline: exact id, alias, then fuzzy (token containment and Levenshtein similarity, with numbers in names required to agree and a length prefilter), falling back to the AI estimate. `NUTRITION_ESTIMATED` marks fallbacks.
 * `internal/ratelimit`, `internal/metrics`, `internal/config` – token buckets with bounded memory, Prometheus collectors, YAML configuration with fail-fast validation.
 
+* `internal/app/product`, `internal/productsource/openfoodfacts` – barcode lookup: GTIN validation, a bounded in-memory cache and the Open Food Facts client with plausibility checks.
+
 The API contract is `protocol/api/openapi.yaml`; the AI output contract is `protocol/ai/food-vision-result.schema.json`. Tests compare handler output with `protocol/fixtures`.
 
 ## Client (`apps/client/`)
@@ -28,6 +30,7 @@ The API contract is `protocol/api/openapi.yaml`; the AI output contract is `prot
 * `features/meal` – the domain model (`Meal`, `MealItem`, `MealDraft`), the pure `NutritionCalculator`, unit conversion, `SaveMealUseCase` and the transactional `MealRepository` (meal, items, totals, corrections, food cache in one transaction).
 * `features/recognition` – `AnalysisApi` (Dio, retry interceptor for connection errors and 502/503/504 with the same request id), remote config cache, and the analysis controller (prepare, upload, cancel, map failures to localized messages).
 * `features/camera` – capture screen (`camera`, `image_picker`, `permission_handler`) and image preparation in an isolate (decode, bake orientation, downscale, re-encode as JPEG without metadata).
+* `features/barcode` – the scanner screen (`mobile_scanner`), GTIN validation and the product lookup (local cache first, then the backend); found products are cached in `foods` as `packaged` ([ADR 010](../adr/010-barcode-lookup-via-backend.md)).
 * `features/diary`, `foods`, `statistics`, `export`, `settings`, `onboarding` – screens and their data access.
 * One draft editor serves the recognition result, manual entry and editing of saved meals.
 

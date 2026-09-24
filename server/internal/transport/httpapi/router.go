@@ -15,6 +15,10 @@ func NewHandler(d Deps) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /v1/meals/analyze", h.analyze)
 	mux.HandleFunc("/v1/meals/analyze", methodNotAllowed(http.MethodPost))
+	if d.Products != nil {
+		mux.HandleFunc("GET /v1/products/{barcode}", h.product)
+		mux.HandleFunc("/v1/products/{barcode}", methodNotAllowed(http.MethodGet+", "+http.MethodHead))
+	}
 	mux.HandleFunc("GET /v1/config", h.config)
 	mux.HandleFunc("/v1/config", methodNotAllowed(http.MethodGet+", "+http.MethodHead))
 	mux.HandleFunc("GET /healthz", h.healthz)

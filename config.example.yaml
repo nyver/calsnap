@@ -65,6 +65,10 @@ limits:
   # Successful analyses are replayed for the same X-Request-Id within this window.
   replay_ttl: 10m
   replay_max_entries: 1000
+  # Token bucket per client for GET /v1/products/{barcode}. Separate from the analysis
+  # limit: lookups are cheap and often come in bursts (scanning a shopping bag).
+  product_rate_per_minute: 60
+  product_rate_burst: 10
 
 # Values returned to the app by GET /v1/config so they can change without an app release.
 client:
@@ -104,6 +108,22 @@ ai:
 nutrition:
   # Minimum name similarity (0-1] for fuzzy catalog matches.
   fuzzy_threshold: 0.85
+
+# Barcode lookup for packaged products (GET /v1/products/{barcode}), read from Open Food Facts
+# (crowd-sourced data under the ODbL). When enabled, the server makes outbound HTTPS requests to
+# base_url and the app shows a barcode scanner. Barcodes are never logged.
+products:
+  enabled: true
+  # Open Food Facts, or a compatible mirror.
+  base_url: https://world.openfoodfacts.org
+  # Identifies this server to Open Food Facts, which asks for an app name and a contact,
+  # e.g. "CalSnap/1.0 (you@example.com)". Empty means "CalSnap-server/<version>".
+  user_agent: ""
+  # Timeout of one request to the source.
+  timeout: 5s
+  # Found products are served from memory this long (unknown products for 10 minutes).
+  cache_ttl: 24h
+  cache_max_entries: 5000
 
 metrics:
   # Prometheus listener (/metrics). Keep it bound to a private interface.

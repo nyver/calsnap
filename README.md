@@ -60,7 +60,8 @@ Every key is documented in [config.example.yaml](config.example.yaml). The impor
 * OpenRouter and RouterAI use the OpenAI-compatible chat-completions API, so any vision-capable model they offer works, for example `google/gemini-2.5-flash`. Note that the router forwards the photo to the upstream model vendor (see the [privacy note](docs/security/privacy.md)). The RouterAI defaults (`https://routerai.ru/api/v1`, model id format) are assumptions: check them against your account and override `base_url` and `model` if needed.
 * `server.tls.*` – native HTTPS (TLS 1.2 minimum): either `cert_file` + `key_file` (created as a self-signed pair when both files are missing), or `self_signed: true` for a certificate the server generates itself (see [TLS modes](#tls-modes)). Without any of them the server only starts when `server.allow_plain_http: true` (behind a TLS-terminating reverse proxy, or locally) and logs a warning.
 * `server.trusted_proxies` – proxies whose `X-Forwarded-For` is trusted for per-client rate limiting.
-* `limits.*` – upload size (default 4 MiB), image dimensions, rate limit (10/min, burst 3), concurrent AI calls (16), replay window (10 min).
+* `limits.*` – upload size (default 4 MiB), image dimensions, rate limit (10/min, burst 3), concurrent AI calls (16), replay window (10 min), and a separate, more generous rate limit for barcode lookups (60/min, burst 10).
+* `products.*` – the barcode lookup (`GET /v1/products/{barcode}`) reads [Open Food Facts](https://world.openfoodfacts.org). It is on by default and makes outbound HTTPS requests; set `products.enabled: false` on hosts that must not (the route and the scanner in the app then disappear). Set `products.user_agent` to an app name with a contact address, as Open Food Facts asks. Barcodes are never logged.
 * `client.*` – values the app fetches from `GET /v1/config` (image long side, JPEG quality, timeout). `maxImages` is also sent there, fixed at 2 by the code: the analyze endpoint accepts an optional side photo.
 
 ### Run
@@ -154,11 +155,15 @@ flutter build apk --release --split-per-abi \
 
 Signing: create `apps/client/android/key.properties` (never committed) with `storeFile`, `storePassword`, `keyAlias`, `keyPassword`. Without it the release build is signed with the debug key and must not be published. R8 is enabled for release builds; project rules live in `android/app/proguard-rules.pro`.
 
-The release manifest requests only `INTERNET` and `CAMERA`, disables cleartext traffic and cloud auto-backup (the diary must stay on the device; use the export in settings as the backup path). The application id `app.calsnap.android` is a placeholder to confirm before the first store upload.
+The release manifest requests `INTERNET` and `CAMERA` (a dependency of the barcode scanner also merges the normal permission `ACCESS_NETWORK_STATE`), disables cleartext traffic and cloud auto-backup (the diary must stay on the device; use the export in settings as the backup path). The application id `app.calsnap.android` is a placeholder to confirm before the first store upload.
 
 ### Data and privacy
 
 Meals, items, foods, settings and AI correction records live in SQLite on the device (Drift, schema version 1, WAL, foreign keys on). Photos are files under `meals/YYYY/MM/DD/`, never BLOBs. See [docs/security/privacy.md](docs/security/privacy.md).
+
+### Packaged products: scan the barcode
+
+For a packaged product no plate photo is needed: **Add meal -> Scan barcode** (or the scan button in the food search of the meal editor) reads EAN-13, EAN-8 or UPC-A on the device, or takes the digits by hand (also when the camera is not allowed). The CalSnap server looks the code up in Open Food Facts; the app shows the name, the nutrition per 100 g and the declared serving, then adds it like any food, with the serving as the default quantity. A product found once is cached on the device (it works offline afterwards and shows up in the food search, by name or by barcode). It needs a server that advertises `barcodeLookup` in `GET /v1/config` (this one does unless `products.enabled` is false). Nutrition data: [Open Food Facts](https://world.openfoodfacts.org), licensed under the [ODbL](https://opendatacommons.org/licenses/odbl/1-0/); it is crowd-sourced, so check the values before you rely on them. Implausible entries (for example kJ typed as kcal) are rejected, and products without nutrition data are reported as not found. Details: [ADR 010](docs/adr/010-barcode-lookup-via-backend.md).
 
 ### Better photos, better portions
 
@@ -234,6 +239,7 @@ python scripts/generate_app_icons.py
 * The unauthenticated backend relies on rate limits; there is no app attestation yet.
 * The in-progress recognition result is not persisted across process death; retake the photo.
 * The photo checks were tuned on synthetic images, not on a labeled set of real meal photos; an oval platter can trigger a wrong "steep angle" advice, and a missing or unusual plate simply gets no advice.
+* The barcode scanner uses Google ML Kit on the device; the library may send anonymous technical usage metrics to Google, and it adds about 5 MB per ABI to the APK. Open Food Facts data is crowd-sourced and only sanity-checked; cached products are never refreshed automatically.
 * The side photo is offered for every fresh recognition (not only for bulky foods) and only the first photo is stored with the meal.
 * Personalized weights learn only from weight corrections of AI items; nutrition values are not personalized, and the food category is derived from the macros because the catalog has none.
 * The Go module path is a placeholder (`example.com/calsnap/server`).

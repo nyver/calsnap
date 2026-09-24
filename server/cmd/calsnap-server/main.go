@@ -16,13 +16,16 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"sync"
 	"syscall"
 	"time"
 
 	"example.com/calsnap/server/internal/app/analysis"
+	"example.com/calsnap/server/internal/app/product"
 	"example.com/calsnap/server/internal/config"
 	"example.com/calsnap/server/internal/metrics"
 	"example.com/calsnap/server/internal/nutrition"
+	"example.com/calsnap/server/internal/productsource/openfoodfacts"
 	"example.com/calsnap/server/internal/ratelimit"
 	"example.com/calsnap/server/internal/selfsigned"
 	"example.com/calsnap/server/internal/transport/httpapi"
@@ -117,7 +120,7 @@ type app struct {
 	log             *slog.Logger
 	api             *http.Server
 	metrics         *http.Server
-	limiter         *ratelimit.Limiter
+	limiters        []*ratelimit.Limiter
 	certFile        string
 	keyFile         string
 	shutdownTimeout time.Duration
@@ -181,8 +184,34 @@ func build(cfg *config.Config, log *slog.Logger) (*app, error) {
 		IdleTTL:    limiterIdleTTL,
 	})
 
+	limiters := []*ratelimit.Limiter{limiter}
+	var products httpapi.ProductLookup
+	var productLimiter *ratelimit.Limiter
+	if cfg.Products.Enabled {
+		agent := cfg.Products.UserAgent
+		if agent == "" {
+			agent = "CalSnap-server/" + version
+		}
+		src := openfoodfacts.New(openfoodfacts.Config{BaseURL: cfg.Products.BaseURL, UserAgent: agent},
+			&http.Client{Timeout: cfg.Products.Timeout})
+		products = product.NewService(product.Config{
+			CacheTTL:        cfg.Products.CacheTTL,
+			CacheMaxEntries: cfg.Products.CacheMaxEntries,
+		}, src, nil)
+		productLimiter = ratelimit.New(ratelimit.Config{
+			PerMinute:  cfg.Limits.ProductRatePerMinute,
+			Burst:      cfg.Limits.ProductRateBurst,
+			MaxClients: cfg.Limits.MaxTrackedClients,
+			IdleTTL:    limiterIdleTTL,
+		})
+		limiters = append(limiters, productLimiter)
+		log.Info("barcode lookup enabled", "source", "openfoodfacts")
+	}
+
 	handler := httpapi.NewHandler(httpapi.Deps{
 		Analyzer:            svc,
+		Products:            products,
+		ProductLimiter:      productLimiter,
 		Limiter:             limiter,
 		TrustedProxies:      prefixes,
 		Observer:            m,
@@ -226,7 +255,7 @@ func build(cfg *config.Config, log *slog.Logger) (*app, error) {
 		log:             log,
 		api:             api,
 		metrics:         metricsSrv,
-		limiter:         limiter,
+		limiters:        limiters,
 		certFile:        certFile,
 		keyFile:         keyFile,
 		shutdownTimeout: cfg.Server.ShutdownTimeout,
@@ -286,11 +315,14 @@ func (a *app) serve(ctx context.Context, apiLn, metricsLn net.Listener) error {
 	go func() { done <- ignoreClosed(a.metrics.Serve(metricsLn)) }()
 
 	janitorCtx, stopJanitor := context.WithCancel(ctx)
-	janitorDone := make(chan struct{})
-	go func() {
-		defer close(janitorDone)
-		a.limiter.Run(janitorCtx, limiterSweepInterval)
-	}()
+	var janitors sync.WaitGroup
+	for _, l := range a.limiters {
+		janitors.Add(1)
+		go func() {
+			defer janitors.Done()
+			l.Run(janitorCtx, limiterSweepInterval)
+		}()
+	}
 
 	var firstErr error
 	pending := servers
@@ -313,7 +345,7 @@ func (a *app) serve(ctx context.Context, apiLn, metricsLn net.Listener) error {
 		_ = a.metrics.Close()
 	}
 	stopJanitor()
-	<-janitorDone
+	janitors.Wait()
 
 	// Collect the results of the serve goroutines (they return once Shutdown ran).
 	for ; pending > 0; pending-- {

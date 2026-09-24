@@ -6,7 +6,8 @@ info:
     Stateless backend for CalSnap. It analyzes one meal photo, optionally
     together with a second photo of the same meal taken from the side, and
     returns recognized foods with estimated weights and nutrition per 100 g.
-    Images are processed in memory only and are never stored.
+    It also looks packaged products up by barcode. Images are processed in
+    memory only and are never stored.
 servers:
   - url: https://calsnap.example.com
 paths:
@@ -78,6 +79,65 @@ paths:
         '500':
           $ref: '#/components/responses/Error'
         '502':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+  /v1/products/{barcode}:
+    get:
+      operationId: getProduct
+      summary: Nutrition facts of a packaged product by barcode
+      description: |
+        Looks the product up in Open Food Facts (crowd-sourced data under the ODbL;
+        `source` says so and clients should credit it). Only advertised when
+        `/v1/config` reports `barcodeLookup: true`; otherwise the route does not exist.
+        Products the source knows without trustworthy nutrition data are reported as
+        not found. Barcodes are never logged.
+      parameters:
+        - name: barcode
+          in: path
+          required: true
+          description: |
+            GTIN-8, GTIN-12 (UPC-A), GTIN-13 (EAN-13) or GTIN-14, digits only, with a
+            valid check digit. A UPC-A code is returned as the equivalent EAN-13.
+          schema:
+            type: string
+            pattern: '^[0-9]{8}$|^[0-9]{12,14}$'
+        - name: locale
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ru, en]
+          description: Preferred language of the product name. Unknown values fall back to `en`.
+        - $ref: '#/components/parameters/RequestId'
+      responses:
+        '200':
+          description: The product.
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '429':
+          description: Rate limit exceeded (a separate, more generous limit than analysis).
+          headers:
+            X-Request-Id:
+              $ref: '#/components/headers/RequestId'
+            Retry-After:
+              description: Seconds until the next request may succeed.
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
           $ref: '#/components/responses/Error'
         '503':
           $ref: '#/components/responses/Error'
@@ -156,6 +216,31 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Warning'
+    Product:
+      type: object
+      additionalProperties: false
+      required: [barcode, name, nutrition, source]
+      properties:
+        barcode:
+          type: string
+          description: The normalized code (EAN-13 for a UPC-A input).
+        name:
+          type: string
+          description: Display name, at most 100 characters.
+        brand:
+          type: string
+          description: First brand, at most 60 characters. Omitted when unknown.
+        servingSizeG:
+          type: number
+          exclusiveMinimum: true
+          minimum: 0
+          maximum: 2000
+          description: Declared serving in grams. Omitted when unknown.
+        nutrition:
+          $ref: '#/components/schemas/Nutrition'
+        source:
+          type: string
+          enum: [openfoodfacts]
     Item:
       type: object
       additionalProperties: false
@@ -211,7 +296,7 @@ components:
     ClientConfig:
       type: object
       additionalProperties: false
-      required: [imageMaxLongSidePx, imageJpegQuality, maxUploadBytes, analyzeTimeoutSeconds, maxImages]
+      required: [imageMaxLongSidePx, imageJpegQuality, maxUploadBytes, analyzeTimeoutSeconds, maxImages, barcodeLookup]
       properties:
         imageMaxLongSidePx:
           type: integer
@@ -226,6 +311,11 @@ components:
         analyzeTimeoutSeconds:
           type: integer
           minimum: 1
+        barcodeLookup:
+          type: boolean
+          description: |
+            True when `GET /v1/products/{barcode}` is available. Absent in responses of
+            servers that predate barcode lookup; treat that as false.
         maxImages:
           type: integer
           minimum: 1
@@ -251,11 +341,13 @@ components:
             - NUTRITION_MATCH_FAILED
             - IMAGE_ANALYSIS_FAILED
             - INTERNAL_ERROR
+            - PRODUCT_NOT_FOUND
+            - PRODUCT_SOURCE_UNAVAILABLE
           description: |
             HTTP status by code: INVALID_REQUEST, INVALID_IMAGE 400; IMAGE_TOO_LARGE 413;
             UNSUPPORTED_IMAGE_FORMAT 415; RATE_LIMITED 429; AI_INVALID_RESPONSE,
             NUTRITION_MATCH_FAILED, IMAGE_ANALYSIS_FAILED 502; AI_PROVIDER_UNAVAILABLE 503;
-            INTERNAL_ERROR 500.
+            INTERNAL_ERROR 500; PRODUCT_NOT_FOUND 404; PRODUCT_SOURCE_UNAVAILABLE 503.
         message:
           type: string
           description: Short English developer-facing text. Never contains internal details.
