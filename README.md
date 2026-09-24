@@ -23,7 +23,7 @@ protocol/           contracts shared by both sides: OpenAPI, AI result JSON Sche
                     nutrition catalog, cross-language fixtures
 docs/               architecture overview, privacy note, ADRs
 docker/             Dockerfile, compose (optional Caddy TLS proxy, commented out by default)
-scripts/            sync-catalog.sh
+scripts/            sync-catalog.sh, generate_app_icons.py
 config.example.yaml every server option with its default
 ```
 
@@ -194,6 +194,14 @@ The protocol fixtures in `protocol/fixtures` are consumed by both test suites, s
 ```bash
 scripts/sync-catalog.sh          # copy the canonical file to server/ and apps/client/
 scripts/sync-catalog.sh --check  # verify (both test suites also fail on drift)
+```
+
+### App icon
+
+The source artwork is `apps/client/assets/branding/app_icon.png`. Regenerate the Android launcher icons (legacy and adaptive) and `play_store_icon.png` after changing it (needs Pillow and NumPy):
+
+```bash
+python scripts/generate_app_icons.py
 ```
 
 ## Troubleshooting
