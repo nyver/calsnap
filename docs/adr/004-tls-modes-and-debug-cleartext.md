@@ -18,4 +18,4 @@ TLS certificate verification is never disabled anywhere in the code.
 
 * Development stays convenient without weakening release builds.
 * A misconfigured production deployment (no TLS, no proxy flag) fails at startup instead of silently serving plain HTTP.
-* Certificate pinning is not used: it is not justified by the threat model and would need a rotation plan; it can be added later.
+* Certificate pinning is not used for CA-issued certificates: it is not justified by the threat model and would need a rotation plan. The only exception is a self-signed server confirmed by the user, see [ADR 006](006-self-signed-tls-with-fingerprint-confirmation.md).

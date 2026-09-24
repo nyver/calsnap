@@ -63,6 +63,24 @@ ai:
 	}
 }
 
+func TestSelfSignedSatisfiesTLSRequirement(t *testing.T) {
+	t.Parallel()
+
+	cfg, err := Parse([]byte("server:\n  tls:\n    self_signed: true\n    self_signed_hosts: [\"calsnap.lan\", \"192.168.1.10\"]\nai:\n  provider: fake\n"), env(nil))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	if !cfg.Server.TLS.Enabled() {
+		t.Error("self-signed TLS must count as native TLS")
+	}
+	if cfg.Server.TLS.SelfSignedDir != "certs" {
+		t.Errorf("default directory = %q", cfg.Server.TLS.SelfSignedDir)
+	}
+	if got := cfg.Server.TLS.SelfSignedHosts; len(got) != 2 || got[0] != "calsnap.lan" {
+		t.Errorf("hosts = %v", got)
+	}
+}
+
 func TestParseErrors(t *testing.T) {
 	t.Parallel()
 
@@ -81,6 +99,21 @@ func TestParseErrors(t *testing.T) {
 			name:    "TLS files must come together",
 			yaml:    "server:\n  tls:\n    cert_file: a.pem\nai:\n  provider: fake\n",
 			wantErr: "must be set together",
+		},
+		{
+			name:    "self-signed conflicts with certificate files",
+			yaml:    "server:\n  tls:\n    self_signed: true\n    cert_file: a.pem\n    key_file: b.pem\nai:\n  provider: fake\n",
+			wantErr: "cannot be combined",
+		},
+		{
+			name:    "self-signed needs a directory",
+			yaml:    "server:\n  tls:\n    self_signed: true\n    self_signed_dir: \"  \"\nai:\n  provider: fake\n",
+			wantErr: "self_signed_dir must not be empty",
+		},
+		{
+			name:    "self-signed host must be a name or address",
+			yaml:    "server:\n  tls:\n    self_signed: true\n    self_signed_hosts: [\"ok.lan\", \"bad host/\"]\nai:\n  provider: fake\n",
+			wantErr: "self_signed_hosts",
 		},
 		{
 			name:    "fake provider forbidden in production",

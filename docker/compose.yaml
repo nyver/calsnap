@@ -4,6 +4,12 @@
 # Serve HTTPS in one of two ways (release builds of the app accept https:// only):
 #   * native TLS: set server.tls.cert_file/key_file in config.yaml and mount the
 #     certificate files into the container; or
+#   * a self-signed certificate: set server.tls.self_signed: true,
+#     server.tls.self_signed_dir: /var/lib/calsnap/tls and server.tls.self_signed_hosts:
+#     [<the host's LAN address or name>] in config.yaml; the app then asks the user to
+#     confirm the certificate fingerprint (printed in the container log). Alternatively
+#     point server.tls.cert_file/key_file at /var/lib/calsnap/tls/server.{crt,key}: the
+#     pair is generated when both files are missing; or
 #   * behind a reverse proxy: put your own proxy in front, or enable the bundled
 #     Caddy (automatic HTTPS) as described below.
 #
@@ -40,6 +46,8 @@ services:
       ROUTERAI_API_KEY: ${ROUTERAI_API_KEY:-}
     volumes:
       - ../config.yaml:/etc/calsnap/config.yaml:ro
+      # Keeps the generated certificate across restarts (server.tls.self_signed_dir: /var/lib/calsnap/tls).
+      - calsnap_tls:/var/lib/calsnap
     read_only: true
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
@@ -67,6 +75,9 @@ services:
 #     ipam:
 #       config:
 #         - subnet: 172.28.0.0/16
+
+volumes:
+  calsnap_tls:
 
 # volumes:
 #   caddy_data:

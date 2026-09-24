@@ -58,7 +58,7 @@ Every key is documented in [config.example.yaml](config.example.yaml). The impor
 * `ai.provider` – `gemini`, `openrouter`, `routerai` or `fake`. `fake` returns canned results without network access and is refused when `server.environment: production`. Only the section of the selected provider is validated and its key read.
 * `ai.gemini.model`, `ai.openrouter.model`, `ai.routerai.model` – the model is chosen here; the app never learns it, so it can change without an app release. Each provider section also has `api_key_env` (the name of the environment variable holding the key) and `base_url`.
 * OpenRouter and RouterAI use the OpenAI-compatible chat-completions API, so any vision-capable model they offer works, for example `google/gemini-2.5-flash`. Note that the router forwards the photo to the upstream model vendor (see the [privacy note](docs/security/privacy.md)). The RouterAI defaults (`https://routerai.ru/api/v1`, model id format) are assumptions: check them against your account and override `base_url` and `model` if needed.
-* `server.tls.*` – native HTTPS (TLS 1.2 minimum). Without TLS files the server only starts when `server.allow_plain_http: true` (behind a TLS-terminating reverse proxy, or locally) and logs a warning.
+* `server.tls.*` – native HTTPS (TLS 1.2 minimum): either `cert_file` + `key_file` (created as a self-signed pair when both files are missing), or `self_signed: true` for a certificate the server generates itself (see [TLS modes](#tls-modes)). Without any of them the server only starts when `server.allow_plain_http: true` (behind a TLS-terminating reverse proxy, or locally) and logs a warning.
 * `server.trusted_proxies` – proxies whose `X-Forwarded-For` is trusted for per-client rate limiting.
 * `limits.*` – upload size (default 4 MiB), image dimensions, rate limit (10/min, burst 3), concurrent AI calls (16), replay window (10 min).
 * `client.*` – values the app fetches from `GET /v1/config` (image long side, JPEG quality, timeout).
@@ -80,11 +80,24 @@ go run ./cmd/calsnap-server -config ../config.yaml
 
 | Mode | Configuration |
 |---|---|
-| Native TLS | `server.tls.cert_file` + `key_file` |
+| Native TLS | `server.tls.cert_file` + `key_file`; if both files are missing the server generates a self-signed pair there |
+| Self-signed (no domain, private network) | `server.tls.self_signed: true`, optionally `self_signed_dir` and `self_signed_hosts` |
 | Behind a proxy (Caddy, nginx) | `server.allow_plain_http: true`, `server.trusted_proxies: [proxy CIDR]` |
 | Local development | `allow_plain_http: true`; the debug Android build may reach `10.0.2.2` / `localhost` over cleartext |
 
 Release builds of the app refuse `http://` backends. See [ADR 004](docs/adr/004-tls-modes-and-debug-cleartext.md).
+
+#### Self-signed certificate
+
+There are two ways to get one. If `server.tls.cert_file` and `key_file` are set but **both files are missing**, the server generates a self-signed pair at those paths on startup (their directories are created); existing files are used untouched and never overwritten, and a pair with only one file is a startup error. With `server.tls.self_signed: true` the server creates an ECDSA P-256 certificate on the first start, stores it in `server.tls.self_signed_dir` (default `certs/`, keep it persistent) and reuses it on every restart. It is valid for two years and replaced automatically 30 days before it expires (or when the files are damaged); deleting the two files forces a new one. Put the address clients use into `server.tls.self_signed_hosts` (the local interface addresses and the host name are added automatically, but inside Docker these are the container's, not the host's).
+
+The startup log prints the SHA-256 fingerprint:
+
+```text
+serving a self-signed certificate: confirm this SHA-256 fingerprint in the app when connecting fingerprint=AB:CD:...
+```
+
+In the app, enter `https://<address>:8445` under Settings → Server. Because the system does not trust the certificate, the app shows its fingerprint, subject and expiry. Compare the fingerprint with the log (or `openssl x509 -in certs/selfsigned.crt -noout -fingerprint -sha256`) and tap **Trust** only if they are identical. The app then accepts exactly that certificate for that host and port; certificate verification is never disabled. If the server later presents a different certificate, requests fail with a message that leads back to the server settings, where a "certificate changed" warning asks for confirmation again. Details and limits (trust on first use, one confirmed certificate at a time) are in [ADR 006](docs/adr/006-self-signed-tls-with-fingerprint-confirmation.md).
 
 ### Docker
 
@@ -94,7 +107,7 @@ docker build -f docker/Dockerfile -t calsnap-server --build-arg VERSION=1.0.0 .
 docker compose -f docker/compose.yaml up -d --build
 ```
 
-The image is a static, non-root, distroless binary. The key is passed through the environment, never written to the image.
+The image is a static, non-root, distroless binary. The key is passed through the environment, never written to the image. For a self-signed certificate set `server.tls.self_signed: true` and `server.tls.self_signed_dir: /var/lib/calsnap/tls` in `config.yaml`; compose mounts the `calsnap_tls` volume there so that the certificate survives restarts and rebuilds.
 
 ### Observability, cost and abuse
 

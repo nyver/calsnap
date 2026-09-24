@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 	"example.com/calsnap/server/internal/metrics"
 	"example.com/calsnap/server/internal/nutrition"
 	"example.com/calsnap/server/internal/ratelimit"
+	"example.com/calsnap/server/internal/selfsigned"
 	"example.com/calsnap/server/internal/transport/httpapi"
 	"example.com/calsnap/server/internal/vision/fake"
 	"example.com/calsnap/server/internal/vision/gemini"
@@ -203,6 +205,10 @@ func build(cfg *config.Config, log *slog.Logger) (*app, error) {
 		IdleTimeout:       cfg.Server.IdleTimeout,
 		MaxHeaderBytes:    maxHeaderBytes,
 	}
+	certFile, keyFile, err := prepareCertificate(cfg.Server.TLS, log)
+	if err != nil {
+		return nil, err
+	}
 	if cfg.Server.TLS.Enabled() {
 		api.TLSConfig = &tls.Config{MinVersion: tls.VersionTLS12}
 	}
@@ -221,10 +227,45 @@ func build(cfg *config.Config, log *slog.Logger) (*app, error) {
 		api:             api,
 		metrics:         metricsSrv,
 		limiter:         limiter,
-		certFile:        cfg.Server.TLS.CertFile,
-		keyFile:         cfg.Server.TLS.KeyFile,
+		certFile:        certFile,
+		keyFile:         keyFile,
 		shutdownTimeout: cfg.Server.ShutdownTimeout,
 	}, nil
+}
+
+// prepareCertificate returns the certificate and key files to serve. Missing
+// files are replaced by a generated self-signed pair: in self_signed_dir when
+// server.tls.self_signed is set, or at cert_file/key_file when those are
+// configured but do not exist yet. Files that exist are used as they are.
+func prepareCertificate(tlsCfg config.TLSConfig, log *slog.Logger) (certFile, keyFile string, err error) {
+	opts := selfsigned.Options{
+		CertFile: tlsCfg.CertFile,
+		KeyFile:  tlsCfg.KeyFile,
+		Hosts:    append(selfsigned.LocalHosts(), tlsCfg.SelfSignedHosts...),
+	}
+	switch {
+	case tlsCfg.SelfSigned:
+		opts.CertFile = filepath.Join(tlsCfg.SelfSignedDir, selfsigned.CertFileName)
+		opts.KeyFile = filepath.Join(tlsCfg.SelfSignedDir, selfsigned.KeyFileName)
+		opts.Managed = true
+	case tlsCfg.CertFile != "" && tlsCfg.KeyFile != "":
+	default:
+		return "", "", nil
+	}
+	res, err := selfsigned.Ensure(opts)
+	if err != nil {
+		return "", "", fmt.Errorf("prepare TLS certificate: %w", err)
+	}
+	if res.Created {
+		log.Warn("no usable TLS certificate found: generated a self-signed one",
+			"cert_file", res.CertFile, "key_file", res.KeyFile)
+	}
+	if res.Created || tlsCfg.SelfSigned {
+		// The fingerprint is public; the operator compares it with the one the app shows.
+		log.Warn("serving a self-signed certificate: confirm this SHA-256 fingerprint in the app when connecting",
+			"fingerprint", res.Fingerprint, "not_after", res.NotAfter.Format(time.DateOnly))
+	}
+	return res.CertFile, res.KeyFile, nil
 }
 
 // serve runs both listeners and the rate limiter janitor until ctx is

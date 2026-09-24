@@ -10,6 +10,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"errors"
 	"io"
 	"log/slog"
 	"math/big"
@@ -23,6 +24,7 @@ import (
 	"time"
 
 	"example.com/calsnap/server/internal/config"
+	"example.com/calsnap/server/internal/selfsigned"
 	"example.com/calsnap/server/internal/testutil"
 )
 
@@ -210,6 +212,108 @@ func TestTLSRequiresVersion12(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("healthz status = %d", resp.StatusCode)
 	}
+}
+
+func TestSelfSignedServesHTTPSWithStablePinnedFingerprint(t *testing.T) {
+	t.Parallel()
+
+	dir := filepath.ToSlash(t.TempDir())
+	cfg := testConfig(t, "server:\n  tls:\n    self_signed: true\n    self_signed_dir: "+dir+"\n")
+
+	rt, err := build(cfg, slog.New(slog.DiscardHandler))
+	if err != nil {
+		t.Fatal(err)
+	}
+	apiLn, metricsLn := listen(t), listen(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	served := make(chan error, 1)
+	go func() { served <- rt.serve(ctx, apiLn, metricsLn) }()
+	t.Cleanup(func() {
+		cancel()
+		if err := <-served; err != nil {
+			t.Errorf("serve: %v", err)
+		}
+	})
+
+	first := readFingerprint(t, filepath.Join(dir, selfsigned.CertFileName))
+	addr := apiLn.Addr().String()
+
+	// A client that trusts only the pinned fingerprint, like the app after the
+	// user confirmed it. System roots must not be involved.
+	pinned := func(fingerprint string) *http.Client {
+		return &http.Client{Timeout: 5 * time.Second, Transport: &http.Transport{TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true, //nolint:gosec // verification is replaced by the fingerprint check below
+			VerifyPeerCertificate: func(raw [][]byte, _ [][]*x509.Certificate) error {
+				if got := selfsigned.Fingerprint(raw[0]); got != fingerprint {
+					return errors.New("fingerprint mismatch: " + got)
+				}
+				return nil
+			},
+		}}}
+	}
+	resp, err := pinned(first).Get("https://" + addr + "/healthz") //nolint:noctx // test against a local listener
+	if err != nil {
+		t.Fatalf("pinned client: %v", err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("healthz status = %d", resp.StatusCode)
+	}
+
+	// A default client (system roots) must refuse the certificate.
+	plain := &http.Client{Timeout: 5 * time.Second}
+	if resp, err := plain.Get("https://" + addr + "/healthz"); err == nil { //nolint:noctx // test against a local listener
+		_ = resp.Body.Close()
+		t.Error("a client without the pin must reject the self-signed certificate")
+	}
+
+	// A second start over the same directory keeps the certificate, so the
+	// fingerprint the user confirmed stays valid across restarts.
+	if _, err := build(cfg, slog.New(slog.DiscardHandler)); err != nil {
+		t.Fatal(err)
+	}
+	if again := readFingerprint(t, filepath.Join(dir, selfsigned.CertFileName)); again != first {
+		t.Errorf("fingerprint changed across restarts: %s -> %s", first, again)
+	}
+}
+
+func TestMissingCertificateFilesAreGenerated(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	certFile := filepath.Join(dir, "tls", "server.crt")
+	keyFile := filepath.Join(dir, "tls", "server.key")
+	cfg := testConfig(t, "server:\n  tls:\n    cert_file: "+filepath.ToSlash(certFile)+"\n    key_file: "+filepath.ToSlash(keyFile)+"\n")
+
+	rt, err := build(cfg, slog.New(slog.DiscardHandler))
+	if err != nil {
+		t.Fatalf("build must create the missing files: %v", err)
+	}
+	if rt.api.TLSConfig == nil || filepath.ToSlash(rt.certFile) != filepath.ToSlash(certFile) || filepath.ToSlash(rt.keyFile) != filepath.ToSlash(keyFile) {
+		t.Fatalf("expected native TLS with the configured paths, got %+v", rt)
+	}
+	first := readFingerprint(t, certFile)
+
+	// The next start finds the files and keeps them.
+	if _, err := build(cfg, slog.New(slog.DiscardHandler)); err != nil {
+		t.Fatal(err)
+	}
+	if again := readFingerprint(t, certFile); again != first {
+		t.Errorf("fingerprint changed across restarts: %s -> %s", first, again)
+	}
+}
+
+func readFingerprint(t *testing.T, certFile string) string {
+	t.Helper()
+	data, err := os.ReadFile(certFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	block, _ := pem.Decode(data)
+	if block == nil {
+		t.Fatal("no PEM block in " + certFile)
+	}
+	return selfsigned.Fingerprint(block.Bytes)
 }
 
 func TestRunConfigurationErrors(t *testing.T) {

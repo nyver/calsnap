@@ -18,10 +18,25 @@ server:
   # that terminates TLS, or for local development). A warning is logged at startup.
   # Without TLS files and without this flag the server refuses to start.
   allow_plain_http: true
-  # Native TLS (TLS 1.2 minimum). Set both files to serve HTTPS directly.
+  # Native TLS (TLS 1.2 minimum). Set both files to serve HTTPS directly. If neither file
+  # exists yet, the server generates a self-signed certificate and key at these paths on
+  # startup (see self_signed below; a warning and the fingerprint are logged). Existing
+  # files are used as they are and never overwritten; if only one of them exists, the
+  # server refuses to start.
   tls:
     cert_file: ""
     key_file: ""
+    # Shortcut that needs no paths: generate a self-signed certificate in self_signed_dir on
+    # the first start and reuse it afterwards (cannot be combined with cert_file/key_file). The
+    # app asks the user to confirm its SHA-256 fingerprint, which is logged at startup.
+    # See docs/adr/006-self-signed-tls-with-fingerprint-confirmation.md.
+    self_signed: false
+    # Where the generated certificate and key are kept. Must be persistent, otherwise
+    # every restart creates a new certificate and the app asks for confirmation again.
+    self_signed_dir: certs
+    # Extra DNS names and IP addresses for the certificate, on top of localhost, the
+    # host name and the local interface addresses (inside Docker, add the host's LAN address).
+    self_signed_hosts: []
   # Reverse proxies whose X-Forwarded-For header is trusted for client
   # identification (single IPs or CIDR prefixes). Leave empty when clients connect directly.
   trusted_proxies: []

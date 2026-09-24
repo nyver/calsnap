@@ -55,14 +55,26 @@ type ServerConfig struct {
 	ShutdownTimeout time.Duration `yaml:"shutdown_timeout"`
 }
 
-// TLSConfig holds the certificate and key paths for native TLS.
+// TLSConfig configures native TLS: either a certificate the operator provides
+// or a self-signed one the server generates and keeps.
 type TLSConfig struct {
 	CertFile string `yaml:"cert_file"`
 	KeyFile  string `yaml:"key_file"`
+
+	// SelfSigned makes the server generate a certificate on first start and
+	// reuse it afterwards. Clients must pin its fingerprint, see ADR 006.
+	SelfSigned bool `yaml:"self_signed"`
+	// SelfSignedDir is where the generated certificate and key are stored.
+	SelfSignedDir string `yaml:"self_signed_dir"`
+	// SelfSignedHosts are extra DNS names and IPs for the certificate, on top
+	// of localhost, the host name and the addresses of the local interfaces.
+	SelfSignedHosts []string `yaml:"self_signed_hosts"`
 }
 
 // Enabled reports whether native TLS is configured.
-func (t TLSConfig) Enabled() bool { return t.CertFile != "" && t.KeyFile != "" }
+func (t TLSConfig) Enabled() bool {
+	return t.SelfSigned || (t.CertFile != "" && t.KeyFile != "")
+}
 
 // LimitsConfig bounds uploads, request rate and concurrency.
 type LimitsConfig struct {
@@ -147,6 +159,7 @@ func Default() Config {
 			WriteTimeout:    90 * time.Second,
 			IdleTimeout:     120 * time.Second,
 			ShutdownTimeout: 30 * time.Second,
+			TLS:             TLSConfig{SelfSignedDir: "certs"},
 		},
 		Limits: LimitsConfig{
 			MaxUploadBytes:        4 << 20,
@@ -251,8 +264,21 @@ func (c *Config) Validate() error {
 	if (s.TLS.CertFile == "") != (s.TLS.KeyFile == "") {
 		bad("server.tls.cert_file and server.tls.key_file must be set together")
 	}
+	if s.TLS.SelfSigned {
+		if s.TLS.CertFile != "" || s.TLS.KeyFile != "" {
+			bad("server.tls.self_signed cannot be combined with server.tls.cert_file/key_file")
+		}
+		if strings.TrimSpace(s.TLS.SelfSignedDir) == "" {
+			bad("server.tls.self_signed_dir must not be empty when server.tls.self_signed is true")
+		}
+	}
+	for _, h := range s.TLS.SelfSignedHosts {
+		if !validCertHost(h) {
+			bad("server.tls.self_signed_hosts: %q is not a DNS name or IP address", h)
+		}
+	}
 	if !s.TLS.Enabled() && !s.AllowPlainHTTP {
-		bad("TLS is not configured: set server.tls.cert_file and key_file, or set server.allow_plain_http: true behind a TLS-terminating proxy")
+		bad("TLS is not configured: set server.tls.cert_file and key_file, or server.tls.self_signed: true, or set server.allow_plain_http: true behind a TLS-terminating proxy")
 	}
 	if _, err := c.TrustedProxyPrefixes(); err != nil {
 		bad("%v", err)
@@ -356,6 +382,24 @@ func (c *Config) Validate() error {
 		bad("log.format must be \"json\" or \"text\", got %q", c.Log.Format)
 	}
 	return errors.Join(errs...)
+}
+
+// validCertHost accepts an IP address or a plain ASCII host name. A wildcard
+// label ("*.lan") is allowed. Certificates cannot carry anything else.
+func validCertHost(h string) bool {
+	if _, err := netip.ParseAddr(h); err == nil {
+		return true
+	}
+	if h == "" || len(h) > 253 {
+		return false
+	}
+	for _, r := range h {
+		ok := r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '-' || r == '.' || r == '*' || r == '_'
+		if !ok {
+			return false
+		}
+	}
+	return true
 }
 
 func validateCompat(c CompatConfig, section string, bad func(string, ...any)) {

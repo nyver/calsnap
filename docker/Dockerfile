@@ -13,8 +13,13 @@ ARG VERSION=dev
 RUN CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" \
     -o /out/calsnap-server ./cmd/calsnap-server
 
+# A writable, non-root-owned directory for the self-signed certificate. A named
+# volume mounted here inherits the ownership (distroless has no shell to chown).
+RUN mkdir -p /out/state
+
 FROM gcr.io/distroless/static:nonroot
 COPY --from=build /out/calsnap-server /calsnap-server
+COPY --from=build --chown=65532:65532 /out/state /var/lib/calsnap
 USER nonroot:nonroot
 EXPOSE 8445
 ENTRYPOINT ["/calsnap-server"]
