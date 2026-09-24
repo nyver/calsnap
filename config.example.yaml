@@ -6,7 +6,8 @@
 # Unknown keys are rejected at startup.
 #
 # Secrets are NEVER stored in this file. The AI API key is read from the
-# environment variable named by ai.gemini.api_key_env.
+# environment variable named by api_key_env of the selected provider
+# (ai.gemini, ai.openrouter or ai.routerai).
 
 server:
   # Address the API listens on.
@@ -57,7 +58,8 @@ client:
   analyze_timeout_seconds: 60
 
 ai:
-  # "gemini" or "fake". "fake" returns canned results and is for development only.
+  # "gemini", "openrouter", "routerai" or "fake". "fake" returns canned results and is
+  # for development only. Only the section of the selected provider is used (and validated).
   provider: gemini
   # Items below this confidence are dropped (and PARTIAL_RECOGNITION is reported).
   min_confidence: 0.2
@@ -70,6 +72,19 @@ ai:
     # Name of the environment variable holding the API key (never the key itself).
     api_key_env: GEMINI_API_KEY
     base_url: https://generativelanguage.googleapis.com/v1beta
+  # OpenRouter (https://openrouter.ai): one API key for many vision-capable models.
+  # The model must accept image input and is given as "<vendor>/<model>".
+  openrouter:
+    model: google/gemini-2.5-flash
+    api_key_env: OPENROUTER_API_KEY
+    # Base URL without the /chat/completions suffix.
+    base_url: https://openrouter.ai/api/v1
+  # RouterAI: an OpenAI-compatible router. Check the model id and base URL against
+  # your RouterAI account; both are configurable.
+  routerai:
+    model: google/gemini-2.5-flash
+    api_key_env: ROUTERAI_API_KEY
+    base_url: https://routerai.ru/api/v1
 
 nutrition:
   # Minimum name similarity (0-1] for fuzzy catalog matches.

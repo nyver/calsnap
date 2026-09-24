@@ -6,7 +6,8 @@
 #        server.trusted_proxies: ["172.28.0.0/16"] (the compose network below)
 #        metrics.listen: "0.0.0.0:9090"           (reachable inside the network only)
 #   2. Create docker/.env with:
-#        GEMINI_API_KEY=<your key>
+#        GEMINI_API_KEY=<your key>          (or OPENROUTER_API_KEY / ROUTERAI_API_KEY,
+#                                            matching ai.provider in config.yaml)
 #        CALSNAP_DOMAIN=calsnap.example.com
 #   3. docker compose -f docker/compose.yaml up -d --build
 #
@@ -20,7 +21,10 @@ services:
       dockerfile: docker/Dockerfile
     restart: unless-stopped
     environment:
-      GEMINI_API_KEY: ${GEMINI_API_KEY:?set GEMINI_API_KEY in docker/.env}
+      # Only the key of the selected ai.provider is required; the server refuses to start without it.
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      ROUTERAI_API_KEY: ${ROUTERAI_API_KEY:-}
     volumes:
       - ../config.yaml:/etc/calsnap/config.yaml:ro
     read_only: true

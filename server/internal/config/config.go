@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/netip"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -23,8 +24,10 @@ const (
 
 // AI provider names accepted in ai.provider.
 const (
-	ProviderGemini = "gemini"
-	ProviderFake   = "fake"
+	ProviderGemini     = "gemini"
+	ProviderOpenRouter = "openrouter"
+	ProviderRouterAI   = "routerai"
+	ProviderFake       = "fake"
 )
 
 // Config is the complete server configuration.
@@ -88,6 +91,8 @@ type AIConfig struct {
 	CallTimeout    time.Duration `yaml:"call_timeout"`
 	OverallTimeout time.Duration `yaml:"overall_timeout"`
 	Gemini         GeminiConfig  `yaml:"gemini"`
+	OpenRouter     CompatConfig  `yaml:"openrouter"`
+	RouterAI       CompatConfig  `yaml:"routerai"`
 }
 
 // GeminiConfig configures the Gemini REST provider. The API key is never read
@@ -96,6 +101,20 @@ type GeminiConfig struct {
 	Model     string `yaml:"model"`
 	APIKeyEnv string `yaml:"api_key_env"`
 	BaseURL   string `yaml:"base_url"`
+
+	// APIKey is resolved from the environment by Load.
+	APIKey string `yaml:"-"`
+}
+
+// CompatConfig configures a provider that speaks the OpenAI chat-completions
+// protocol (OpenRouter, RouterAI). The API key is read from the environment
+// variable named by APIKeyEnv, never from the file.
+type CompatConfig struct {
+	// Model is the provider's model slug, e.g. "google/gemini-2.5-flash".
+	Model     string `yaml:"model"`
+	APIKeyEnv string `yaml:"api_key_env"`
+	// BaseURL is the API root without /chat/completions.
+	BaseURL string `yaml:"base_url"`
 
 	// APIKey is resolved from the environment by Load.
 	APIKey string `yaml:"-"`
@@ -155,6 +174,16 @@ func Default() Config {
 				APIKeyEnv: "GEMINI_API_KEY",
 				BaseURL:   "https://generativelanguage.googleapis.com/v1beta",
 			},
+			OpenRouter: CompatConfig{ //nolint:gosec // APIKeyEnv is an environment variable name, not a credential
+				Model:     "google/gemini-2.5-flash",
+				APIKeyEnv: "OPENROUTER_API_KEY",
+				BaseURL:   "https://openrouter.ai/api/v1",
+			},
+			RouterAI: CompatConfig{ //nolint:gosec // APIKeyEnv is an environment variable name, not a credential
+				Model:     "google/gemini-2.5-flash",
+				APIKeyEnv: "ROUTERAI_API_KEY",
+				BaseURL:   "https://routerai.ru/api/v1",
+			},
 		},
 		Nutrition: NutritionConfig{FuzzyThreshold: 0.85},
 		Metrics:   MetricsConfig{Listen: "127.0.0.1:9090"},
@@ -186,8 +215,20 @@ func Parse(data []byte, getenv func(string) string) (*Config, error) {
 			return nil, fmt.Errorf("parse config: %w", err)
 		}
 	}
-	if cfg.AI.Provider == ProviderGemini && cfg.AI.Gemini.APIKeyEnv != "" {
-		cfg.AI.Gemini.APIKey = getenv(cfg.AI.Gemini.APIKeyEnv)
+	// Only the selected provider's key is read from the environment.
+	switch cfg.AI.Provider {
+	case ProviderGemini:
+		if cfg.AI.Gemini.APIKeyEnv != "" {
+			cfg.AI.Gemini.APIKey = getenv(cfg.AI.Gemini.APIKeyEnv)
+		}
+	case ProviderOpenRouter:
+		if cfg.AI.OpenRouter.APIKeyEnv != "" {
+			cfg.AI.OpenRouter.APIKey = getenv(cfg.AI.OpenRouter.APIKeyEnv)
+		}
+	case ProviderRouterAI:
+		if cfg.AI.RouterAI.APIKeyEnv != "" {
+			cfg.AI.RouterAI.APIKey = getenv(cfg.AI.RouterAI.APIKeyEnv)
+		}
 	}
 	if err := cfg.Validate(); err != nil {
 		return nil, err
@@ -280,12 +321,17 @@ func (c *Config) Validate() error {
 		} else if a.Gemini.APIKey == "" {
 			bad("environment variable %s (ai.gemini.api_key_env) is empty or not set", a.Gemini.APIKeyEnv)
 		}
+	case ProviderOpenRouter:
+		validateCompat(a.OpenRouter, "ai.openrouter", bad)
+	case ProviderRouterAI:
+		validateCompat(a.RouterAI, "ai.routerai", bad)
 	case ProviderFake:
 		if s.Environment == EnvProduction {
 			bad("ai.provider %q is not allowed when server.environment is %q", ProviderFake, EnvProduction)
 		}
 	default:
-		bad("ai.provider must be %q or %q, got %q", ProviderGemini, ProviderFake, a.Provider)
+		bad("ai.provider must be %q, %q, %q or %q, got %q",
+			ProviderGemini, ProviderOpenRouter, ProviderRouterAI, ProviderFake, a.Provider)
 	}
 	if a.MinConfidence < 0 || a.MinConfidence > 1 {
 		bad("ai.min_confidence must be between 0 and 1, got %v", a.MinConfidence)
@@ -310,6 +356,21 @@ func (c *Config) Validate() error {
 		bad("log.format must be \"json\" or \"text\", got %q", c.Log.Format)
 	}
 	return errors.Join(errs...)
+}
+
+func validateCompat(c CompatConfig, section string, bad func(string, ...any)) {
+	if c.Model == "" {
+		bad("%s.model must not be empty", section)
+	}
+	if u, err := url.Parse(c.BaseURL); err != nil || u.Host == "" || (u.Scheme != "https" && u.Scheme != "http") {
+		bad("%s.base_url must be an http(s) URL", section)
+	}
+	switch {
+	case c.APIKeyEnv == "":
+		bad("%s.api_key_env must name an environment variable", section)
+	case c.APIKey == "":
+		bad("environment variable %s (%s.api_key_env) is empty or not set", c.APIKeyEnv, section)
+	}
 }
 
 // TrustedProxyPrefixes parses server.trusted_proxies. Entries may be single

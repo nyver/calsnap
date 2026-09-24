@@ -103,6 +103,39 @@ func TestParseErrors(t *testing.T) {
 			wantErr: "ai.provider must be",
 		},
 		{
+			name:    "openrouter missing key names the variable",
+			yaml:    "server:\n  allow_plain_http: true\nai:\n  provider: openrouter\n",
+			wantErr: "OPENROUTER_API_KEY",
+		},
+		{
+			name:    "routerai missing key names the variable",
+			yaml:    "server:\n  allow_plain_http: true\nai:\n  provider: routerai\n",
+			wantErr: "ROUTERAI_API_KEY",
+		},
+		{
+			name:    "openrouter custom key variable is reported",
+			yaml:    "server:\n  allow_plain_http: true\nai:\n  provider: openrouter\n  openrouter:\n    api_key_env: MY_ROUTER_KEY\n",
+			wantErr: "MY_ROUTER_KEY",
+		},
+		{
+			name:    "openrouter empty model",
+			yaml:    "server:\n  allow_plain_http: true\nai:\n  provider: openrouter\n  openrouter:\n    model: \"\"\n",
+			env:     map[string]string{"OPENROUTER_API_KEY": "k"},
+			wantErr: "ai.openrouter.model",
+		},
+		{
+			name:    "routerai invalid base url",
+			yaml:    "server:\n  allow_plain_http: true\nai:\n  provider: routerai\n  routerai:\n    base_url: not-a-url\n",
+			env:     map[string]string{"ROUTERAI_API_KEY": "k"},
+			wantErr: "ai.routerai.base_url",
+		},
+		{
+			name:    "routerai non-http scheme",
+			yaml:    "server:\n  allow_plain_http: true\nai:\n  provider: routerai\n  routerai:\n    base_url: ftp://example.com\n",
+			env:     map[string]string{"ROUTERAI_API_KEY": "k"},
+			wantErr: "ai.routerai.base_url",
+		},
+		{
 			name:    "unknown key is rejected",
 			yaml:    "server:\n  allow_plain_http: true\n  lisen: \":1\"\n",
 			wantErr: "field lisen not found",
@@ -181,5 +214,44 @@ func TestExampleConfigIsValid(t *testing.T) {
 	def.AI.Gemini.APIKey = "placeholder"
 	if cfg.Limits != def.Limits || cfg.AI != def.AI || cfg.Client != def.Client || cfg.Nutrition != def.Nutrition {
 		t.Errorf("config.example.yaml values drifted from Default():\n got %+v\nwant %+v", cfg, def)
+	}
+}
+
+func TestParseCompatProviders(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		provider, envVar, baseURL string
+		pick                      func(AIConfig) CompatConfig
+	}{
+		{ProviderOpenRouter, "OPENROUTER_API_KEY", "https://openrouter.ai/api/v1", func(a AIConfig) CompatConfig { return a.OpenRouter }},
+		{ProviderRouterAI, "ROUTERAI_API_KEY", "https://routerai.ru/api/v1", func(a AIConfig) CompatConfig { return a.RouterAI }},
+	}
+	for _, tt := range tests {
+		t.Run(tt.provider, func(t *testing.T) {
+			t.Parallel()
+			doc := "server:\n  allow_plain_http: true\nai:\n  provider: " + tt.provider + "\n"
+			cfg, err := Parse([]byte(doc), env(map[string]string{tt.envVar: "the-key"}))
+			if err != nil {
+				t.Fatalf("Parse: %v", err)
+			}
+			c := tt.pick(cfg.AI)
+			if c.APIKey != "the-key" || c.BaseURL != tt.baseURL || c.Model == "" {
+				t.Errorf("compat config = %+v", c)
+			}
+		})
+	}
+}
+
+func TestCompatKeyIsOnlyResolvedForSelectedProvider(t *testing.T) {
+	t.Parallel()
+
+	doc := "server:\n  allow_plain_http: true\nai:\n  provider: openrouter\n"
+	cfg, err := Parse([]byte(doc), env(map[string]string{"OPENROUTER_API_KEY": "a", "ROUTERAI_API_KEY": "b", "GEMINI_API_KEY": "c"}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.AI.RouterAI.APIKey != "" || cfg.AI.Gemini.APIKey != "" {
+		t.Error("keys of unselected providers must not be loaded")
 	}
 }

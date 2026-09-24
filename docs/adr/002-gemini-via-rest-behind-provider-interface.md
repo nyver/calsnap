@@ -19,6 +19,6 @@ The provider result is never trusted: strict JSON decoding, at most 20 items, na
 ## Consequences
 
 * Model changes are a configuration change and a restart.
-* A second provider (for example OpenAI) is one new package implementing the interface.
+* A second provider is one new package implementing the interface (see [ADR 005](005-openai-compatible-providers.md), which added OpenRouter and RouterAI).
 * The Gemini request id cannot be forwarded as metadata because the Developer API has no such field.
 * `nutritionPer100g` is optional in the AI schema: when it is absent for a food without a catalog match the analysis fails with `NUTRITION_MATCH_FAILED` instead of guessing.

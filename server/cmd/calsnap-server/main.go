@@ -26,6 +26,7 @@ import (
 	"example.com/calsnap/server/internal/transport/httpapi"
 	"example.com/calsnap/server/internal/vision/fake"
 	"example.com/calsnap/server/internal/vision/gemini"
+	"example.com/calsnap/server/internal/vision/openai"
 )
 
 // version is set at build time: -ldflags "-X main.version=1.2.3".
@@ -135,6 +136,18 @@ func build(cfg *config.Config, log *slog.Logger) (*app, error) {
 			BaseURL: cfg.AI.Gemini.BaseURL,
 			Model:   cfg.AI.Gemini.Model,
 			APIKey:  cfg.AI.Gemini.APIKey,
+		}, &http.Client{Timeout: cfg.AI.CallTimeout})
+	case config.ProviderOpenRouter:
+		vision = openai.New(openai.Config{
+			BaseURL: cfg.AI.OpenRouter.BaseURL,
+			Model:   cfg.AI.OpenRouter.Model,
+			APIKey:  cfg.AI.OpenRouter.APIKey,
+		}, &http.Client{Timeout: cfg.AI.CallTimeout})
+	case config.ProviderRouterAI:
+		vision = openai.New(openai.Config{
+			BaseURL: cfg.AI.RouterAI.BaseURL,
+			Model:   cfg.AI.RouterAI.Model,
+			APIKey:  cfg.AI.RouterAI.APIKey,
 		}, &http.Client{Timeout: cfg.AI.CallTimeout})
 	case config.ProviderFake:
 		log.Warn("using the fake AI provider: canned results, for development only")

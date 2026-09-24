@@ -25,7 +25,7 @@ Nothing else is sent: not the diary, not the settings, not device identifiers, n
 
 ## What the backend does with it
 
-* Processes the photo in memory only, forwards it to the configured AI provider (currently Google Gemini through its API) together with the language and plate diameter, and returns the result. The photo is never written to disk or any store and is dropped when the request completes.
+* Processes the photo in memory only, forwards it to the configured AI provider (Google Gemini directly, or OpenRouter or RouterAI, which route the request to an upstream model vendor) together with the language and plate diameter, and returns the result. The photo is never written to disk or any store and is dropped when the request completes.
 * Keeps a short-lived in-memory cache of the *response* (not the photo) keyed by the request id, so that a retry after a lost connection does not trigger a second AI call. It is bounded and expires after 10 minutes.
 * Logs request id, route, status, sizes, durations, error codes and item counts. Logs never contain photos, prompts, AI output, food names or API keys.
 * Exposes technical metrics without content or client addresses.
@@ -33,7 +33,7 @@ Nothing else is sent: not the diary, not the settings, not device identifiers, n
 
 ## The AI provider
 
-The photo is processed by the AI provider chosen by the operator. The provider's own terms govern how long it may retain the request and whether inputs may be used for model training. **Before publishing, the operator must review those terms for the chosen provider and plan and state them in the public policy**: use a plan or setting under which inputs are not used for training, where the provider offers one. The API key is held only by the backend (an environment variable) and is never part of the app, the config file, logs or client builds.
+The photo is processed by the AI provider chosen by the operator. When a routing service (OpenRouter, RouterAI) is used, the photo passes through the router **and** the upstream vendor of the selected model, so both sets of terms apply and both must be reviewed. The provider's own terms govern how long it may retain the request and whether inputs may be used for model training. **Before publishing, the operator must review those terms for the chosen provider and plan and state them in the public policy**: use a plan or setting under which inputs are not used for training, where the provider offers one. The API key is held only by the backend (an environment variable) and is never part of the app, the config file, logs or client builds.
 
 ## Security measures
 

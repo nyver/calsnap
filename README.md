@@ -17,7 +17,7 @@ apps/client/        Flutter app (Android only)
   integration_test/ acceptance flow for a device or emulator
 server/             Go module (stateless API)
   cmd/calsnap-server/   main: flags, wiring, graceful shutdown
-  internal/             config, transport/httpapi, app/analysis, vision (gemini, fake),
+  internal/             config, transport/httpapi, app/analysis, vision (gemini, openai, fake),
                         nutrition (catalog + matching), ratelimit, metrics
 protocol/           contracts shared by both sides: OpenAPI, AI result JSON Schema,
                     nutrition catalog, cross-language fixtures
@@ -50,12 +50,14 @@ Verified with:
 ```bash
 cp config.example.yaml config.yaml      # config.yaml is ignored by Git
 export GEMINI_API_KEY=...               # the key is read only from the environment
+                                        # (OPENROUTER_API_KEY / ROUTERAI_API_KEY for those providers)
 ```
 
 Every key is documented in [config.example.yaml](config.example.yaml). The important ones:
 
-* `ai.provider` – `gemini` or `fake`. `fake` returns canned results without network access and is refused when `server.environment: production`.
-* `ai.gemini.model` – the model is chosen here; the app never learns it, so it can change without an app release.
+* `ai.provider` – `gemini`, `openrouter`, `routerai` or `fake`. `fake` returns canned results without network access and is refused when `server.environment: production`. Only the section of the selected provider is validated and its key read.
+* `ai.gemini.model`, `ai.openrouter.model`, `ai.routerai.model` – the model is chosen here; the app never learns it, so it can change without an app release. Each provider section also has `api_key_env` (the name of the environment variable holding the key) and `base_url`.
+* OpenRouter and RouterAI use the OpenAI-compatible chat-completions API, so any vision-capable model they offer works, for example `google/gemini-2.5-flash`. Note that the router forwards the photo to the upstream model vendor (see the [privacy note](docs/security/privacy.md)). The RouterAI defaults (`https://routerai.ru/api/v1`, model id format) are assumptions: check them against your account and override `base_url` and `model` if needed.
 * `server.tls.*` – native HTTPS (TLS 1.2 minimum). Without TLS files the server only starts when `server.allow_plain_http: true` (behind a TLS-terminating reverse proxy, or locally) and logs a warning.
 * `server.trusted_proxies` – proxies whose `X-Forwarded-For` is trusted for per-client rate limiting.
 * `limits.*` – upload size (default 4 MiB), image dimensions, rate limit (10/min, burst 3), concurrent AI calls (16), replay window (10 min).
@@ -66,6 +68,8 @@ Every key is documented in [config.example.yaml](config.example.yaml). The impor
 ```bash
 cd server
 go run ./cmd/calsnap-server -config ../config.yaml
+# switch provider, e.g. OpenRouter (config.yaml: ai.provider: openrouter):
+#   OPENROUTER_API_KEY=... go run ./cmd/calsnap-server -config ../config.yaml
 # local development without an AI key:
 #   ai.provider: fake  +  server.allow_plain_http: true
 ```
