@@ -189,7 +189,11 @@ The protocol fixtures in `protocol/fixtures` are consumed by both test suites, s
 
 ### Nutrition catalog
 
-`protocol/nutrition/catalog.json` is the canonical catalog (about 200 common foods, English and Russian names, per-100 g values from typical USDA FoodData Central values). `go:embed` and Flutter assets cannot read files outside their package, so both sides keep a byte-identical copy:
+`protocol/nutrition/catalog.json` is the canonical catalog: about 1,250 foods with English and Russian names, aliases, per-100 g values and optional piece, portion and density units. It covers basic ingredients (meat, fish, dairy, grains, vegetables, fruit, nuts, oils, sauces, drinks), popular dishes (soups, pasta, pizza, sandwiches, Asian and Mexican dishes, desserts) and a large Russian/CIS section (borscht, shchi, solyanka, pelmeni, vareniki, syrniki, blini, olivier, buckwheat, plov, cutlets, cottage cheese, kefir, pies, Georgian and Central Asian dishes).
+
+The values are approximate typical values compiled with USDA FoodData Central and Russian composition tables as references; they were not imported from a database and have not been reviewed by a nutritionist. Each entry's `source` says so.
+
+To extend the catalog, add entries to `foods` (unique snake_case `id`, both `en` and `ru` names, per-100 g values), keep existing ids stable, bump `catalogVersion`, and run `scripts/sync-catalog.sh`. The server tests validate the file: no duplicate ids or aliases, every name resolves to its own entry, and kcal must be roughly consistent with protein, fat and carbs (alcohol and fibre-heavy entries are listed as exceptions in `catalog_test.go`). Percentage variants ("kefir 2.5%") only match names with the same numbers. `go:embed` and Flutter assets cannot read files outside their package, so both sides keep a byte-identical copy:
 
 ```bash
 scripts/sync-catalog.sh          # copy the canonical file to server/ and apps/client/

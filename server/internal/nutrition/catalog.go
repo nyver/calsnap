@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"unicode/utf8"
 
 	"example.com/calsnap/server/internal/app/analysis"
 )
@@ -54,7 +55,9 @@ type Entry struct {
 // scanKey is one searchable name of an entry used by the fuzzy stage.
 type scanKey struct {
 	key    string
+	runes  int
 	tokens []string
+	nums   []string // purely numeric tokens, e.g. the "2", "5" of "kefir 2.5%"
 	entry  *Entry
 }
 
@@ -145,7 +148,8 @@ func Parse(data []byte, fuzzyThreshold float64) (*Catalog, error) {
 			c.byAlias[k] = e
 		}
 		for k := range seen {
-			c.scan = append(c.scan, scanKey{key: k, tokens: strings.Split(k, "_"), entry: e})
+			tokens := strings.Split(k, "_")
+			c.scan = append(c.scan, scanKey{key: k, runes: utf8.RuneCountInString(k), tokens: tokens, nums: numericTokens(tokens), entry: e})
 		}
 	}
 	// Deterministic scan order makes ties reproducible.
@@ -246,10 +250,13 @@ func (c *Catalog) find(name string) (*Entry, string) {
 // fuzzy finds the best catalog name for a normalized key. An entry qualifies
 // when its normalized name has at least two words that all occur in the key
 // ("chicken breast fillet" contains "chicken breast"), or when the normalized
-// Levenshtein similarity reaches the threshold. Ties are resolved by the number
-// of shared words, then by similarity, then by key order.
+// Levenshtein similarity reaches the threshold. Numbers must agree: a name that
+// contains numbers ("kefir 2.5%") only qualifies when the key has the same
+// numbers, so "kefir 1%" never resolves to "kefir 0%". Ties are resolved by the
+// number of shared words, then by similarity, then by key order.
 func (c *Catalog) fuzzy(key string) *Entry {
 	words := strings.Split(key, "_")
+	keyRunes := utf8.RuneCountInString(key)
 	wordSet := make(map[string]struct{}, len(words))
 	for _, w := range words {
 		wordSet[w] = struct{}{}
@@ -266,7 +273,13 @@ func (c *Catalog) fuzzy(key string) *Entry {
 				shared++
 			}
 		}
+		if !hasAll(wordSet, sk.nums) {
+			continue
+		}
 		contained := len(sk.tokens) >= 2 && shared == len(sk.tokens)
+		if !contained && !similarityReachable(keyRunes, sk.runes, c.threshold) {
+			continue
+		}
 		sim := similarity(key, sk.key)
 		if !contained && sim < c.threshold {
 			continue
@@ -276,6 +289,43 @@ func (c *Catalog) fuzzy(key string) *Entry {
 		}
 	}
 	return best
+}
+
+// numericTokens returns the tokens that consist of digits only.
+func numericTokens(tokens []string) []string {
+	var nums []string
+	for _, t := range tokens {
+		if strings.Trim(t, "0123456789") == "" {
+			nums = append(nums, t)
+		}
+	}
+	return nums
+}
+
+// hasAll reports whether every word is in set.
+func hasAll(set map[string]struct{}, words []string) bool {
+	for _, w := range words {
+		if _, ok := set[w]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+// similarityReachable reports whether two names of the given rune lengths can
+// reach the threshold at all: the edit distance is at least the length
+// difference, so similarity is at most 1 - |la-lb|/max(la, lb). It lets the
+// fuzzy stage skip most of a large catalog without running Levenshtein.
+func similarityReachable(la, lb int, threshold float64) bool {
+	longest := max(la, lb)
+	if longest == 0 {
+		return true
+	}
+	diff := la - lb
+	if diff < 0 {
+		diff = -diff
+	}
+	return 1-float64(diff)/float64(longest) >= threshold
 }
 
 // similarity is 1 - levenshtein(a, b) / max(len(a), len(b)) over runes.
