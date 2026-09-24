@@ -153,15 +153,10 @@ class _DraftEditorScreenState extends ConsumerState<DraftEditorScreen> {
     final food = await context.push<Food>(Routes.foodSearch);
     if (food == null || !mounted) return;
     final languageCode = ref.read(effectiveLanguageCodeProvider);
-    final grams = await showQuantityDialog(
+    final grams = await askFoodQuantity(
       context,
-      name: food.displayName(languageCode),
-      initialGrams: food.gramsPerPortion ?? 100,
-      units: FoodUnits(
-        gramsPerPiece: food.gramsPerPiece,
-        gramsPerPortion: food.gramsPerPortion,
-        densityGPerMl: food.densityGPerMl,
-      ),
+      food: food,
+      languageCode: languageCode,
     );
     if (grams == null) return;
     ref.read(mealDraftProvider.notifier).addFood(food, grams);

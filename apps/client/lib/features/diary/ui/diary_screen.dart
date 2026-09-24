@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -8,8 +9,11 @@ import '../../../app/router.dart';
 import '../../../core/di/providers.dart';
 import '../../../core/domain/nutrition.dart';
 import '../../../shared/l10n_x.dart';
+import '../../barcode/ui/barcode_providers.dart';
+import '../../foods/domain/food.dart';
 import '../../meal/domain/meal.dart';
 import '../../meal/domain/nutrition_calculator.dart';
+import '../../meal/ui/item_edit_sheet.dart';
 import '../../meal/ui/meal_deletion.dart';
 import '../../meal/ui/meal_draft_notifier.dart';
 import '../../settings/domain/user_settings.dart';
@@ -82,6 +86,23 @@ class DiaryScreen extends ConsumerWidget {
     );
   }
 
+  /// A packaged product goes straight into a new manual meal: scan, choose
+  /// the quantity, review, save. No photo of the plate is needed.
+  Future<void> _scanToNewMeal(BuildContext context, WidgetRef ref) async {
+    final food = await context.push<Food>(Routes.scan);
+    if (food == null || !context.mounted) return;
+    final grams = await askFoodQuantity(
+      context,
+      food: food,
+      languageCode: ref.read(effectiveLanguageCodeProvider),
+    );
+    if (grams == null || !context.mounted) return;
+    ref.read(mealDraftProvider.notifier)
+      ..startManual()
+      ..addFood(food, grams);
+    unawaited(context.push(Routes.newMeal));
+  }
+
   Future<void> _showAddSheet(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     return showModalBottomSheet<void>(
@@ -108,6 +129,20 @@ class DiaryScreen extends ConsumerWidget {
                 Navigator.pop(sheetContext);
                 context.push(Routes.capture, extra: true);
               },
+            ),
+            Consumer(
+              builder: (_, sheetRef, _) =>
+                  (sheetRef.watch(barcodeSupportedProvider).value ?? false)
+                  ? ListTile(
+                      key: const Key('addScanBarcode'),
+                      leading: const Icon(Icons.qr_code_scanner),
+                      title: Text(l10n.scanBarcode),
+                      onTap: () {
+                        Navigator.pop(sheetContext);
+                        unawaited(_scanToNewMeal(context, ref));
+                      },
+                    )
+                  : const SizedBox.shrink(),
             ),
             ListTile(
               key: const Key('addManually'),

@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import '../../features/barcode/data/product_api.dart';
+import '../../features/barcode/domain/product_lookup.dart';
 import '../../features/foods/data/drift_food_repository.dart';
 import '../../features/foods/domain/food_repository.dart';
 import '../../features/meal/data/drift_meal_repository.dart';
@@ -194,4 +196,16 @@ final dioProvider = Provider<Dio>((ref) {
 
 final analysisApiProvider = Provider<AnalysisApi>(
   (ref) => AnalysisApi(ref.watch(dioProvider)),
+);
+
+final productSourceProvider = Provider<ProductSource>(
+  (ref) => ProductApi(ref.watch(dioProvider)),
+);
+
+/// The barcode lookup: local cache first, then the backend.
+final productLookupProvider = Provider<ProductLookup>(
+  (ref) => ProductLookup(
+    foods: ref.watch(foodRepositoryProvider),
+    source: ref.watch(productSourceProvider),
+  ),
 );

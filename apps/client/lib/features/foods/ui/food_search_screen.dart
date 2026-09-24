@@ -5,10 +5,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/router.dart';
 import '../../../core/di/providers.dart';
 import '../../../core/domain/nutrition.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/l10n_x.dart';
+import '../../barcode/ui/barcode_providers.dart';
 import '../domain/food.dart';
 
 /// Local food search with a "create custom product" form. Pops with the chosen
@@ -71,13 +73,30 @@ class _FoodSearchScreenState extends ConsumerState<FoodSearchScreen> {
     if (food != null && mounted) context.pop(food);
   }
 
+  Future<void> _scan() async {
+    final food = await context.push<Food>(Routes.scan);
+    if (food != null && mounted) context.pop(food);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final fmt = context.fmt;
     final languageCode = ref.watch(effectiveLanguageCodeProvider);
+    final canScan = ref.watch(barcodeSupportedProvider).value ?? false;
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.searchFoodsTitle)),
+      appBar: AppBar(
+        title: Text(l10n.searchFoodsTitle),
+        actions: [
+          if (canScan)
+            IconButton(
+              key: const Key('scanBarcode'),
+              tooltip: l10n.scanBarcode,
+              icon: const Icon(Icons.qr_code_scanner),
+              onPressed: _scan,
+            ),
+        ],
+      ),
       body: Column(
         children: [
           Padding(

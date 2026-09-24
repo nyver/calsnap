@@ -35,6 +35,9 @@ abstract final class NutritionSourceName {
   static const String catalog = 'catalog';
   static const String aiEstimate = 'ai_estimate';
   static const String user = 'user';
+
+  /// A packaged product looked up by barcode.
+  static const String packaged = 'packaged';
 }
 
 /// A saved food item of a meal.

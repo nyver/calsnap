@@ -6,6 +6,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/domain/nutrition.dart';
 import '../../../core/utils/clock.dart';
 import '../../../core/utils/ids.dart';
+import '../../barcode/domain/packaged_product.dart';
 import '../../meal/domain/meal.dart';
 import '../../settings/domain/settings_repository.dart';
 import '../domain/food.dart';
@@ -198,6 +199,43 @@ class DriftFoodRepository implements FoodRepository {
       _db.foods,
     )..where((t) => t.id.equals(row.id.value))).getSingle();
     return _toFood(created);
+  }
+
+  @override
+  Future<Food?> findPackaged(String barcode) async {
+    final row =
+        await (_db.select(_db.foods)..where(
+              (t) =>
+                  t.source.equals(NutritionSourceName.packaged) &
+                  t.sourceId.equals(barcode),
+            ))
+            .getSingleOrNull();
+    return row == null ? null : _toFood(row);
+  }
+
+  @override
+  Future<Food> savePackaged(PackagedProduct product) async {
+    final existing = await findPackaged(product.barcode);
+    final id = existing?.id ?? _ids.newId();
+    await _db
+        .into(_db.foods)
+        .insertOnConflictUpdate(
+          FoodsCompanion(
+            id: Value(id),
+            name: Value(product.displayName),
+            // Searching for the digits finds the product.
+            aliases: Value(product.barcode),
+            kcalPer100g: Value(product.per100.kcal),
+            proteinPer100g: Value(product.per100.protein),
+            fatPer100g: Value(product.per100.fat),
+            carbsPer100g: Value(product.per100.carbs),
+            gramsPerPortion: Value(product.servingSizeG),
+            source: const Value(NutritionSourceName.packaged),
+            sourceId: Value(product.barcode),
+            updatedAt: Value(_clock().toUtc().millisecondsSinceEpoch),
+          ),
+        );
+    return (await getById(id))!;
   }
 
   static Food _toFood(FoodRow r) => Food(

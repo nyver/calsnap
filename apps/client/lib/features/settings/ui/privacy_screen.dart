@@ -30,6 +30,7 @@ class PrivacyScreen extends StatelessWidget {
     final points = [
       (Icons.phone_android, l10n.privacyDiary),
       (Icons.cloud_upload_outlined, l10n.privacyAnalysis),
+      (Icons.qr_code_scanner, l10n.privacyBarcode),
       (Icons.no_photography_outlined, l10n.privacyNoStorage),
       (Icons.gavel_outlined, l10n.privacyProvider),
     ];

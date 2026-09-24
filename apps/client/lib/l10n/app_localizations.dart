@@ -1106,6 +1106,90 @@ abstract class AppLocalizations {
   /// **'My usual plate'**
   String get settingsPlate;
 
+  /// No description provided for @scanBarcode.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan barcode'**
+  String get scanBarcode;
+
+  /// No description provided for @scanTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan barcode'**
+  String get scanTitle;
+
+  /// No description provided for @scanHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Point the camera at the barcode on the package'**
+  String get scanHint;
+
+  /// No description provided for @scanTorch.
+  ///
+  /// In en, this message translates to:
+  /// **'Flashlight'**
+  String get scanTorch;
+
+  /// No description provided for @scanCameraError.
+  ///
+  /// In en, this message translates to:
+  /// **'The camera cannot be used. You can type the barcode number below.'**
+  String get scanCameraError;
+
+  /// No description provided for @scanPermissionBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera access is needed to scan barcodes. You can also type the number below.'**
+  String get scanPermissionBody;
+
+  /// No description provided for @scanManualLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Barcode number'**
+  String get scanManualLabel;
+
+  /// No description provided for @scanManualInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid barcode: 8, 12, 13 or 14 digits.'**
+  String get scanManualInvalid;
+
+  /// No description provided for @scanFind.
+  ///
+  /// In en, this message translates to:
+  /// **'Find'**
+  String get scanFind;
+
+  /// No description provided for @scanLooking.
+  ///
+  /// In en, this message translates to:
+  /// **'Looking up the product…'**
+  String get scanLooking;
+
+  /// No description provided for @scanNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No nutrition data was found for this product. You can add it as a custom product in the food search.'**
+  String get scanNotFound;
+
+  /// No description provided for @scanAnother.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan another'**
+  String get scanAnother;
+
+  /// No description provided for @scanSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Nutrition data: Open Food Facts (ODbL)'**
+  String get scanSource;
+
+  /// No description provided for @scanServing.
+  ///
+  /// In en, this message translates to:
+  /// **'Serving: {value} g'**
+  String scanServing(String value);
+
   /// No description provided for @plateGuideHint.
   ///
   /// In en, this message translates to:
@@ -1363,6 +1447,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'When you analyze a photo, CalSnap sends the prepared photo (without metadata; two photos if you add a side photo), the app language and, if set, your plate diameter to the CalSnap server, which forwards them to an AI provider.'**
   String get privacyAnalysis;
+
+  /// No description provided for @privacyBarcode.
+  ///
+  /// In en, this message translates to:
+  /// **'Barcodes are read on your device. To find a product, CalSnap sends only the barcode number to its server, which asks Open Food Facts. The scanner library may send anonymous technical statistics to Google.'**
+  String get privacyBarcode;
 
   /// No description provided for @privacyNoStorage.
   ///

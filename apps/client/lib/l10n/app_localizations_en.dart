@@ -568,6 +568,54 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsPlate => 'My usual plate';
 
   @override
+  String get scanBarcode => 'Scan barcode';
+
+  @override
+  String get scanTitle => 'Scan barcode';
+
+  @override
+  String get scanHint => 'Point the camera at the barcode on the package';
+
+  @override
+  String get scanTorch => 'Flashlight';
+
+  @override
+  String get scanCameraError =>
+      'The camera cannot be used. You can type the barcode number below.';
+
+  @override
+  String get scanPermissionBody =>
+      'Camera access is needed to scan barcodes. You can also type the number below.';
+
+  @override
+  String get scanManualLabel => 'Barcode number';
+
+  @override
+  String get scanManualInvalid =>
+      'Enter a valid barcode: 8, 12, 13 or 14 digits.';
+
+  @override
+  String get scanFind => 'Find';
+
+  @override
+  String get scanLooking => 'Looking up the product…';
+
+  @override
+  String get scanNotFound =>
+      'No nutrition data was found for this product. You can add it as a custom product in the food search.';
+
+  @override
+  String get scanAnother => 'Scan another';
+
+  @override
+  String get scanSource => 'Nutrition data: Open Food Facts (ODbL)';
+
+  @override
+  String scanServing(String value) {
+    return 'Serving: $value g';
+  }
+
+  @override
   String get plateGuideHint => 'Hold the camera directly above the plate';
 
   @override
@@ -717,6 +765,10 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get privacyAnalysis =>
       'When you analyze a photo, CalSnap sends the prepared photo (without metadata; two photos if you add a side photo), the app language and, if set, your plate diameter to the CalSnap server, which forwards them to an AI provider.';
+
+  @override
+  String get privacyBarcode =>
+      'Barcodes are read on your device. To find a product, CalSnap sends only the barcode number to its server, which asks Open Food Facts. The scanner library may send anonymous technical statistics to Google.';
 
   @override
   String get privacyNoStorage =>

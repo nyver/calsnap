@@ -23,7 +23,7 @@ class Food {
   final List<String> aliases;
   final Nutrition per100;
 
-  /// `catalog`, `ai_estimate` or `user`.
+  /// `catalog`, `ai_estimate`, `user` or `packaged`.
   final String source;
   final String? sourceId;
   final double? gramsPerPiece;

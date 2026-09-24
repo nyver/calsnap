@@ -373,6 +373,27 @@ void main() {
       expect(c.analyzeTimeoutSeconds, 60);
       expect(c.maxImages, 1);
       expect(c.supportsSidePhoto, isFalse);
+      expect(c.barcodeLookup, isFalse);
+    });
+
+    test('barcode lookup is on only when the server says so', () {
+      expect(RemoteConfig.fromJson(const {}).barcodeLookup, isFalse);
+      expect(
+        RemoteConfig.fromJson({'barcodeLookup': true}).barcodeLookup,
+        isTrue,
+      );
+      expect(
+        RemoteConfig.fromJson({'barcodeLookup': false}).barcodeLookup,
+        isFalse,
+      );
+      expect(
+        RemoteConfig.fromJson({'barcodeLookup': 'yes'}).barcodeLookup,
+        isFalse,
+      );
+      final cached = RemoteConfig.fromJson(
+        const RemoteConfig(barcodeLookup: true).toJson(),
+      );
+      expect(cached.barcodeLookup, isTrue);
     });
 
     test('a side photo is supported only when the server says so', () {
@@ -400,6 +421,7 @@ void main() {
       expect(c.imageJpegQuality, 80);
       expect(c.maxUploadBytes, 4194304);
       expect(c.maxImages, 2);
+      expect(c.barcodeLookup, isTrue);
     });
 
     test('clamps the long side to 512-2048 and ignores junk', () {

@@ -571,6 +571,55 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settingsPlate => 'Моя обычная тарелка';
 
   @override
+  String get scanBarcode => 'Сканировать штрихкод';
+
+  @override
+  String get scanTitle => 'Сканирование штрихкода';
+
+  @override
+  String get scanHint => 'Наведите камеру на штрихкод на упаковке';
+
+  @override
+  String get scanTorch => 'Фонарик';
+
+  @override
+  String get scanCameraError =>
+      'Камера недоступна. Введите номер штрихкода ниже.';
+
+  @override
+  String get scanPermissionBody =>
+      'Для сканирования нужен доступ к камере. Можно также ввести номер ниже.';
+
+  @override
+  String get scanManualLabel => 'Номер штрихкода';
+
+  @override
+  String get scanManualInvalid =>
+      'Введите корректный штрихкод: 8, 12, 13 или 14 цифр.';
+
+  @override
+  String get scanFind => 'Найти';
+
+  @override
+  String get scanLooking => 'Ищем продукт…';
+
+  @override
+  String get scanNotFound =>
+      'Для этого продукта нет данных о питательной ценности. Его можно добавить как свой продукт в поиске.';
+
+  @override
+  String get scanAnother => 'Сканировать другой';
+
+  @override
+  String get scanSource =>
+      'Данные о питательной ценности: Open Food Facts (ODbL)';
+
+  @override
+  String scanServing(String value) {
+    return 'Порция: $value г';
+  }
+
+  @override
   String get plateGuideHint => 'Держите камеру прямо над тарелкой';
 
   @override
@@ -721,6 +770,10 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get privacyAnalysis =>
       'При анализе фото CalSnap отправляет подготовленное фото (без метаданных; два фото, если вы добавите фото сбоку), язык приложения и, если задан, диаметр тарелки на сервер CalSnap, который передаёт их AI-провайдеру.';
+
+  @override
+  String get privacyBarcode =>
+      'Штрихкоды читаются на вашем устройстве. Чтобы найти продукт, CalSnap отправляет на свой сервер только номер штрихкода, а сервер обращается в Open Food Facts. Библиотека сканера может отправлять в Google анонимную техническую статистику.';
 
   @override
   String get privacyNoStorage =>

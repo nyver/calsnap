@@ -1,3 +1,4 @@
+import '../../barcode/domain/packaged_product.dart';
 import 'food.dart';
 
 /// Access to the local food cache.
@@ -17,4 +18,11 @@ abstract interface class FoodRepository {
 
   /// Stores a custom product with `source = "user"`.
   Future<Food> createCustom(CustomFoodInput input);
+
+  /// The packaged product cached for this normalized barcode, if any.
+  Future<Food?> findPackaged(String barcode);
+
+  /// Caches a packaged product (`source = "packaged"`, `sourceId` = barcode)
+  /// or refreshes the cached one, keeping its id. Its barcode is searchable.
+  Future<Food> savePackaged(PackagedProduct product);
 }

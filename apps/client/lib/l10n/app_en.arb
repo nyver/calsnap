@@ -271,6 +271,27 @@
   "settingsTargetsSection": "Daily targets",
   "settingsCalories": "Calorie target",
   "settingsPlate": "My usual plate",
+  "scanBarcode": "Scan barcode",
+  "scanTitle": "Scan barcode",
+  "scanHint": "Point the camera at the barcode on the package",
+  "scanTorch": "Flashlight",
+  "scanCameraError": "The camera cannot be used. You can type the barcode number below.",
+  "scanPermissionBody": "Camera access is needed to scan barcodes. You can also type the number below.",
+  "scanManualLabel": "Barcode number",
+  "scanManualInvalid": "Enter a valid barcode: 8, 12, 13 or 14 digits.",
+  "scanFind": "Find",
+  "scanLooking": "Looking up the product…",
+  "scanNotFound": "No nutrition data was found for this product. You can add it as a custom product in the food search.",
+  "scanAnother": "Scan another",
+  "scanSource": "Nutrition data: Open Food Facts (ODbL)",
+  "scanServing": "Serving: {value} g",
+  "@scanServing": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "plateGuideHint": "Hold the camera directly above the plate",
   "qualityTitle": "Retake for a better estimate?",
   "issueSteepAngle": "The plate is shot at a steep angle. For a more accurate portion estimate, take the photo from above.",
@@ -356,6 +377,7 @@
   "privacyTitle": "Privacy",
   "privacyDiary": "Your diary is stored only on this device.",
   "privacyAnalysis": "When you analyze a photo, CalSnap sends the prepared photo (without metadata; two photos if you add a side photo), the app language and, if set, your plate diameter to the CalSnap server, which forwards them to an AI provider.",
+  "privacyBarcode": "Barcodes are read on your device. To find a product, CalSnap sends only the barcode number to its server, which asks Open Food Facts. The scanner library may send anonymous technical statistics to Google.",
   "privacyNoStorage": "The CalSnap server does not store your photos after the request is finished.",
   "privacyProvider": "The retention and training terms of the AI provider apply to what it receives.",
   "privacyPolicyLink": "Full privacy policy",

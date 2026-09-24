@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../core/domain/nutrition.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../shared/l10n_x.dart';
+import '../../foods/domain/food.dart';
 import '../domain/meal_draft.dart';
 import 'weight_input.dart';
 
@@ -62,6 +63,23 @@ Future<double?> showWeightDialog(BuildContext context, DraftItem item) {
     ),
   );
 }
+
+/// Asks for the quantity of a food chosen from the search or a barcode scan.
+/// The declared serving, when known, is the starting point.
+Future<double?> askFoodQuantity(
+  BuildContext context, {
+  required Food food,
+  required String languageCode,
+}) => showQuantityDialog(
+  context,
+  name: food.displayName(languageCode),
+  initialGrams: food.gramsPerPortion ?? 100,
+  units: FoodUnits(
+    gramsPerPiece: food.gramsPerPiece,
+    gramsPerPortion: food.gramsPerPortion,
+    densityGPerMl: food.densityGPerMl,
+  ),
+);
 
 /// Asks for the quantity of a newly added food.
 Future<double?> showQuantityDialog(

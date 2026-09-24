@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/barcode/ui/barcode_scan_screen.dart';
 import '../features/camera/ui/capture_screen.dart';
 import '../features/diary/ui/diary_screen.dart';
 import '../features/diary/ui/history_screen.dart';
@@ -24,6 +25,7 @@ abstract final class Routes {
   static const settings = '/settings';
   static const capture = '/capture';
   static const captureSide = '/capture/side';
+  static const scan = '/scan';
   static const analysis = '/analysis';
   static const result = '/result';
   static const newMeal = '/meal/new';
@@ -92,6 +94,10 @@ GoRouter createRouter({String initialLocation = Routes.splash}) => GoRouter(
     GoRoute(
       path: Routes.captureSide,
       builder: (context, state) => const CaptureScreen(sideView: true),
+    ),
+    GoRoute(
+      path: Routes.scan,
+      builder: (context, state) => const BarcodeScanScreen(),
     ),
     GoRoute(
       path: Routes.analysis,

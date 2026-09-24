@@ -86,6 +86,7 @@ class RemoteConfig {
     this.maxUploadBytes = 4 * 1024 * 1024,
     this.analyzeTimeoutSeconds = 60,
     this.maxImages = 1,
+    this.barcodeLookup = false,
   });
 
   /// Clamps every value to a safe range; unknown fields are ignored.
@@ -115,6 +116,8 @@ class RemoteConfig {
       ).clamp(5, 300),
       // Servers that predate the side photo do not send it: one photo.
       maxImages: read('maxImages', defaults.maxImages).clamp(1, 2),
+      // Servers that predate barcode lookup do not send it: no scanner.
+      barcodeLookup: json['barcodeLookup'] == true,
     );
   }
 
@@ -128,12 +131,16 @@ class RemoteConfig {
 
   bool get supportsSidePhoto => maxImages >= 2;
 
+  /// True when the backend can look packaged products up by barcode.
+  final bool barcodeLookup;
+
   Map<String, dynamic> toJson() => {
     'imageMaxLongSidePx': imageMaxLongSidePx,
     'imageJpegQuality': imageJpegQuality,
     'maxUploadBytes': maxUploadBytes,
     'analyzeTimeoutSeconds': analyzeTimeoutSeconds,
     'maxImages': maxImages,
+    'barcodeLookup': barcodeLookup,
   };
 }
 
