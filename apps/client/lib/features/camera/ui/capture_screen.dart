@@ -16,10 +16,18 @@ import '../data/gateways.dart';
 /// In-app camera with flash, lens switch, gallery import and a preview with
 /// "Retake" and "Analyze". Permission is requested here, at the point of use.
 class CaptureScreen extends ConsumerStatefulWidget {
-  const CaptureScreen({this.startWithGallery = false, super.key});
+  const CaptureScreen({
+    this.startWithGallery = false,
+    this.sideView = false,
+    super.key,
+  });
 
   /// Opens the gallery picker right away (from the "Choose from gallery" action).
   final bool startWithGallery;
+
+  /// Takes the second, side photo of the meal shown in the result screen. The
+  /// recognition draft stays as it is, so there is no manual entry here.
+  final bool sideView;
 
   @override
   ConsumerState<CaptureScreen> createState() => _CaptureScreenState();
@@ -164,12 +172,31 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
   Future<void> _analyze() async {
     final path = _photoPath;
     if (path == null) return;
+    final AnalysisSource source;
+    if (widget.sideView) {
+      final draft = ref.read(mealDraftProvider);
+      final jpeg = draft?.sourceJpeg;
+      if (jpeg == null) return;
+      source = AnalysisSource(
+        path: path,
+        top: PreparedPhoto(jpeg: jpeg, tempFile: draft?.tempPhotoFile),
+      );
+    } else {
+      source = AnalysisSource(path: path);
+    }
     final exit = await context.push<AnalysisExit>(
       Routes.analysis,
-      extra: AnalysisSource(path: path),
+      extra: source,
     );
     if (!mounted) return;
-    if (exit == AnalysisExit.tryAnother) _retake();
+    switch (exit) {
+      case AnalysisExit.tryAnother:
+        _retake();
+      case AnalysisExit.refined || AnalysisExit.keepFirst:
+        context.pop();
+      case AnalysisExit.cancelled || null:
+        break;
+    }
   }
 
   Future<void> _cycleFlash() async {
@@ -198,7 +225,13 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: Text(_photoPath == null ? l10n.captureTitle : l10n.previewTitle),
+        title: Text(
+          widget.sideView
+              ? l10n.sideCaptureTitle
+              : _photoPath == null
+              ? l10n.captureTitle
+              : l10n.previewTitle,
+        ),
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
       ),
@@ -233,7 +266,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
           if (result == CameraAccess.granted) await _openCamera();
         },
         onGallery: _pickFromGallery,
-        onManual: _manual,
+        onManual: widget.sideView ? null : _manual,
       );
     }
 
@@ -244,7 +277,7 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
       if (_cameraFailed) {
         return _CameraUnavailable(
           onGallery: _pickFromGallery,
-          onManual: _manual,
+          onManual: widget.sideView ? null : _manual,
         );
       }
       return const Center(child: CircularProgressIndicator());
@@ -252,6 +285,16 @@ class _CaptureScreenState extends ConsumerState<CaptureScreen>
     final l10n = context.l10n;
     return Column(
       children: [
+        if (widget.sideView)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+            child: Text(
+              l10n.sideCaptureHint,
+              key: const Key('sideCaptureHint'),
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70),
+            ),
+          ),
         Expanded(child: Center(child: CameraPreview(controller))),
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -403,7 +446,7 @@ class _PermissionNeeded extends StatelessWidget {
   final VoidCallback onOpenSettings;
   final VoidCallback onRequest;
   final VoidCallback onGallery;
-  final VoidCallback onManual;
+  final VoidCallback? onManual;
 
   @override
   Widget build(BuildContext context) {
@@ -431,12 +474,13 @@ class _PermissionNeeded extends StatelessWidget {
           onPressed: onGallery,
           child: Text(l10n.chooseFromGallery),
         ),
-        OutlinedButton(
-          key: const Key('addManuallyFromCapture'),
-          style: OutlinedButton.styleFrom(foregroundColor: Colors.white),
-          onPressed: onManual,
-          child: Text(l10n.addManually),
-        ),
+        if (onManual != null)
+          OutlinedButton(
+            key: const Key('addManuallyFromCapture'),
+            style: OutlinedButton.styleFrom(foregroundColor: Colors.white),
+            onPressed: onManual,
+            child: Text(l10n.addManually),
+          ),
       ],
     );
   }
@@ -446,7 +490,7 @@ class _CameraUnavailable extends StatelessWidget {
   const _CameraUnavailable({required this.onGallery, required this.onManual});
 
   final VoidCallback onGallery;
-  final VoidCallback onManual;
+  final VoidCallback? onManual;
 
   @override
   Widget build(BuildContext context) {
@@ -457,7 +501,8 @@ class _CameraUnavailable extends StatelessWidget {
       body: l10n.cameraUnavailable,
       actions: [
         FilledButton(onPressed: onGallery, child: Text(l10n.chooseFromGallery)),
-        OutlinedButton(onPressed: onManual, child: Text(l10n.addManually)),
+        if (onManual != null)
+          OutlinedButton(onPressed: onManual, child: Text(l10n.addManually)),
       ],
     );
   }

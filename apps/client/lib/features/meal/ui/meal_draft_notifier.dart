@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logging/logging.dart';
 
@@ -29,7 +31,46 @@ class MealDraftNotifier extends Notifier<MealDraft?> {
   Future<void> startFromRecognition(
     AnalysisResult result, {
     String? tempPhotoFile,
+    Uint8List? sourceJpeg,
   }) async {
+    final items = await _recognizedItems(result);
+    final now = _now();
+    _setInitial(
+      MealDraft(
+        mealTime: now,
+        mealType: defaultMealType(now),
+        items: items,
+        tempPhotoFile: tempPhotoFile,
+        warnings: result.warnings,
+        fromRecognition: true,
+        sourceJpeg: sourceJpeg,
+      ),
+    );
+  }
+
+  /// Replaces the items of the current recognition draft with the result of
+  /// the same photo analyzed together with a side photo. The meal time, the
+  /// meal type and the stored photo are kept; edits to the items are replaced.
+  /// Does nothing when there is no recognition draft.
+  Future<void> refineWithSidePhoto(AnalysisResult result) async {
+    final current = state;
+    if (current == null || !current.fromRecognition) return;
+    final items = await _recognizedItems(result);
+    _setInitial(
+      MealDraft(
+        mealTime: current.mealTime,
+        mealType: current.mealType,
+        items: items,
+        tempPhotoFile: current.tempPhotoFile,
+        warnings: result.warnings,
+        fromRecognition: true,
+        sourceJpeg: current.sourceJpeg,
+        withSidePhoto: true,
+      ),
+    );
+  }
+
+  Future<List<DraftItem>> _recognizedItems(AnalysisResult result) async {
     final ids = ref.read(idsProvider);
     final foods = ref.read(foodRepositoryProvider);
     final calibration = await _loadCalibration();
@@ -66,17 +107,7 @@ class MealDraftNotifier extends Notifier<MealDraft?> {
         ),
       );
     }
-    final now = _now();
-    _setInitial(
-      MealDraft(
-        mealTime: now,
-        mealType: defaultMealType(now),
-        items: items,
-        tempPhotoFile: tempPhotoFile,
-        warnings: result.warnings,
-        fromRecognition: true,
-      ),
-    );
+    return items;
   }
 
   /// Null when personalization is off or fails: the draft then simply starts
@@ -175,10 +206,19 @@ class MealDraftNotifier extends Notifier<MealDraft?> {
     if (draft.fromRecognition) return true;
     if (!draft.isEditing) return draft.items.isNotEmpty;
     if (draft.mealTime != initial.mealTime ||
-        draft.mealType != initial.mealType ||
-        draft.items.length != initial.items.length) {
+        draft.mealType != initial.mealType) {
       return true;
     }
+    return hasItemEdits;
+  }
+
+  /// True when the user added, removed or changed items since the draft was
+  /// created or loaded.
+  bool get hasItemEdits {
+    final draft = state;
+    final initial = _initial;
+    if (draft == null || initial == null) return false;
+    if (draft.items.length != initial.items.length) return true;
     for (var i = 0; i < draft.items.length; i++) {
       final a = draft.items[i];
       final b = initial.items[i];

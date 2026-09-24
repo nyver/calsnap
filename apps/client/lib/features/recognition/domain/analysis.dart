@@ -85,6 +85,7 @@ class RemoteConfig {
     this.imageJpegQuality = 85,
     this.maxUploadBytes = 4 * 1024 * 1024,
     this.analyzeTimeoutSeconds = 60,
+    this.maxImages = 1,
   });
 
   /// Clamps every value to a safe range; unknown fields are ignored.
@@ -112,6 +113,8 @@ class RemoteConfig {
         'analyzeTimeoutSeconds',
         defaults.analyzeTimeoutSeconds,
       ).clamp(5, 300),
+      // Servers that predate the side photo do not send it: one photo.
+      maxImages: read('maxImages', defaults.maxImages).clamp(1, 2),
     );
   }
 
@@ -120,11 +123,17 @@ class RemoteConfig {
   final int maxUploadBytes;
   final int analyzeTimeoutSeconds;
 
+  /// Photos per analysis the backend accepts; 2 means a side photo is welcome.
+  final int maxImages;
+
+  bool get supportsSidePhoto => maxImages >= 2;
+
   Map<String, dynamic> toJson() => {
     'imageMaxLongSidePx': imageMaxLongSidePx,
     'imageJpegQuality': imageJpegQuality,
     'maxUploadBytes': maxUploadBytes,
     'analyzeTimeoutSeconds': analyzeTimeoutSeconds,
+    'maxImages': maxImages,
   };
 }
 

@@ -69,8 +69,10 @@ Future<AnalysisResult> analyze(
   String id = '0190f7a2-1b2c-7d3e-8f40-123456789abc',
   double? plate,
   CancelToken? cancel,
+  Uint8List? side,
 }) => api.analyze(
   jpeg: Uint8List.fromList([1, 2, 3]),
+  sideJpeg: side,
   locale: 'ru',
   requestId: id,
   config: const RemoteConfig(),
@@ -326,12 +328,67 @@ void main() {
     });
   });
 
+  group('side photo', () {
+    List<String> partNames(RequestOptions o) => [
+      for (final f in (o.data as FormData).files) f.key,
+    ];
+
+    test('is sent as a second file part named sideImage', () async {
+      final t = build(
+        (o, _) async => fixtureBody('analyze-response-full.json', 200),
+      );
+      await analyze(t.api, side: Uint8List.fromList([4, 5, 6]));
+      final request = t.adapter.requests.single;
+      expect(partNames(request), ['image', 'sideImage']);
+      final files = (request.data as FormData).files;
+      expect(files[0].value.length, 3);
+      expect(files[1].value.filename, 'side.jpg');
+      expect(files[1].value.contentType?.mimeType, 'image/jpeg');
+    });
+
+    test('is absent for the usual single photo', () async {
+      final t = build(
+        (o, _) async => fixtureBody('analyze-response-full.json', 200),
+      );
+      await analyze(t.api);
+      expect(partNames(t.adapter.requests.single), ['image']);
+    });
+
+    test('survives a retry of the request', () async {
+      final t = build((o, call) async {
+        if (call == 1) throw connectionError(o);
+        return fixtureBody('analyze-response-full.json', 200);
+      });
+      await analyze(t.api, side: Uint8List.fromList([4, 5, 6]));
+      expect(t.adapter.requests, hasLength(2));
+      expect(partNames(t.adapter.requests.last), ['image', 'sideImage']);
+    });
+  });
+
   group('RemoteConfig', () {
     test('defaults match the specification', () {
       const c = RemoteConfig();
       expect(c.imageMaxLongSidePx, 1280);
       expect(c.imageJpegQuality, 85);
       expect(c.analyzeTimeoutSeconds, 60);
+      expect(c.maxImages, 1);
+      expect(c.supportsSidePhoto, isFalse);
+    });
+
+    test('a side photo is supported only when the server says so', () {
+      expect(RemoteConfig.fromJson(const {}).supportsSidePhoto, isFalse);
+      expect(
+        RemoteConfig.fromJson({'maxImages': 1}).supportsSidePhoto,
+        isFalse,
+      );
+      expect(RemoteConfig.fromJson({'maxImages': 2}).supportsSidePhoto, isTrue);
+      expect(RemoteConfig.fromJson({'maxImages': 9}).maxImages, 2);
+      expect(RemoteConfig.fromJson({'maxImages': 0}).maxImages, 1);
+      expect(RemoteConfig.fromJson({'maxImages': 'two'}).maxImages, 1);
+      final cached = RemoteConfig.fromJson(
+        const RemoteConfig(maxImages: 2).toJson(),
+      );
+      expect(cached.supportsSidePhoto, isTrue);
     });
 
     test('parses the shared fixture', () {
@@ -342,6 +399,7 @@ void main() {
       expect(c.imageMaxLongSidePx, 1280);
       expect(c.imageJpegQuality, 80);
       expect(c.maxUploadBytes, 4194304);
+      expect(c.maxImages, 2);
     });
 
     test('clamps the long side to 512-2048 and ignores junk', () {

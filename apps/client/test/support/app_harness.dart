@@ -205,12 +205,15 @@ class FakeAnalysisApi implements AnalysisApi {
     required String locale,
     required String requestId,
     required RemoteConfig config,
+    Uint8List? sideJpeg,
     double? plateDiameterCm,
     CancelToken? cancelToken,
   }) {
     final call = FakeAnalysisCall(
       locale: locale,
       requestId: requestId,
+      jpeg: jpeg,
+      sideJpeg: sideJpeg,
       plateDiameterCm: plateDiameterCm,
       cancelToken: cancelToken,
     );
@@ -227,12 +230,16 @@ class FakeAnalysisCall {
   FakeAnalysisCall({
     required this.locale,
     required this.requestId,
+    required this.jpeg,
+    this.sideJpeg,
     this.plateDiameterCm,
     this.cancelToken,
   });
 
   final String locale;
   final String requestId;
+  final Uint8List jpeg;
+  final Uint8List? sideJpeg;
   final double? plateDiameterCm;
   final CancelToken? cancelToken;
 }

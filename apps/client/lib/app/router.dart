@@ -23,6 +23,7 @@ abstract final class Routes {
   static const statistics = '/statistics';
   static const settings = '/settings';
   static const capture = '/capture';
+  static const captureSide = '/capture/side';
   static const analysis = '/analysis';
   static const result = '/result';
   static const newMeal = '/meal/new';
@@ -87,6 +88,10 @@ GoRouter createRouter({String initialLocation = Routes.splash}) => GoRouter(
       path: Routes.capture,
       builder: (context, state) =>
           CaptureScreen(startWithGallery: state.extra == true),
+    ),
+    GoRoute(
+      path: Routes.captureSide,
+      builder: (context, state) => const CaptureScreen(sideView: true),
     ),
     GoRoute(
       path: Routes.analysis,

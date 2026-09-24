@@ -13,9 +13,15 @@ import '../domain/analysis.dart';
 
 /// The photo to analyze.
 class AnalysisSource {
-  const AnalysisSource({required this.path});
+  const AnalysisSource({required this.path, this.top});
 
   final String path;
+
+  /// Set when [path] is a side photo that refines the analysis of this
+  /// already prepared main photo (its temporary file belongs to the draft).
+  final PreparedPhoto? top;
+
+  bool get isSidePhoto => top != null;
 }
 
 /// A photo prepared for upload.
@@ -67,6 +73,13 @@ final remoteConfigRepositoryProvider = Provider<RemoteConfigRepository>(
   ),
 );
 
+/// Whether the backend accepts a side photo. Read again every time the result
+/// screen opens, so that a newer cached configuration is picked up.
+final sidePhotoSupportedProvider = FutureProvider.autoDispose<bool>(
+  (ref) async => (await ref.watch(remoteConfigRepositoryProvider).current())
+      .supportsSidePhoto,
+);
+
 enum AnalysisPhase { working, failed, done, cancelled }
 
 class AnalysisState {
@@ -83,7 +96,9 @@ class AnalysisState {
   final bool uploading;
 }
 
-/// Runs one analysis: prepare the photo, upload it, build the draft.
+/// Runs one analysis: prepare the photo, upload it, build the draft. For a side
+/// photo it uploads the main photo of the current draft together with it and
+/// replaces the items of that draft.
 class AnalysisController extends Notifier<AnalysisState> {
   CancelToken? _cancelToken;
   PreparedPhoto? _prepared;
@@ -125,10 +140,12 @@ class AnalysisController extends Notifier<AnalysisState> {
     final token = _cancelToken = CancelToken();
     try {
       final config = await ref.read(remoteConfigRepositoryProvider).current();
+      final source = _source!;
       final prepared = _prepared ??= await ref
           .read(photoPreparerProvider)
-          .prepare(_source!, config);
+          .prepare(source, config);
       if (_cancelled) return;
+      final top = source.top;
       state = const AnalysisState(uploading: true);
 
       // The repository is authoritative; the live stream may not have emitted yet.
@@ -136,7 +153,8 @@ class AnalysisController extends Notifier<AnalysisState> {
       final result = await ref
           .read(analysisApiProvider)
           .analyze(
-            jpeg: prepared.jpeg,
+            jpeg: top?.jpeg ?? prepared.jpeg,
+            sideJpeg: top == null ? null : prepared.jpeg,
             locale: ref.read(effectiveLanguageCodeProvider),
             requestId: ref.read(idsProvider).newId(),
             config: config,
@@ -144,6 +162,14 @@ class AnalysisController extends Notifier<AnalysisState> {
             cancelToken: token,
           );
       if (_cancelled) return;
+
+      if (top != null) {
+        // The draft keeps its own main photo; the side photo is only a
+        // temporary file and is removed when this controller is disposed.
+        await ref.read(mealDraftProvider.notifier).refineWithSidePhoto(result);
+        state = const AnalysisState(phase: AnalysisPhase.done);
+        return;
+      }
 
       // With photo saving off the temporary photo is deleted right after a
       // successful analysis and the meal is saved without one.
@@ -154,7 +180,11 @@ class AnalysisController extends Notifier<AnalysisState> {
       }
       await ref
           .read(mealDraftProvider.notifier)
-          .startFromRecognition(result, tempPhotoFile: photo);
+          .startFromRecognition(
+            result,
+            tempPhotoFile: photo,
+            sourceJpeg: prepared.jpeg,
+          );
       _handedToDraft = photo != null;
       state = const AnalysisState(phase: AnalysisPhase.done);
     } on DioException catch (e) {

@@ -12,6 +12,7 @@ import '../../../shared/l10n_x.dart';
 import '../../diary/ui/diary_providers.dart';
 import '../../foods/domain/food.dart';
 import '../../recognition/domain/analysis.dart';
+import '../../recognition/ui/analysis_controller.dart';
 import '../domain/meal.dart';
 import '../domain/meal_draft.dart';
 import '../domain/save_meal_use_case.dart';
@@ -166,6 +167,35 @@ class _DraftEditorScreenState extends ConsumerState<DraftEditorScreen> {
     ref.read(mealDraftProvider.notifier).addFood(food, grams);
   }
 
+  /// Offers the side photo. Edited items are replaced by the new result, so
+  /// the user confirms first; cancelling keeps everything as it is.
+  Future<void> _improveAccuracy() async {
+    if (ref.read(mealDraftProvider.notifier).hasItemEdits) {
+      final l10n = context.l10n;
+      final go = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(l10n.replaceEditsTitle),
+          content: Text(l10n.replaceEditsBody),
+          actions: [
+            TextButton(
+              key: const Key('replaceEditsCancel'),
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              key: const Key('replaceEditsConfirm'),
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(l10n.replaceEditsAction),
+            ),
+          ],
+        ),
+      );
+      if (go != true || !mounted) return;
+    }
+    await context.push<void>(Routes.captureSide);
+  }
+
   Future<void> _editItem(DraftItem item) async {
     final result = await showItemEditSheet(context, item);
     if (!mounted) return;
@@ -272,6 +302,7 @@ class _DraftEditorScreenState extends ConsumerState<DraftEditorScreen> {
                 onRemove: (item) =>
                     ref.read(mealDraftProvider.notifier).removeItem(item.id),
                 onAdd: _addItem,
+                onImprove: _improveAccuracy,
                 onPickDate: () => _pickDate(draft),
                 onPickTime: () => _pickTime(draft),
                 onDelete: () => _delete(draft),
@@ -322,6 +353,7 @@ class _Editor extends ConsumerWidget {
     required this.onEdit,
     required this.onRemove,
     required this.onAdd,
+    required this.onImprove,
     required this.onPickDate,
     required this.onPickTime,
     required this.onDelete,
@@ -333,6 +365,7 @@ class _Editor extends ConsumerWidget {
   final Future<void> Function(DraftItem) onEdit;
   final void Function(DraftItem) onRemove;
   final VoidCallback onAdd;
+  final VoidCallback onImprove;
   final VoidCallback onPickDate;
   final VoidCallback onPickTime;
   final VoidCallback onDelete;
@@ -356,8 +389,18 @@ class _Editor extends ConsumerWidget {
         if (draft.fromRecognition)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: Text(l10n.estimateNotice, style: theme.textTheme.bodySmall),
+            child: Text(
+              draft.withSidePhoto
+                  ? '${l10n.estimateNotice} ${l10n.twoPhotoNote}'
+                  : l10n.estimateNotice,
+              style: theme.textTheme.bodySmall,
+            ),
           ),
+        if (draft.fromRecognition &&
+            !draft.withSidePhoto &&
+            draft.sourceJpeg != null &&
+            (ref.watch(sidePhotoSupportedProvider).value ?? false))
+          _ImproveAccuracy(onTap: onImprove),
         for (final item in draft.items) ...[
           _ItemCard(
             item: item,
@@ -435,6 +478,43 @@ class _Editor extends ConsumerWidget {
           },
         ),
       ],
+    );
+  }
+}
+
+/// A quiet offer next to the estimate, not a step in the flow: the usual
+/// single-photo path never needs it.
+class _ImproveAccuracy extends StatelessWidget {
+  const _ImproveAccuracy({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextButton.icon(
+              key: const Key('improveAccuracy'),
+              onPressed: onTap,
+              icon: const Icon(Icons.add_a_photo_outlined),
+              label: Text(l10n.improveAccuracy),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text(
+                l10n.improveAccuracyHint,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

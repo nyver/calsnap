@@ -36,7 +36,7 @@ Dependency direction inside a feature: `ui -> domain <- data`.
 ## Data flow of the main path
 
 1. Capture or pick a photo, then preview.
-2. The photo is prepared in an isolate and uploaded with a fresh `X-Request-Id`.
+2. The photo is prepared in an isolate and uploaded with a fresh `X-Request-Id`. Optionally the user then adds a side photo ([ADR 008](../adr/008-optional-side-photo.md)); both photos go in one request and the result replaces the draft items.
 3. The backend validates the upload, calls the AI provider, validates and filters the result, resolves nutrition and answers with items and warnings.
 4. The client builds an in-memory `MealDraft`, proposing weights adjusted to the user's past corrections ([ADR 007](../adr/007-personal-portion-calibration.md)); the user edits it; totals are recomputed locally on every change.
 5. Save writes the meal in one transaction, records AI corrections for weights that differ from what the app proposed, caches recognized foods, and stores the photo as a file (if enabled).

@@ -740,6 +740,60 @@ abstract class AppLocalizations {
   /// **'Weights are estimates. Please check them before saving.'**
   String get estimateNotice;
 
+  /// No description provided for @improveAccuracy.
+  ///
+  /// In en, this message translates to:
+  /// **'Improve accuracy'**
+  String get improveAccuracy;
+
+  /// No description provided for @improveAccuracyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'A second photo from the side helps with rice, pasta, potatoes, salads, cakes and meat.'**
+  String get improveAccuracyHint;
+
+  /// No description provided for @twoPhotoNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated from two photos.'**
+  String get twoPhotoNote;
+
+  /// No description provided for @sideCaptureTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Side photo'**
+  String get sideCaptureTitle;
+
+  /// No description provided for @sideCaptureHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold the camera at plate level and photograph the meal from the side.'**
+  String get sideCaptureHint;
+
+  /// No description provided for @replaceEditsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace your changes?'**
+  String get replaceEditsTitle;
+
+  /// No description provided for @replaceEditsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The new estimate replaces the items and weights you have edited. Your first result stays if you cancel.'**
+  String get replaceEditsBody;
+
+  /// No description provided for @replaceEditsAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get replaceEditsAction;
+
+  /// No description provided for @keepFirstResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep the first result'**
+  String get keepFirstResult;
+
   /// No description provided for @approxKcal.
   ///
   /// In en, this message translates to:
@@ -1217,7 +1271,7 @@ abstract class AppLocalizations {
   /// No description provided for @privacyAnalysis.
   ///
   /// In en, this message translates to:
-  /// **'When you analyze a photo, CalSnap sends the prepared photo (without metadata), the app language and, if set, your plate diameter to the CalSnap server, which forwards them to an AI provider.'**
+  /// **'When you analyze a photo, CalSnap sends the prepared photo (without metadata; two photos if you add a side photo), the app language and, if set, your plate diameter to the CalSnap server, which forwards them to an AI provider.'**
   String get privacyAnalysis;
 
   /// No description provided for @privacyNoStorage.

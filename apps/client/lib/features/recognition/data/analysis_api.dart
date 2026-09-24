@@ -14,22 +14,27 @@ class AnalysisApi {
   /// Extra time on top of the server-provided analysis timeout.
   static const Duration timeoutMargin = Duration(seconds: 15);
 
-  /// Uploads the prepared JPEG. Throws [AnalysisFailure] subtypes only;
-  /// cancellation surfaces as a [DioException] of type cancel.
+  /// Uploads the prepared JPEG, and [sideJpeg] (the meal seen from the side)
+  /// when given; only send it to a backend whose config allows two images.
+  /// Throws [AnalysisFailure] subtypes only; cancellation surfaces as a
+  /// [DioException] of type cancel.
   Future<AnalysisResult> analyze({
     required Uint8List jpeg,
     required String locale,
     required String requestId,
     required RemoteConfig config,
+    Uint8List? sideJpeg,
     double? plateDiameterCm,
     CancelToken? cancelToken,
   }) async {
+    MultipartFile file(Uint8List bytes, String name) => MultipartFile.fromBytes(
+      bytes,
+      filename: name,
+      contentType: DioMediaType('image', 'jpeg'),
+    );
     final form = FormData.fromMap({
-      'image': MultipartFile.fromBytes(
-        jpeg,
-        filename: 'meal.jpg',
-        contentType: DioMediaType('image', 'jpeg'),
-      ),
+      'image': file(jpeg, 'meal.jpg'),
+      'sideImage': ?sideJpeg == null ? null : file(sideJpeg, 'side.jpg'),
       'locale': locale,
       'plateDiameterCm': ?plateDiameterCm?.toString(),
     });

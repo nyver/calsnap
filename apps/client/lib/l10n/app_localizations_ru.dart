@@ -363,6 +363,36 @@ class AppLocalizationsRu extends AppLocalizations {
       'Вес — это оценка. Проверьте значения перед сохранением.';
 
   @override
+  String get improveAccuracy => 'Улучшить точность оценки';
+
+  @override
+  String get improveAccuracyHint =>
+      'Второе фото сбоку помогает с рисом, макаронами, картофелем, салатами, тортом и мясом.';
+
+  @override
+  String get twoPhotoNote => 'Оценка по двум фото.';
+
+  @override
+  String get sideCaptureTitle => 'Фото сбоку';
+
+  @override
+  String get sideCaptureHint =>
+      'Держите камеру на уровне тарелки и снимите блюдо сбоку.';
+
+  @override
+  String get replaceEditsTitle => 'Заменить ваши изменения?';
+
+  @override
+  String get replaceEditsBody =>
+      'Новая оценка заменит позиции и веса, которые вы изменили. Если отмените, первый результат сохранится.';
+
+  @override
+  String get replaceEditsAction => 'Продолжить';
+
+  @override
+  String get keepFirstResult => 'Оставить первый результат';
+
+  @override
   String approxKcal(String value) {
     return '$value ккал';
   }
@@ -635,7 +665,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get privacyAnalysis =>
-      'При анализе фото CalSnap отправляет подготовленное фото (без метаданных), язык приложения и, если задан, диаметр тарелки на сервер CalSnap, который передаёт их AI-провайдеру.';
+      'При анализе фото CalSnap отправляет подготовленное фото (без метаданных; два фото, если вы добавите фото сбоку), язык приложения и, если задан, диаметр тарелки на сервер CalSnap, который передаёт их AI-провайдеру.';
 
   @override
   String get privacyNoStorage =>

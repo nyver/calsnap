@@ -14,7 +14,9 @@ import 'analysis_controller.dart';
 export 'analysis_controller.dart' show AnalysisSource;
 
 /// How the analysis screen was left, reported to the capture screen.
-enum AnalysisExit { cancelled, tryAnother }
+/// [refined] and [keepFirst] only occur for a side photo: the capture screen
+/// closes itself and the result screen is shown again.
+enum AnalysisExit { cancelled, tryAnother, refined, keepFirst }
 
 /// Shows the progress of an analysis (cancellable) and its failures.
 class AnalysisScreen extends ConsumerStatefulWidget {
@@ -57,7 +59,11 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
     ref.listen(analysisControllerProvider, (previous, next) {
       switch (next.phase) {
         case AnalysisPhase.done:
-          context.pushReplacement(Routes.result);
+          if (widget.source.isSidePhoto) {
+            _leave(AnalysisExit.refined);
+          } else {
+            context.pushReplacement(Routes.result);
+          }
         case AnalysisPhase.cancelled:
           _leave(AnalysisExit.cancelled);
         case AnalysisPhase.working:
@@ -87,10 +93,12 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
                     failure: state.failure ?? const UnknownFailure(),
                     onRetry: () =>
                         ref.read(analysisControllerProvider.notifier).retry(),
+                    sidePhoto: widget.source.isSidePhoto,
                     onManual: () {
                       ref.read(mealDraftProvider.notifier).startManual();
                       context.pushReplacement(Routes.newMeal);
                     },
+                    onKeepFirst: () => _leave(AnalysisExit.keepFirst),
                     onAnother: () => _leave(AnalysisExit.tryAnother),
                     onServerSettings: () => context.go(Routes.settings),
                   )
@@ -182,12 +190,19 @@ class _Failure extends StatelessWidget {
     required this.failure,
     required this.onRetry,
     required this.onManual,
+    required this.onKeepFirst,
     required this.onAnother,
     required this.onServerSettings,
+    required this.sidePhoto,
   });
 
   final AnalysisFailure failure;
   final VoidCallback onRetry;
+
+  /// True when refining a result with a side photo: the first result is still
+  /// there, so the way out is to keep it, not to start a manual entry.
+  final bool sidePhoto;
+  final VoidCallback onKeepFirst;
   final VoidCallback onManual;
   final VoidCallback onAnother;
   final VoidCallback onServerSettings;
@@ -251,11 +266,18 @@ class _Failure extends StatelessWidget {
             child: Text(l10n.retry),
           ),
         const SizedBox(height: 8),
-        OutlinedButton(
-          key: const Key('analysisAddManually'),
-          onPressed: onManual,
-          child: Text(l10n.addManually),
-        ),
+        if (sidePhoto)
+          OutlinedButton(
+            key: const Key('analysisKeepFirst'),
+            onPressed: onKeepFirst,
+            child: Text(l10n.keepFirstResult),
+          )
+        else
+          OutlinedButton(
+            key: const Key('analysisAddManually'),
+            onPressed: onManual,
+            child: Text(l10n.addManually),
+          ),
         if (failure is OfflineFailure || failure is UnknownFailure)
           TextButton(
             key: const Key('checkServerSettings'),

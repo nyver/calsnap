@@ -360,6 +360,36 @@ class AppLocalizationsEn extends AppLocalizations {
       'Weights are estimates. Please check them before saving.';
 
   @override
+  String get improveAccuracy => 'Improve accuracy';
+
+  @override
+  String get improveAccuracyHint =>
+      'A second photo from the side helps with rice, pasta, potatoes, salads, cakes and meat.';
+
+  @override
+  String get twoPhotoNote => 'Estimated from two photos.';
+
+  @override
+  String get sideCaptureTitle => 'Side photo';
+
+  @override
+  String get sideCaptureHint =>
+      'Hold the camera at plate level and photograph the meal from the side.';
+
+  @override
+  String get replaceEditsTitle => 'Replace your changes?';
+
+  @override
+  String get replaceEditsBody =>
+      'The new estimate replaces the items and weights you have edited. Your first result stays if you cancel.';
+
+  @override
+  String get replaceEditsAction => 'Continue';
+
+  @override
+  String get keepFirstResult => 'Keep the first result';
+
+  @override
   String approxKcal(String value) {
     return '$value kcal';
   }
@@ -631,7 +661,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get privacyAnalysis =>
-      'When you analyze a photo, CalSnap sends the prepared photo (without metadata), the app language and, if set, your plate diameter to the CalSnap server, which forwards them to an AI provider.';
+      'When you analyze a photo, CalSnap sends the prepared photo (without metadata; two photos if you add a side photo), the app language and, if set, your plate diameter to the CalSnap server, which forwards them to an AI provider.';
 
   @override
   String get privacyNoStorage =>

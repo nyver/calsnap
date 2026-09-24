@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../../../core/domain/nutrition.dart';
 import 'meal.dart';
 import 'nutrition_calculator.dart';
@@ -162,6 +164,8 @@ class MealDraft {
     this.warnings = const {},
     this.fromRecognition = false,
     this.createdAt,
+    this.sourceJpeg,
+    this.withSidePhoto = false,
   });
 
   /// Set when an existing meal is being edited.
@@ -185,6 +189,14 @@ class MealDraft {
   /// Creation time of the meal being edited, kept on save.
   final DateTime? createdAt;
 
+  /// The prepared JPEG that was analyzed, kept so that a side photo can be
+  /// added to it later. Only for a fresh recognition; lives as long as the
+  /// draft and is never persisted.
+  final Uint8List? sourceJpeg;
+
+  /// True once the result was produced from the photo plus a side photo.
+  final bool withSidePhoto;
+
   bool get isEditing => editingMealId != null;
   bool get isEmpty => items.isEmpty;
 
@@ -205,5 +217,7 @@ class MealDraft {
     warnings: warnings,
     fromRecognition: fromRecognition,
     createdAt: createdAt,
+    sourceJpeg: sourceJpeg,
+    withSidePhoto: withSidePhoto,
   );
 }

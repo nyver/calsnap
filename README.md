@@ -61,7 +61,7 @@ Every key is documented in [config.example.yaml](config.example.yaml). The impor
 * `server.tls.*` – native HTTPS (TLS 1.2 minimum): either `cert_file` + `key_file` (created as a self-signed pair when both files are missing), or `self_signed: true` for a certificate the server generates itself (see [TLS modes](#tls-modes)). Without any of them the server only starts when `server.allow_plain_http: true` (behind a TLS-terminating reverse proxy, or locally) and logs a warning.
 * `server.trusted_proxies` – proxies whose `X-Forwarded-For` is trusted for per-client rate limiting.
 * `limits.*` – upload size (default 4 MiB), image dimensions, rate limit (10/min, burst 3), concurrent AI calls (16), replay window (10 min).
-* `client.*` – values the app fetches from `GET /v1/config` (image long side, JPEG quality, timeout).
+* `client.*` – values the app fetches from `GET /v1/config` (image long side, JPEG quality, timeout). `maxImages` is also sent there, fixed at 2 by the code: the analyze endpoint accepts an optional side photo.
 
 ### Run
 
@@ -160,6 +160,10 @@ The release manifest requests only `INTERNET` and `CAMERA`, disables cleartext t
 
 Meals, items, foods, settings and AI correction records live in SQLite on the device (Drift, schema version 1, WAL, foreign keys on). Photos are files under `meals/YYYY/MM/DD/`, never BLOBs. See [docs/security/privacy.md](docs/security/privacy.md).
 
+### Side photo for better volume estimates
+
+After a normal analysis the result screen offers "Improve accuracy": a second photo of the same meal taken from the side, which helps with rice, pasta, potatoes, salads, cakes and meat. It is optional and appears only when the backend advertises `maxImages` 2 in `GET /v1/config`; the usual single-photo flow is unchanged. Both photos are sent in one request (`image` and `sideImage`, see `protocol/api/openapi.yaml`), the result replaces the items of the current draft (after a confirmation when you already edited them) and the meal keeps its time, type and first photo. Details: [ADR 008](docs/adr/008-optional-side-photo.md).
+
 ### Personalized portions
 
 When you change an AI weight, the app records the AI value and yours. From the next photo on, weights are proposed with your usual bias applied (for example the AI says 190 g of buckwheat and you usually serve about 1.3 times that, so the app proposes about 247 g; the item is labeled "adjusted" and shows the AI value). A factor is learned per food, then per food category (light, carb, protein, fat, mixed), then over all foods, from the first level with at least 3 corrections; it is limited to 0.6 .. 1.6, and newer corrections count more. Accepting a proposal is not a correction. Everything is computed on the device from the local diary; nothing extra is sent to the server. Turn it off in Settings ("Adapt weights to my corrections"). Details: [ADR 007](docs/adr/007-personal-portion-calibration.md).
@@ -225,5 +229,6 @@ python scripts/generate_app_icons.py
 
 * The unauthenticated backend relies on rate limits; there is no app attestation yet.
 * The in-progress recognition result is not persisted across process death; retake the photo.
+* The side photo is offered for every fresh recognition (not only for bulky foods) and only the first photo is stored with the meal.
 * Personalized weights learn only from weight corrections of AI items; nutrition values are not personalized, and the food category is derived from the macros because the catalog has none.
 * The Go module path is a placeholder (`example.com/calsnap/server`).
