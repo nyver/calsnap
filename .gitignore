@@ -1,0 +1,32 @@
+# Documents and local agent tooling
+*.doc
+*.docx
+AGENTS.md
+CLAUDE.md
+openspec/
+.history/
+.claude/
+.agents/
+.gigacode/
+.opencode/
+.qwen/
+
+# Secrets and local configuration
+config.yaml
+.env
+*.jks
+*.keystore
+key.properties
+android/local.properties
+
+# Build output
+build/
+.dart_tool/
+bin/
+dist/
+*.exe
+coverage/
+
+# IDE
+.idea/
+*.iml
