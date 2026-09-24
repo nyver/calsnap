@@ -1,15 +1,28 @@
-# CalSnap backend behind a Caddy reverse proxy that terminates TLS.
+# CalSnap backend.
 #
-#   1. cp config.example.yaml config.yaml and set, for this setup:
-#        server.allow_plain_http: true            (TLS is terminated by Caddy)
+# By default only the backend runs and its port is published on the host.
+# Serve HTTPS in one of two ways (release builds of the app accept https:// only):
+#   * native TLS: set server.tls.cert_file/key_file in config.yaml and mount the
+#     certificate files into the container; or
+#   * behind a reverse proxy: put your own proxy in front, or enable the bundled
+#     Caddy (automatic HTTPS) as described below.
+#
+#   1. cp config.example.yaml config.yaml and set:
 #        server.environment: production
-#        server.trusted_proxies: ["172.28.0.0/16"] (the compose network below)
-#        metrics.listen: "0.0.0.0:9090"           (reachable inside the network only)
+#        metrics.listen: "0.0.0.0:9090"            (reachable inside the network only)
+#      and, when TLS is terminated by a proxy in front of the backend:
+#        server.allow_plain_http: true
+#        server.trusted_proxies: [<the proxy address or CIDR>]
 #   2. Create docker/.env with:
 #        GEMINI_API_KEY=<your key>          (or OPENROUTER_API_KEY / ROUTERAI_API_KEY,
 #                                            matching ai.provider in config.yaml)
-#        CALSNAP_DOMAIN=calsnap.example.com
 #   3. docker compose -f docker/compose.yaml up -d --build
+#
+# To use the bundled Caddy: uncomment the "caddy" service, the "networks" entries
+# and the caddy_* volumes, replace "ports" of the calsnap service with
+# `expose: ["8445"]` (so that only Caddy can reach it), set
+# server.trusted_proxies: ["172.28.0.0/16"] (the fixed compose network) and add
+# CALSNAP_DOMAIN=calsnap.example.com to docker/.env.
 #
 # The API key is passed as an environment variable and is never written into
 # the image or the config file.
@@ -30,30 +43,31 @@ services:
     read_only: true
     cap_drop: [ALL]
     security_opt: ["no-new-privileges:true"]
-    expose: ["8445"]
-    networks: [calsnap]
-
-  caddy:
-    image: caddy:2
-    restart: unless-stopped
-    depends_on: [calsnap]
-    environment:
-      CALSNAP_DOMAIN: ${CALSNAP_DOMAIN:-localhost}
     ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    networks: [calsnap]
+      - "8445:8445"
+    # networks: [calsnap]
 
-networks:
-  calsnap:
-    ipam:
-      config:
-        - subnet: 172.28.0.0/16
+  # caddy:
+  #   image: caddy:2
+  #   restart: unless-stopped
+  #   depends_on: [calsnap]
+  #   environment:
+  #     CALSNAP_DOMAIN: ${CALSNAP_DOMAIN:-localhost}
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./Caddyfile:/etc/caddy/Caddyfile:ro
+  #     - caddy_data:/data
+  #     - caddy_config:/config
+  #   networks: [calsnap]
 
-volumes:
-  caddy_data:
-  caddy_config:
+# networks:
+#   calsnap:
+#     ipam:
+#       config:
+#         - subnet: 172.28.0.0/16
+
+# volumes:
+#   caddy_data:
+#   caddy_config:

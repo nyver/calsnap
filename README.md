@@ -22,7 +22,7 @@ server/             Go module (stateless API)
 protocol/           contracts shared by both sides: OpenAPI, AI result JSON Schema,
                     nutrition catalog, cross-language fixtures
 docs/               architecture overview, privacy note, ADRs
-docker/             Dockerfile, compose with a Caddy TLS proxy
+docker/             Dockerfile, compose (optional Caddy TLS proxy, commented out by default)
 scripts/            sync-catalog.sh
 config.example.yaml every server option with its default
 ```
@@ -90,7 +90,7 @@ Release builds of the app refuse `http://` backends. See [ADR 004](docs/adr/004-
 
 ```bash
 docker build -f docker/Dockerfile -t calsnap-server --build-arg VERSION=1.0.0 .
-# with automatic HTTPS through Caddy: see the header of docker/compose.yaml
+# optional automatic HTTPS through Caddy: see the header of docker/compose.yaml
 docker compose -f docker/compose.yaml up -d --build
 ```
 
