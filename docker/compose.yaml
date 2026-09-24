@@ -1,0 +1,55 @@
+# CalSnap backend behind a Caddy reverse proxy that terminates TLS.
+#
+#   1. cp config.example.yaml config.yaml and set, for this setup:
+#        server.allow_plain_http: true            (TLS is terminated by Caddy)
+#        server.environment: production
+#        server.trusted_proxies: ["172.28.0.0/16"] (the compose network below)
+#        metrics.listen: "0.0.0.0:9090"           (reachable inside the network only)
+#   2. Create docker/.env with:
+#        GEMINI_API_KEY=<your key>
+#        CALSNAP_DOMAIN=calsnap.example.com
+#   3. docker compose -f docker/compose.yaml up -d --build
+#
+# The API key is passed as an environment variable and is never written into
+# the image or the config file.
+
+services:
+  calsnap:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY:?set GEMINI_API_KEY in docker/.env}
+    volumes:
+      - ../config.yaml:/etc/calsnap/config.yaml:ro
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    expose: ["8080"]
+    networks: [calsnap]
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: [calsnap]
+    environment:
+      CALSNAP_DOMAIN: ${CALSNAP_DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [calsnap]
+
+networks:
+  calsnap:
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+volumes:
+  caddy_data:
+  caddy_config:

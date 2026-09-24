@@ -1,0 +1,86 @@
+# CalSnap server configuration.
+#
+# Copy to config.yaml (ignored by Git) and pass it with:  calsnap-server -config config.yaml
+# Every key below is shown with its default value, except server.allow_plain_http, which is
+# set to true so that the example runs locally (its default is false). Omitted keys keep the default.
+# Unknown keys are rejected at startup.
+#
+# Secrets are NEVER stored in this file. The AI API key is read from the
+# environment variable named by ai.gemini.api_key_env.
+
+server:
+  # Address the API listens on.
+  listen: ":8080"
+  # "development" or "production". The fake AI provider is refused in production.
+  environment: development
+  # Serve plain HTTP. Required when no TLS files are set (e.g. behind Caddy/nginx
+  # that terminates TLS, or for local development). A warning is logged at startup.
+  # Without TLS files and without this flag the server refuses to start.
+  allow_plain_http: true
+  # Native TLS (TLS 1.2 minimum). Set both files to serve HTTPS directly.
+  tls:
+    cert_file: ""
+    key_file: ""
+  # Reverse proxies whose X-Forwarded-For header is trusted for client
+  # identification (single IPs or CIDR prefixes). Leave empty when clients connect directly.
+  trusted_proxies: []
+  read_header_timeout: 10s
+  read_timeout: 60s
+  # Must be longer than ai.overall_timeout.
+  write_timeout: 90s
+  idle_timeout: 120s
+  # How long in-flight requests may finish after SIGINT/SIGTERM.
+  shutdown_timeout: 30s
+
+limits:
+  # Maximum size of one uploaded image, in bytes (default 4 MiB).
+  max_upload_bytes: 4194304
+  # Maximum image width or height in pixels.
+  max_image_dimension_px: 4096
+  # Token bucket per client for POST /v1/meals/analyze.
+  rate_per_minute: 10
+  rate_burst: 3
+  # Upper bound on tracked client buckets; additional clients share one bucket.
+  max_tracked_clients: 10000
+  # Concurrent AI analyses across all clients; excess requests wait up to queue_wait,
+  # then receive 503 AI_PROVIDER_UNAVAILABLE.
+  max_concurrent_analyses: 16
+  queue_wait: 2s
+  # Successful analyses are replayed for the same X-Request-Id within this window.
+  replay_ttl: 10m
+  replay_max_entries: 1000
+
+# Values returned to the app by GET /v1/config so they can change without an app release.
+client:
+  image_max_long_side_px: 1280
+  image_jpeg_quality: 80
+  analyze_timeout_seconds: 60
+
+ai:
+  # "gemini" or "fake". "fake" returns canned results and is for development only.
+  provider: gemini
+  # Items below this confidence are dropped (and PARTIAL_RECOGNITION is reported).
+  min_confidence: 0.2
+  # Timeout of a single provider call and of the whole analysis including retries.
+  call_timeout: 45s
+  overall_timeout: 60s
+  gemini:
+    # Model name is server-side only; the app never learns it.
+    model: gemini-2.5-flash
+    # Name of the environment variable holding the API key (never the key itself).
+    api_key_env: GEMINI_API_KEY
+    base_url: https://generativelanguage.googleapis.com/v1beta
+
+nutrition:
+  # Minimum name similarity (0-1] for fuzzy catalog matches.
+  fuzzy_threshold: 0.85
+
+metrics:
+  # Prometheus listener (/metrics). Keep it bound to a private interface.
+  listen: 127.0.0.1:9090
+
+log:
+  # debug, info, warn or error.
+  level: info
+  # "json" or "text".
+  format: json

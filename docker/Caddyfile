@@ -1,0 +1,8 @@
+# Automatic HTTPS (TLS 1.2+) for the CalSnap API. Caddy sets X-Forwarded-For,
+# which the backend trusts only from server.trusted_proxies.
+{$CALSNAP_DOMAIN:localhost} {
+	request_body {
+		max_size 5MB
+	}
+	reverse_proxy calsnap:8080
+}
