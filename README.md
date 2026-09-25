@@ -1,10 +1,10 @@
 # CalSnap
 
-![CalSnap](overview.jpg)
-
 CalSnap is an Android app for logging food with a photo: take a picture, get a draft list of foods with estimated weights, correct it, save it, and see calories and macros. The diary is stored on the device. A small stateless Go backend forwards the photo to an AI vision provider, so the AI API key never ships in the APK.
 
 > Calories computed from a photo are **estimates**. Portion size from a single photo is the least accurate part of the system, so every value is editable in one tap.
+
+![CalSnap](overview.jpg)
 
 ## Repository layout
 
