@@ -248,3 +248,7 @@ python scripts/generate_app_icons.py
 * The side photo is offered for every fresh recognition (not only for bulky foods) and only the first photo is stored with the meal.
 * Personalized weights learn only from weight corrections of AI items; nutrition values are not personalized, and the food category is derived from the macros because the catalog has none.
 * The Go module path is a placeholder (`example.com/calsnap/server`).
+
+## License
+
+CalSnap is released under the [MIT License](LICENSE). Third-party data and libraries keep their own licenses (for example, Open Food Facts data is under the ODbL).
