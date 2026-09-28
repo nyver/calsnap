@@ -187,6 +187,7 @@ class MealDraft {
     this.createdAt,
     this.sourceJpeg,
     this.withSidePhoto = false,
+    this.repeatedFromMealId,
   });
 
   /// Set when an existing meal is being edited.
@@ -218,6 +219,11 @@ class MealDraft {
   /// True once the result was produced from the photo plus a side photo.
   final bool withSidePhoto;
 
+  /// Id of the meal this draft was cloned from via "Eat this again". In-memory
+  /// only, never persisted: the UI uses it for the editor title and the save
+  /// confirmation; the save path treats this draft like any other new meal.
+  final String? repeatedFromMealId;
+
   bool get isEditing => editingMealId != null;
   bool get isEmpty => items.isEmpty;
 
@@ -240,5 +246,6 @@ class MealDraft {
     createdAt: createdAt,
     sourceJpeg: sourceJpeg,
     withSidePhoto: withSidePhoto,
+    repeatedFromMealId: repeatedFromMealId,
   );
 }

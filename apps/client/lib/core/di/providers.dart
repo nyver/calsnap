@@ -13,6 +13,7 @@ import '../../features/foods/data/drift_food_repository.dart';
 import '../../features/foods/domain/food_repository.dart';
 import '../../features/meal/data/drift_meal_repository.dart';
 import '../../features/meal/domain/meal_repository.dart';
+import '../../features/meal/domain/repeat_meal_use_case.dart';
 import '../../features/recognition/data/analysis_api.dart';
 import '../../features/settings/data/drift_settings_repository.dart';
 import '../../features/settings/domain/settings_repository.dart';
@@ -118,6 +119,15 @@ final settingsRepositoryProvider = Provider<SettingsRepository>(
 
 final photoStorageProvider = Provider<PhotoStorage>(
   (ref) => ref.watch(servicesProvider).photos,
+);
+
+final repeatMealUseCaseProvider = Provider<RepeatMealUseCase>(
+  (ref) => RepeatMealUseCase(
+    meals: ref.watch(mealRepositoryProvider),
+    foods: ref.watch(foodRepositoryProvider),
+    ids: ref.watch(idsProvider),
+    clock: ref.watch(clockProvider),
+  ),
 );
 
 /// Live settings. Every change is visible immediately.

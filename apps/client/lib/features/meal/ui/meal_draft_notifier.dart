@@ -183,6 +183,13 @@ class MealDraftNotifier extends Notifier<MealDraft?> {
     return true;
   }
 
+  /// Starts a draft cloned from a saved meal ("Eat this again"). Lets
+  /// [RepeatMealException] propagate so the caller can show the right message.
+  Future<void> startRepeat(String mealId) async {
+    final draft = await ref.read(repeatMealUseCaseProvider)(mealId);
+    _setInitial(draft);
+  }
+
   void _setInitial(MealDraft draft) {
     _initial = draft;
     state = draft;

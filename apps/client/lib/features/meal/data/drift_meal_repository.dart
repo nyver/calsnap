@@ -97,6 +97,35 @@ class DriftMealRepository implements MealRepository {
       (m) => OrderingTerm.asc(m.id),
     ]);
     final meals = await query.get();
+    return _attachItems(meals);
+  }
+
+  @override
+  Future<List<Meal>> recentMeals({
+    required DateTime since,
+    required int limit,
+  }) async {
+    final query = _db.select(_db.meals)
+      ..where((m) => m.mealTime.isBiggerOrEqualValue(_zone.toEpochMs(since)))
+      ..orderBy([
+        (m) => OrderingTerm.desc(m.mealTime),
+        (m) => OrderingTerm.desc(m.id),
+      ])
+      ..limit(limit);
+    final meals = await query.get();
+    final withItems = await _attachItems(meals);
+    // NOTE: item-less meals are filtered after the LIMIT, so a page can hold
+    // fewer than `limit` meals when such (practically nonexistent) rows
+    // exist; the editor cannot save an empty meal, so this is acceptable.
+    return [
+      for (final m in withItems)
+        if (m.items.isNotEmpty) m,
+    ];
+  }
+
+  /// Batch-loads the items (and their correction flags) of [meals] with one
+  /// `IN` query each, avoiding N+1 queries regardless of the meal count.
+  Future<List<Meal>> _attachItems(List<MealRow> meals) async {
     if (meals.isEmpty) return const [];
 
     final itemRows =

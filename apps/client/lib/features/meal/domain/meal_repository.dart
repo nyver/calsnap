@@ -18,6 +18,10 @@ abstract interface class MealRepository {
   /// Meals in [start, end) (local times), each with its items.
   Future<List<Meal>> mealsWithItems({DateTime? start, DateTime? end});
 
+  /// Meals with a meal time at or after [since], each with its items, newest
+  /// first, at most [limit] meals. Meals without any items are dropped.
+  Future<List<Meal>> recentMeals({required DateTime since, required int limit});
+
   Future<Meal?> getMeal(String id);
 
   /// Creates or replaces a meal from [draft]: writes the meal row, replaces its
