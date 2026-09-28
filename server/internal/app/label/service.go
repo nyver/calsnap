@@ -126,7 +126,7 @@ func (s *Service) Read(ctx context.Context, req Request) (Result, error) {
 			s.d.Metrics.InvalidAIResponse()
 			s.d.Metrics.AIError(analysis.ErrKindInvalidResponse)
 			invalid++
-			log.Warn("label reader returned an invalid response", "attempt", invalid)
+			log.Warn("label reader returned an invalid response", "attempt", invalid, "error", err.Error())
 			if invalid > maxInvalidRetries {
 				return Result{}, err
 			}
@@ -136,7 +136,7 @@ func (s *Service) Read(ctx context.Context, req Request) (Result, error) {
 		case errors.Is(err, analysis.ErrUnavailable), errors.Is(err, context.DeadlineExceeded):
 			s.d.Metrics.AIError(analysis.ErrKindUnavailable)
 			transient++
-			log.Warn("label reader unavailable", "attempt", transient)
+			log.Warn("label reader unavailable", "attempt", transient, "error", err.Error())
 			if transient > maxTransientRetries {
 				return Result{}, fmt.Errorf("%w: retries exhausted", analysis.ErrUnavailable)
 			}

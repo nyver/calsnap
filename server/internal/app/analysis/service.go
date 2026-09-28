@@ -223,7 +223,7 @@ func (s *Service) callProvider(ctx context.Context, req Request) (Result, error)
 			s.d.Metrics.InvalidAIResponse()
 			s.d.Metrics.AIError(ErrKindInvalidResponse)
 			invalid++
-			log.Warn("food vision provider returned an invalid response", "attempt", invalid)
+			log.Warn("food vision provider returned an invalid response", "attempt", invalid, "error", err.Error())
 			if invalid > maxInvalidRetries {
 				return Result{}, err
 			}
@@ -233,7 +233,7 @@ func (s *Service) callProvider(ctx context.Context, req Request) (Result, error)
 		case errors.Is(err, ErrUnavailable), errors.Is(err, context.DeadlineExceeded):
 			s.d.Metrics.AIError(ErrKindUnavailable)
 			transient++
-			log.Warn("food vision provider unavailable", "attempt", transient)
+			log.Warn("food vision provider unavailable", "attempt", transient, "error", err.Error())
 			if transient > maxTransientRetries {
 				return Result{}, fmt.Errorf("%w: retries exhausted", ErrUnavailable)
 			}
