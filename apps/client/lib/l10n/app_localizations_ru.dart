@@ -981,6 +981,59 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get plateAdviceButton => 'Получить рекомендации ИИ';
+
+  @override
+  String get plateAdviceSectionTitle => 'Рекомендации ИИ';
+
+  @override
+  String get plateAdviceLoading => 'Подбираем практичные варианты…';
+
+  @override
+  String get plateAdviceRefresh => 'Обновить рекомендации';
+
+  @override
+  String get plateAdviceDisclaimer =>
+      'Общие рекомендации, не медицинская консультация';
+
+  @override
+  String get plateAdviceStale => 'Блюдо изменилось';
+
+  @override
+  String get errPlateAdviceOffline =>
+      'Для рекомендаций ИИ нужно подключение к серверу CalSnap.';
+
+  @override
+  String get errPlateAdviceServerNotConfigured =>
+      'Настройте сервер CalSnap, чтобы получать рекомендации ИИ.';
+
+  @override
+  String get errPlateAdviceUnavailable =>
+      'Не удалось получить рекомендации. Локальная оценка баланса по-прежнему доступна.';
+
+  @override
+  String get errPlateAdviceRateLimited =>
+      'Слишком много запросов к ИИ. Повторите попытку позже.';
+
+  @override
+  String get errPlateAdviceInvalidResponse =>
+      'ИИ вернул некорректный ответ. Попробуйте ещё раз.';
+
+  @override
+  String get plateAdviceNoticeTitle => 'Отправить данные для рекомендаций ИИ?';
+
+  @override
+  String get plateAdviceNoticeBody =>
+      'CalSnap отправит названия продуктов, их примерный вес и локальную оценку баланса этого блюда на ваш сервер CalSnap и используемого им провайдера ИИ. Фото и история приёмов пищи не отправляются.';
+
+  @override
+  String get plateAdviceNoticeContinue => 'Продолжить';
+
+  @override
+  String get privacyPlateAdvice =>
+      'Когда вы запрашиваете рекомендации ИИ по балансу тарелки, CalSnap отправляет названия продуктов, их примерный вес и локальную оценку баланса на ваш сервер CalSnap, который передаёт их провайдеру ИИ. Фото и история приёмов пищи никогда не включаются.';
+
+  @override
   String get eatAgain => 'Ем это снова';
 
   @override

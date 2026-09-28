@@ -1790,6 +1790,96 @@ abstract class AppLocalizations {
   /// **'{group}, {percent} percent of classified plate weight'**
   String balancedPlateShareSemantics(String group, int percent);
 
+  /// No description provided for @plateAdviceButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Get AI suggestions'**
+  String get plateAdviceButton;
+
+  /// No description provided for @plateAdviceSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI suggestions'**
+  String get plateAdviceSectionTitle;
+
+  /// No description provided for @plateAdviceLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Finding practical options…'**
+  String get plateAdviceLoading;
+
+  /// No description provided for @plateAdviceRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh suggestions'**
+  String get plateAdviceRefresh;
+
+  /// No description provided for @plateAdviceDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'General guidance, not medical advice'**
+  String get plateAdviceDisclaimer;
+
+  /// No description provided for @plateAdviceStale.
+  ///
+  /// In en, this message translates to:
+  /// **'The meal has changed'**
+  String get plateAdviceStale;
+
+  /// No description provided for @errPlateAdviceOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'AI suggestions require a connection to the CalSnap server.'**
+  String get errPlateAdviceOffline;
+
+  /// No description provided for @errPlateAdviceServerNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up your CalSnap server to get AI suggestions.'**
+  String get errPlateAdviceServerNotConfigured;
+
+  /// No description provided for @errPlateAdviceUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t get suggestions. The local balance assessment is still available.'**
+  String get errPlateAdviceUnavailable;
+
+  /// No description provided for @errPlateAdviceRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many AI requests. Try again later.'**
+  String get errPlateAdviceRateLimited;
+
+  /// No description provided for @errPlateAdviceInvalidResponse.
+  ///
+  /// In en, this message translates to:
+  /// **'The AI returned an invalid answer. Try again.'**
+  String get errPlateAdviceInvalidResponse;
+
+  /// No description provided for @plateAdviceNoticeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send data for AI suggestions?'**
+  String get plateAdviceNoticeTitle;
+
+  /// No description provided for @plateAdviceNoticeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'CalSnap will send the food names, their approximate weights and the local balance assessment for this meal to your CalSnap server and the AI provider it uses. Photos and meal history are not sent.'**
+  String get plateAdviceNoticeBody;
+
+  /// No description provided for @plateAdviceNoticeContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get plateAdviceNoticeContinue;
+
+  /// No description provided for @privacyPlateAdvice.
+  ///
+  /// In en, this message translates to:
+  /// **'When you ask for AI plate suggestions, CalSnap sends the food names, their approximate weights and the local balance assessment to your CalSnap server, which forwards them to an AI provider. Photos and meal history are never included.'**
+  String get privacyPlateAdvice;
+
   /// No description provided for @eatAgain.
   ///
   /// In en, this message translates to:

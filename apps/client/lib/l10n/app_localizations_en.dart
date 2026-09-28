@@ -975,6 +975,58 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get plateAdviceButton => 'Get AI suggestions';
+
+  @override
+  String get plateAdviceSectionTitle => 'AI suggestions';
+
+  @override
+  String get plateAdviceLoading => 'Finding practical options…';
+
+  @override
+  String get plateAdviceRefresh => 'Refresh suggestions';
+
+  @override
+  String get plateAdviceDisclaimer => 'General guidance, not medical advice';
+
+  @override
+  String get plateAdviceStale => 'The meal has changed';
+
+  @override
+  String get errPlateAdviceOffline =>
+      'AI suggestions require a connection to the CalSnap server.';
+
+  @override
+  String get errPlateAdviceServerNotConfigured =>
+      'Set up your CalSnap server to get AI suggestions.';
+
+  @override
+  String get errPlateAdviceUnavailable =>
+      'Couldn\'t get suggestions. The local balance assessment is still available.';
+
+  @override
+  String get errPlateAdviceRateLimited =>
+      'Too many AI requests. Try again later.';
+
+  @override
+  String get errPlateAdviceInvalidResponse =>
+      'The AI returned an invalid answer. Try again.';
+
+  @override
+  String get plateAdviceNoticeTitle => 'Send data for AI suggestions?';
+
+  @override
+  String get plateAdviceNoticeBody =>
+      'CalSnap will send the food names, their approximate weights and the local balance assessment for this meal to your CalSnap server and the AI provider it uses. Photos and meal history are not sent.';
+
+  @override
+  String get plateAdviceNoticeContinue => 'Continue';
+
+  @override
+  String get privacyPlateAdvice =>
+      'When you ask for AI plate suggestions, CalSnap sends the food names, their approximate weights and the local balance assessment to your CalSnap server, which forwards them to an AI provider. Photos and meal history are never included.';
+
+  @override
   String get eatAgain => 'Eat this again';
 
   @override

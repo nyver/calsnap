@@ -88,6 +88,7 @@ class RemoteConfig {
     this.maxImages = 1,
     this.barcodeLookup = false,
     this.labelReading = false,
+    this.plateAdvice = false,
   });
 
   /// Clamps every value to a safe range; unknown fields are ignored.
@@ -121,6 +122,8 @@ class RemoteConfig {
       barcodeLookup: json['barcodeLookup'] == true,
       // Servers that predate label reading do not send it: no label scan.
       labelReading: json['labelReading'] == true,
+      // Servers that predate plate advice do not send it: no AI button.
+      plateAdvice: json['plateAdvice'] == true,
     );
   }
 
@@ -140,6 +143,10 @@ class RemoteConfig {
   /// True when the backend can read a nutrition facts table from a photo.
   final bool labelReading;
 
+  /// True when the backend can turn the local plate balance into AI
+  /// suggestions (`POST /v1/plate-advice`).
+  final bool plateAdvice;
+
   Map<String, dynamic> toJson() => {
     'imageMaxLongSidePx': imageMaxLongSidePx,
     'imageJpegQuality': imageJpegQuality,
@@ -148,6 +155,7 @@ class RemoteConfig {
     'maxImages': maxImages,
     'barcodeLookup': barcodeLookup,
     'labelReading': labelReading,
+    'plateAdvice': plateAdvice,
   };
 }
 

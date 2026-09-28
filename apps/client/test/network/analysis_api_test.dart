@@ -374,6 +374,7 @@ void main() {
       expect(c.maxImages, 1);
       expect(c.supportsSidePhoto, isFalse);
       expect(c.barcodeLookup, isFalse);
+      expect(c.plateAdvice, isFalse);
     });
 
     test('barcode lookup is on only when the server says so', () {
@@ -394,6 +395,23 @@ void main() {
         const RemoteConfig(barcodeLookup: true).toJson(),
       );
       expect(cached.barcodeLookup, isTrue);
+    });
+
+    test('plate advice is on only when the server says so', () {
+      expect(RemoteConfig.fromJson(const {}).plateAdvice, isFalse);
+      expect(RemoteConfig.fromJson({'plateAdvice': true}).plateAdvice, isTrue);
+      expect(
+        RemoteConfig.fromJson({'plateAdvice': false}).plateAdvice,
+        isFalse,
+      );
+      expect(
+        RemoteConfig.fromJson({'plateAdvice': 'yes'}).plateAdvice,
+        isFalse,
+      );
+      final cached = RemoteConfig.fromJson(
+        const RemoteConfig(plateAdvice: true).toJson(),
+      );
+      expect(cached.plateAdvice, isTrue);
     });
 
     test('a side photo is supported only when the server says so', () {
@@ -422,6 +440,7 @@ void main() {
       expect(c.maxUploadBytes, 4194304);
       expect(c.maxImages, 2);
       expect(c.barcodeLookup, isTrue);
+      expect(c.plateAdvice, isTrue);
     });
 
     test('clamps the long side to 512-2048 and ignores junk', () {

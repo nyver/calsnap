@@ -12,6 +12,7 @@ import '../../../shared/l10n_x.dart';
 import '../../balanced_plate/ui/balanced_plate_card.dart';
 import '../../diary/ui/diary_providers.dart';
 import '../../foods/domain/food.dart';
+import '../../plate_advice/ui/plate_advice_section.dart';
 import '../../recognition/domain/analysis.dart';
 import '../../recognition/ui/analysis_controller.dart';
 import '../domain/meal.dart';
@@ -480,7 +481,10 @@ class _Editor extends ConsumerWidget {
         _TotalsCard(draft: draft),
         if (ref.watch(plateAnalysisProvider) case final analysis?) ...[
           const SizedBox(height: 16),
-          BalancedPlateCard(analysis: analysis),
+          BalancedPlateCard(
+            analysis: analysis,
+            footer: const PlateAdviceSection(),
+          ),
         ],
         const SizedBox(height: 16),
         Row(

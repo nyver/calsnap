@@ -27,9 +27,15 @@ extension _VerdictText on AppLocalizations {
 /// composition of the current meal. Grows with its content; shown by the
 /// caller only when there is something to analyze.
 class BalancedPlateCard extends StatelessWidget {
-  const BalancedPlateCard({required this.analysis, super.key});
+  const BalancedPlateCard({required this.analysis, this.footer, super.key});
 
   final PlateAnalysis analysis;
+
+  /// Shown below the analyzable body only (never below "insufficient data"),
+  /// so a caller can attach related content, such as AI plate advice,
+  /// without this card needing to know about it. Null renders exactly as
+  /// before, keeping existing goldens byte-identical.
+  final Widget? footer;
 
   @override
   Widget build(BuildContext context) {
@@ -73,8 +79,10 @@ class BalancedPlateCard extends StatelessWidget {
                   style: theme.textTheme.bodyMedium,
                 ),
               )
-            else
+            else ...[
               _AnalyzableBody(analysis: analysis, l10n: l10n, theme: theme),
+              ?footer,
+            ],
           ],
         ),
       ),

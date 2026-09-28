@@ -29,4 +29,5 @@ abstract final class SettingKeys {
   static const trustedCertificate = 'trusted_certificate';
   static const catalogVersion = 'catalog_version';
   static const remoteConfigJson = 'remote_config_json';
+  static const plateAdviceNoticeAccepted = 'plate_advice_notice_accepted';
 }
