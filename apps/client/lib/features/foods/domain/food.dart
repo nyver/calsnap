@@ -1,4 +1,5 @@
 import '../../../core/domain/nutrition.dart';
+import '../../balanced_plate/domain/plate_group.dart';
 
 /// A product in the local food cache.
 class Food {
@@ -14,6 +15,8 @@ class Food {
     this.gramsPerPiece,
     this.gramsPerPortion,
     this.densityGPerMl,
+    this.plateGroup = PlateGroup.unknown,
+    this.plateQuality,
   });
 
   final String id;
@@ -30,6 +33,11 @@ class Food {
   final double? gramsPerPiece;
   final double? gramsPerPortion;
   final double? densityGPerMl;
+
+  /// Balanced-plate classification from the catalog. `unknown` for custom
+  /// and packaged products and for a catalog food without `plate` metadata.
+  final PlateGroup plateGroup;
+  final PlateQuality? plateQuality;
 
   /// Name in the given language code, falling back to the base name.
   String displayName(String languageCode) {

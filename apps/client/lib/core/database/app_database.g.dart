@@ -1944,6 +1944,28 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, FoodRow> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _plateGroupMeta = const VerificationMeta(
+    'plateGroup',
+  );
+  @override
+  late final GeneratedColumn<String> plateGroup = GeneratedColumn<String>(
+    'plate_group',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _plateQualityMeta = const VerificationMeta(
+    'plateQuality',
+  );
+  @override
+  late final GeneratedColumn<String> plateQuality = GeneratedColumn<String>(
+    'plate_quality',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1961,6 +1983,8 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, FoodRow> {
     source,
     sourceId,
     updatedAt,
+    plateGroup,
+    plateQuality,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2093,6 +2117,21 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, FoodRow> {
     } else if (isInserting) {
       context.missing(_updatedAtMeta);
     }
+    if (data.containsKey('plate_group')) {
+      context.handle(
+        _plateGroupMeta,
+        plateGroup.isAcceptableOrUnknown(data['plate_group']!, _plateGroupMeta),
+      );
+    }
+    if (data.containsKey('plate_quality')) {
+      context.handle(
+        _plateQualityMeta,
+        plateQuality.isAcceptableOrUnknown(
+          data['plate_quality']!,
+          _plateQualityMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -2162,6 +2201,14 @@ class $FoodsTable extends Foods with TableInfo<$FoodsTable, FoodRow> {
         DriftSqlType.int,
         data['${effectivePrefix}updated_at'],
       )!,
+      plateGroup: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}plate_group'],
+      ),
+      plateQuality: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}plate_quality'],
+      ),
     );
   }
 
@@ -2193,6 +2240,11 @@ class FoodRow extends DataClass implements Insertable<FoodRow> {
   final String? source;
   final String? sourceId;
   final int updatedAt;
+
+  /// Balanced-plate classification from the catalog `plate` field. Null means
+  /// unclassified ("unknown"); always null for custom and packaged foods.
+  final String? plateGroup;
+  final String? plateQuality;
   const FoodRow({
     required this.id,
     required this.name,
@@ -2209,6 +2261,8 @@ class FoodRow extends DataClass implements Insertable<FoodRow> {
     this.source,
     this.sourceId,
     required this.updatedAt,
+    this.plateGroup,
+    this.plateQuality,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2244,6 +2298,12 @@ class FoodRow extends DataClass implements Insertable<FoodRow> {
       map['source_id'] = Variable<String>(sourceId);
     }
     map['updated_at'] = Variable<int>(updatedAt);
+    if (!nullToAbsent || plateGroup != null) {
+      map['plate_group'] = Variable<String>(plateGroup);
+    }
+    if (!nullToAbsent || plateQuality != null) {
+      map['plate_quality'] = Variable<String>(plateQuality);
+    }
     return map;
   }
 
@@ -2280,6 +2340,12 @@ class FoodRow extends DataClass implements Insertable<FoodRow> {
           ? const Value.absent()
           : Value(sourceId),
       updatedAt: Value(updatedAt),
+      plateGroup: plateGroup == null && nullToAbsent
+          ? const Value.absent()
+          : Value(plateGroup),
+      plateQuality: plateQuality == null && nullToAbsent
+          ? const Value.absent()
+          : Value(plateQuality),
     );
   }
 
@@ -2304,6 +2370,8 @@ class FoodRow extends DataClass implements Insertable<FoodRow> {
       source: serializer.fromJson<String?>(json['source']),
       sourceId: serializer.fromJson<String?>(json['sourceId']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      plateGroup: serializer.fromJson<String?>(json['plateGroup']),
+      plateQuality: serializer.fromJson<String?>(json['plateQuality']),
     );
   }
   @override
@@ -2325,6 +2393,8 @@ class FoodRow extends DataClass implements Insertable<FoodRow> {
       'source': serializer.toJson<String?>(source),
       'sourceId': serializer.toJson<String?>(sourceId),
       'updatedAt': serializer.toJson<int>(updatedAt),
+      'plateGroup': serializer.toJson<String?>(plateGroup),
+      'plateQuality': serializer.toJson<String?>(plateQuality),
     };
   }
 
@@ -2344,6 +2414,8 @@ class FoodRow extends DataClass implements Insertable<FoodRow> {
     Value<String?> source = const Value.absent(),
     Value<String?> sourceId = const Value.absent(),
     int? updatedAt,
+    Value<String?> plateGroup = const Value.absent(),
+    Value<String?> plateQuality = const Value.absent(),
   }) => FoodRow(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -2368,6 +2440,8 @@ class FoodRow extends DataClass implements Insertable<FoodRow> {
     source: source.present ? source.value : this.source,
     sourceId: sourceId.present ? sourceId.value : this.sourceId,
     updatedAt: updatedAt ?? this.updatedAt,
+    plateGroup: plateGroup.present ? plateGroup.value : this.plateGroup,
+    plateQuality: plateQuality.present ? plateQuality.value : this.plateQuality,
   );
   FoodRow copyWithCompanion(FoodsCompanion data) {
     return FoodRow(
@@ -2402,6 +2476,12 @@ class FoodRow extends DataClass implements Insertable<FoodRow> {
       source: data.source.present ? data.source.value : this.source,
       sourceId: data.sourceId.present ? data.sourceId.value : this.sourceId,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      plateGroup: data.plateGroup.present
+          ? data.plateGroup.value
+          : this.plateGroup,
+      plateQuality: data.plateQuality.present
+          ? data.plateQuality.value
+          : this.plateQuality,
     );
   }
 
@@ -2422,7 +2502,9 @@ class FoodRow extends DataClass implements Insertable<FoodRow> {
           ..write('densityGPerMl: $densityGPerMl, ')
           ..write('source: $source, ')
           ..write('sourceId: $sourceId, ')
-          ..write('updatedAt: $updatedAt')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('plateGroup: $plateGroup, ')
+          ..write('plateQuality: $plateQuality')
           ..write(')'))
         .toString();
   }
@@ -2444,6 +2526,8 @@ class FoodRow extends DataClass implements Insertable<FoodRow> {
     source,
     sourceId,
     updatedAt,
+    plateGroup,
+    plateQuality,
   );
   @override
   bool operator ==(Object other) =>
@@ -2463,7 +2547,9 @@ class FoodRow extends DataClass implements Insertable<FoodRow> {
           other.densityGPerMl == this.densityGPerMl &&
           other.source == this.source &&
           other.sourceId == this.sourceId &&
-          other.updatedAt == this.updatedAt);
+          other.updatedAt == this.updatedAt &&
+          other.plateGroup == this.plateGroup &&
+          other.plateQuality == this.plateQuality);
 }
 
 class FoodsCompanion extends UpdateCompanion<FoodRow> {
@@ -2482,6 +2568,8 @@ class FoodsCompanion extends UpdateCompanion<FoodRow> {
   final Value<String?> source;
   final Value<String?> sourceId;
   final Value<int> updatedAt;
+  final Value<String?> plateGroup;
+  final Value<String?> plateQuality;
   final Value<int> rowid;
   const FoodsCompanion({
     this.id = const Value.absent(),
@@ -2499,6 +2587,8 @@ class FoodsCompanion extends UpdateCompanion<FoodRow> {
     this.source = const Value.absent(),
     this.sourceId = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.plateGroup = const Value.absent(),
+    this.plateQuality = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   FoodsCompanion.insert({
@@ -2517,6 +2607,8 @@ class FoodsCompanion extends UpdateCompanion<FoodRow> {
     this.source = const Value.absent(),
     this.sourceId = const Value.absent(),
     required int updatedAt,
+    this.plateGroup = const Value.absent(),
+    this.plateQuality = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -2538,6 +2630,8 @@ class FoodsCompanion extends UpdateCompanion<FoodRow> {
     Expression<String>? source,
     Expression<String>? sourceId,
     Expression<int>? updatedAt,
+    Expression<String>? plateGroup,
+    Expression<String>? plateQuality,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2556,6 +2650,8 @@ class FoodsCompanion extends UpdateCompanion<FoodRow> {
       if (source != null) 'source': source,
       if (sourceId != null) 'source_id': sourceId,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (plateGroup != null) 'plate_group': plateGroup,
+      if (plateQuality != null) 'plate_quality': plateQuality,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2576,6 +2672,8 @@ class FoodsCompanion extends UpdateCompanion<FoodRow> {
     Value<String?>? source,
     Value<String?>? sourceId,
     Value<int>? updatedAt,
+    Value<String?>? plateGroup,
+    Value<String?>? plateQuality,
     Value<int>? rowid,
   }) {
     return FoodsCompanion(
@@ -2594,6 +2692,8 @@ class FoodsCompanion extends UpdateCompanion<FoodRow> {
       source: source ?? this.source,
       sourceId: sourceId ?? this.sourceId,
       updatedAt: updatedAt ?? this.updatedAt,
+      plateGroup: plateGroup ?? this.plateGroup,
+      plateQuality: plateQuality ?? this.plateQuality,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2646,6 +2746,12 @@ class FoodsCompanion extends UpdateCompanion<FoodRow> {
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>(updatedAt.value);
     }
+    if (plateGroup.present) {
+      map['plate_group'] = Variable<String>(plateGroup.value);
+    }
+    if (plateQuality.present) {
+      map['plate_quality'] = Variable<String>(plateQuality.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2670,6 +2776,8 @@ class FoodsCompanion extends UpdateCompanion<FoodRow> {
           ..write('source: $source, ')
           ..write('sourceId: $sourceId, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('plateGroup: $plateGroup, ')
+          ..write('plateQuality: $plateQuality, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -4461,6 +4569,8 @@ typedef $$FoodsTableCreateCompanionBuilder = FoodsCompanion Function({
   Value<String?> source,
   Value<String?> sourceId,
   required int updatedAt,
+  Value<String?> plateGroup,
+  Value<String?> plateQuality,
   Value<int> rowid,
 });
 typedef $$FoodsTableUpdateCompanionBuilder = FoodsCompanion Function({
@@ -4479,6 +4589,8 @@ typedef $$FoodsTableUpdateCompanionBuilder = FoodsCompanion Function({
   Value<String?> source,
   Value<String?> sourceId,
   Value<int> updatedAt,
+  Value<String?> plateGroup,
+  Value<String?> plateQuality,
   Value<int> rowid,
 });
 
@@ -4562,6 +4674,16 @@ class $$FoodsTableFilterComposer extends Composer<_$AppDatabase, $FoodsTable> {
 
   ColumnFilters<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get plateGroup => $composableBuilder(
+    column: $table.plateGroup,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get plateQuality => $composableBuilder(
+    column: $table.plateQuality,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -4649,6 +4771,16 @@ class $$FoodsTableOrderingComposer
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get plateGroup => $composableBuilder(
+    column: $table.plateGroup,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get plateQuality => $composableBuilder(
+    column: $table.plateQuality,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$FoodsTableAnnotationComposer
@@ -4720,6 +4852,16 @@ class $$FoodsTableAnnotationComposer
 
   GeneratedColumn<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get plateGroup => $composableBuilder(
+    column: $table.plateGroup,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get plateQuality => $composableBuilder(
+    column: $table.plateQuality,
+    builder: (column) => column,
+  );
 }
 
 class $$FoodsTableTableManager
@@ -4765,6 +4907,8 @@ class $$FoodsTableTableManager
                 Value<String?> source = const Value.absent(),
                 Value<String?> sourceId = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
+                Value<String?> plateGroup = const Value.absent(),
+                Value<String?> plateQuality = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FoodsCompanion(
                 id: id,
@@ -4782,6 +4926,8 @@ class $$FoodsTableTableManager
                 source: source,
                 sourceId: sourceId,
                 updatedAt: updatedAt,
+                plateGroup: plateGroup,
+                plateQuality: plateQuality,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4801,6 +4947,8 @@ class $$FoodsTableTableManager
                 Value<String?> source = const Value.absent(),
                 Value<String?> sourceId = const Value.absent(),
                 required int updatedAt,
+                Value<String?> plateGroup = const Value.absent(),
+                Value<String?> plateQuality = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => FoodsCompanion.insert(
                 id: id,
@@ -4818,6 +4966,8 @@ class $$FoodsTableTableManager
                 source: source,
                 sourceId: sourceId,
                 updatedAt: updatedAt,
+                plateGroup: plateGroup,
+                plateQuality: plateQuality,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

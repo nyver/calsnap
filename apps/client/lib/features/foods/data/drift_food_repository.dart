@@ -6,6 +6,7 @@ import '../../../core/database/app_database.dart';
 import '../../../core/domain/nutrition.dart';
 import '../../../core/utils/clock.dart';
 import '../../../core/utils/ids.dart';
+import '../../balanced_plate/domain/plate_group.dart';
 import '../../barcode/domain/packaged_product.dart';
 import '../../meal/domain/meal.dart';
 import '../../settings/domain/settings_repository.dart';
@@ -57,6 +58,7 @@ class DriftFoodRepository implements FoodRepository {
         final nutrition = e['nutrition'] as Map<String, dynamic>;
         final names = e['name'] as Map<String, dynamic>;
         final aliases = e['aliases'] as Map<String, dynamic>;
+        final plate = e['plate'] as Map<String, dynamic>?;
         final companion = FoodsCompanion(
           id: Value(existing[catalogId] ?? _ids.newId()),
           name: Value(names['en'] as String),
@@ -78,6 +80,8 @@ class DriftFoodRepository implements FoodRepository {
           source: const Value(NutritionSourceName.catalog),
           sourceId: Value(catalogId),
           updatedAt: Value(nowMs),
+          plateGroup: Value(plate?['group'] as String?),
+          plateQuality: Value(plate?['quality'] as String?),
         );
         await _db.into(_db.foods).insertOnConflictUpdate(companion);
       }
@@ -275,5 +279,7 @@ class DriftFoodRepository implements FoodRepository {
     gramsPerPiece: r.gramsPerPiece,
     gramsPerPortion: r.gramsPerPortion,
     densityGPerMl: r.densityGPerMl,
+    plateGroup: PlateGroup.fromWire(r.plateGroup),
+    plateQuality: PlateQuality.fromWire(r.plateQuality),
   );
 }

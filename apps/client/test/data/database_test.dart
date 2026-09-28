@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite;
 
 import '../generated_migrations/schema.dart';
+import '../generated_migrations/schema_v1.dart' as v1;
 import '../support/fixtures.dart';
 
 void main() {
@@ -43,7 +44,7 @@ void main() {
       );
 
   test(
-    'fresh install creates all tables and indexes at schema version 1',
+    'fresh install creates all tables and indexes at schema version 2',
     () async {
       final tables = await db
           .customSelect("SELECT name FROM sqlite_master WHERE type = 'table'")
@@ -71,8 +72,8 @@ void main() {
         ]),
       );
       final version = await db.customSelect('PRAGMA user_version').getSingle();
-      expect(version.read<int>('user_version'), 1);
-      expect(AppDatabase.currentSchemaVersion, 1);
+      expect(version.read<int>('user_version'), 2);
+      expect(AppDatabase.currentSchemaVersion, 2);
     },
   );
 
@@ -112,6 +113,8 @@ void main() {
         'grams_per_piece',
         'grams_per_portion',
         'density_g_per_ml',
+        'plate_group',
+        'plate_quality',
       ]),
     );
   });
@@ -194,7 +197,7 @@ void main() {
         raw
           ..execute('CREATE TABLE marker (v TEXT)')
           ..execute("INSERT INTO marker VALUES ('keep me')")
-          ..execute('PRAGMA user_version = 2');
+          ..execute('PRAGMA user_version = 3');
         raw.close();
         final before = file.readAsBytesSync();
 
@@ -202,8 +205,8 @@ void main() {
           openAppDatabase(file),
           throwsA(
             isA<UnsupportedSchemaException>()
-                .having((e) => e.found, 'found', 2)
-                .having((e) => e.supported, 'supported', 1),
+                .having((e) => e.found, 'found', 3)
+                .having((e) => e.supported, 'supported', 2),
           ),
         );
         expect(file.readAsBytesSync(), before);
@@ -217,11 +220,114 @@ void main() {
     );
   });
 
-  test('the v1 schema snapshot matches the current schema', () async {
+  test('the v2 schema snapshot matches the current schema', () async {
     final verifier = SchemaVerifier(GeneratedHelper());
-    final connection = await verifier.startAt(1);
+    final connection = await verifier.startAt(2);
     final current = AppDatabase(connection);
     addTearDown(current.close);
-    await verifier.migrateAndValidate(current, 1);
+    await verifier.migrateAndValidate(current, 2);
+  });
+
+  test('upgrading from schema 1 to 2 preserves every row and adds nullable '
+      'plate columns', () async {
+    final verifier = SchemaVerifier(GeneratedHelper());
+    final schema = await verifier.schemaAt(1);
+    addTearDown(schema.close);
+    final old = v1.DatabaseAtV1(schema.newConnection());
+
+    await old.customStatement('''
+        INSERT INTO meals (id, meal_time, meal_type, photo_path, total_kcal,
+          total_protein, total_fat, total_carbs, ai_provider, ai_model,
+          created_at, updated_at)
+        VALUES ('m1', 1000, 'lunch', NULL, 500, 30, 10, 60, 'openai', 'gpt',
+          1, 1)
+      ''');
+    await old.customStatement('''
+        INSERT INTO meal_items (id, meal_id, food_id, name,
+          estimated_weight_g, weight_g, kcal_per_100g, protein_per_100g,
+          fat_per_100g, carbs_per_100g, kcal, protein, fat, carbs,
+          confidence, recognition_source, was_corrected, created_at,
+          updated_at)
+        VALUES ('i1', 'm1', 'f-catalog', 'Chicken breast', 150, 150, 165,
+          31, 3.6, 0, 247.5, 46.5, 5.4, 0, 0.9, 'ai', 0, 1, 1)
+      ''');
+    await old.customStatement('''
+        INSERT INTO foods (id, name, name_ru, normalized_name, aliases,
+          kcal_per_100g, protein_per_100g, fat_per_100g, carbs_per_100g,
+          grams_per_piece, grams_per_portion, density_g_per_ml, source,
+          source_id, updated_at)
+        VALUES ('f-catalog', 'Chicken breast', 'Куриная грудка',
+          'chicken_breast', NULL, 165, 31, 3.6, 0, NULL, 150, NULL,
+          'catalog', 'chicken_breast', 1)
+      ''');
+    await old.customStatement('''
+        INSERT INTO foods (id, name, name_ru, normalized_name, aliases,
+          kcal_per_100g, protein_per_100g, fat_per_100g, carbs_per_100g,
+          grams_per_piece, grams_per_portion, density_g_per_ml, source,
+          source_id, updated_at)
+        VALUES ('f-custom', 'My snack', NULL, NULL, NULL, 300, 5, 10, 40,
+          NULL, NULL, NULL, 'user', NULL, 2)
+      ''');
+    await old.customStatement('''
+        INSERT INTO foods (id, name, name_ru, normalized_name, aliases,
+          kcal_per_100g, protein_per_100g, fat_per_100g, carbs_per_100g,
+          grams_per_piece, grams_per_portion, density_g_per_ml, source,
+          source_id, updated_at)
+        VALUES ('f-packaged', 'Some bar', NULL, NULL, NULL, 450, 8, 20, 50,
+          NULL, NULL, NULL, 'packaged', NULL, 3)
+      ''');
+    await old.customStatement('''
+        INSERT INTO user_settings (key, value) VALUES ('language', 'en')
+      ''');
+    await old.customStatement('''
+        INSERT INTO ai_corrections (id, normalized_food_name, ai_weight_g,
+          user_weight_g, ai_provider, ai_model, created_at)
+        VALUES ('i1', 'chicken_breast', 150, 180, 'openai', 'gpt', 1)
+      ''');
+    await old.close();
+
+    final migrated = AppDatabase(schema.newConnection());
+    await verifier.migrateAndValidate(migrated, 2);
+
+    final version = await migrated
+        .customSelect('PRAGMA user_version')
+        .getSingle();
+    expect(version.read<int>('user_version'), 2);
+
+    final meals = await migrated.select(migrated.meals).get();
+    expect(meals, hasLength(1));
+    expect(meals.single.id, 'm1');
+    expect(meals.single.totalKcal, 500);
+    expect(meals.single.mealType, 'lunch');
+
+    final items = await migrated.select(migrated.mealItems).get();
+    expect(items, hasLength(1));
+    expect(items.single.name, 'Chicken breast');
+    expect(items.single.weightG, 150);
+
+    final foods = await migrated.select(migrated.foods).get();
+    expect(foods, hasLength(3));
+    for (final food in foods) {
+      expect(food.plateGroup, null);
+      expect(food.plateQuality, null);
+    }
+    final catalogFood = foods.firstWhere((f) => f.id == 'f-catalog');
+    expect(catalogFood.source, 'catalog');
+    expect(catalogFood.nameRu, 'Куриная грудка');
+
+    final settings = await migrated.select(migrated.userSettings).get();
+    expect(settings, hasLength(1));
+    expect(settings.single.value, 'en');
+
+    final corrections = await migrated.select(migrated.aiCorrections).get();
+    expect(corrections, hasLength(1));
+    expect(corrections.single.userWeightG, 180);
+
+    final cols = await migrated.customSelect('PRAGMA table_info(foods)').get();
+    expect(
+      cols.map((c) => c.read<String>('name')),
+      containsAll(['plate_group', 'plate_quality']),
+    );
+    await migrated.close();
   });
 }

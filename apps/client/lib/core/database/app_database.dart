@@ -102,6 +102,11 @@ class Foods extends Table {
   TextColumn get sourceId => text().nullable()();
   IntColumn get updatedAt => integer()();
 
+  /// Balanced-plate classification from the catalog `plate` field. Null means
+  /// unclassified ("unknown"); always null for custom and packaged foods.
+  TextColumn get plateGroup => text().nullable()();
+  TextColumn get plateQuality => text().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -137,7 +142,7 @@ class AppDatabase extends _$AppDatabase {
 
   /// Version of the schema written by this app. Bump it together with a new
   /// migration step and a schema snapshot in `drift_schemas/`.
-  static const int currentSchemaVersion = 1;
+  static const int currentSchemaVersion = 2;
 
   @override
   int get schemaVersion => currentSchemaVersion;
@@ -146,8 +151,11 @@ class AppDatabase extends _$AppDatabase {
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) => m.createAll(),
     onUpgrade: (m, from, to) async {
-      // No upgrade steps exist yet: schema 1 is the first release. Future
-      // versions add steps here (see drift_schemas/ for the snapshots).
+      if (from == 1 && to == 2) {
+        await m.addColumn(foods, foods.plateGroup);
+        await m.addColumn(foods, foods.plateQuality);
+        return;
+      }
       throw StateError('No migration from schema $from to $to');
     },
     beforeOpen: (details) async {

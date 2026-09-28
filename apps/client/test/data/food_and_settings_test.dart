@@ -1,14 +1,17 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:calsnap/core/database/app_database.dart';
 import 'package:calsnap/core/domain/nutrition.dart';
 import 'package:calsnap/core/files/photo_storage.dart';
 import 'package:calsnap/core/network/server_certificate.dart';
+import 'package:calsnap/features/balanced_plate/domain/plate_group.dart';
+import 'package:calsnap/features/barcode/domain/packaged_product.dart';
 import 'package:calsnap/features/foods/domain/food.dart';
 import 'package:calsnap/features/meal/domain/meal.dart';
 import 'package:calsnap/features/settings/domain/settings_repository.dart';
 import 'package:calsnap/features/settings/domain/user_settings.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
+import 'package:drift/drift.dart' show Value, driftRuntimeOptions;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/fixtures.dart';
@@ -117,6 +120,118 @@ void main() {
         throwsFormatException,
       );
     });
+
+    test('seeding fills the plate columns of classified foods', () async {
+      await r.foods.seedCatalog(readCatalogJson());
+      final chicken = (await r.foods.search('chicken breast'))
+          .firstWhere((f) => f.normalizedName == 'chicken_breast');
+      expect(chicken.plateGroup, PlateGroup.protein);
+      final plov = (await r.foods.search('plov'))
+          .firstWhere((f) => f.normalizedName == 'plov');
+      expect(plov.plateGroup, PlateGroup.other);
+      expect(plov.plateQuality, PlateQuality.mixed);
+    });
+
+    test('re-seeding a newer catalog updates a changed group and keeps the local id', () async {
+      String catalog(int version, List<Map<String, Object?>> foods) =>
+          jsonEncode({
+            'formatVersion': 1,
+            'catalogVersion': version,
+            'modifiers': {'en': <String>[], 'ru': <String>[]},
+            'foods': foods,
+          });
+      Map<String, Object?> food(String id, {Map<String, Object?>? plate}) => {
+        'id': id,
+        'name': {'en': id, 'ru': id},
+        'aliases': {'en': <String>[], 'ru': <String>[]},
+        'nutrition': {'kcal': 10, 'protein': 1, 'fat': 1, 'carbs': 1},
+        'source': 'test',
+        'plate': ?plate,
+      };
+
+      await r.foods.seedCatalog(catalog(1, [food('a')]));
+      final before = (await r.foods.search('a'))
+          .firstWhere((f) => f.normalizedName == 'a');
+      expect(before.plateGroup, PlateGroup.unknown);
+
+      await r.foods.seedCatalog(
+        catalog(2, [
+          food('a', plate: {'group': 'vegetable'}),
+        ]),
+      );
+      final after = (await r.foods.search('a'))
+          .firstWhere((f) => f.normalizedName == 'a');
+      expect(after.id, before.id, reason: 'the local id is kept');
+      expect(after.plateGroup, PlateGroup.vegetable);
+    });
+
+    test('a food without plate metadata resolves to unknown', () async {
+      await r.foods.seedCatalog(
+        jsonEncode({
+          'formatVersion': 1,
+          'catalogVersion': 1,
+          'modifiers': {'en': <String>[], 'ru': <String>[]},
+          'foods': [
+            {
+              'id': 'plain',
+              'name': {'en': 'plain', 'ru': 'plain'},
+              'aliases': {'en': <String>[], 'ru': <String>[]},
+              'nutrition': {'kcal': 10, 'protein': 1, 'fat': 1, 'carbs': 1},
+              'source': 'test',
+            },
+          ],
+        }),
+      );
+      final plain = (await r.foods.search('plain'))
+          .firstWhere((f) => f.normalizedName == 'plain');
+      expect(plain.plateGroup, PlateGroup.unknown);
+      expect(plain.plateQuality, null);
+    });
+
+    test('an unrecognized stored plate value resolves to unknown', () async {
+      await r.foods.seedCatalog(readCatalogJson());
+      final egg = (await r.foods.search('egg'))
+          .firstWhere((f) => f.normalizedName == 'egg');
+      await (r.db.update(r.db.foods)..where((f) => f.id.equals(egg.id))).write(
+        const FoodsCompanion(plateGroup: Value('not_a_real_group')),
+      );
+      final reloaded = await r.foods.getById(egg.id);
+      expect(reloaded!.plateGroup, PlateGroup.unknown);
+    });
+
+    test('custom and packaged foods are unclassified', () async {
+      final custom = await r.foods.createCustom(
+        const CustomFoodInput(name: 'My bar', per100: Nutrition(kcal: 400)),
+      );
+      expect(custom.plateGroup, PlateGroup.unknown);
+      final packaged = await r.foods.savePackaged(
+        const PackagedProduct(
+          barcode: '111',
+          name: 'Bar',
+          per100: Nutrition(kcal: 400),
+        ),
+      );
+      expect(packaged.plateGroup, PlateGroup.unknown);
+    });
+
+    test(
+      'every plate.group of the bundled catalog asset is a known PlateGroup',
+      () {
+        final doc = jsonDecode(readCatalogJson()) as Map<String, dynamic>;
+        final foods = (doc['foods'] as List<dynamic>)
+            .cast<Map<String, dynamic>>();
+        for (final food in foods) {
+          final plate = food['plate'] as Map<String, dynamic>?;
+          if (plate == null) continue;
+          final group = PlateGroup.fromWire(plate['group'] as String?);
+          expect(
+            group,
+            isNot(PlateGroup.unknown),
+            reason: '${food['id']} has an unrecognized plate.group',
+          );
+        }
+      },
+    );
   });
 
   group('search', () {
