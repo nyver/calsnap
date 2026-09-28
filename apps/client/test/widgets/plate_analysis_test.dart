@@ -166,6 +166,47 @@ void main() {
   );
 
   appTest(
+    'a reopened ai_estimate item keeps the group of its catalog namesake',
+    (tester, app) async {
+      await tester.pumpWidget(app.app());
+      await settle(tester);
+      final container = containerOf(tester);
+      final notifier = container.read(mealDraftProvider.notifier);
+      await app.real(
+        () => notifier.startFromRecognition(
+          AnalysisResult(
+            requestId: 'r1',
+            items: [
+              recognized(
+                'temp-1',
+                'chicken_breast',
+                name: 'Chicken breast',
+                nutritionSource: 'ai_estimate',
+              ),
+            ],
+            warnings: const {},
+          ),
+        ),
+      );
+      expect(
+        container.read(mealDraftProvider)!.items.single.plateGroup,
+        PlateGroup.protein,
+      );
+      final mealId = await app.saveMeal(container.read(mealDraftProvider)!);
+      notifier.clear();
+
+      await app.real(() => notifier.startEdit(mealId));
+      final edited = container.read(mealDraftProvider)!.items.single;
+      expect(edited.plateGroup, PlateGroup.protein);
+      notifier.clear();
+
+      await app.real(() => notifier.startRepeat(mealId));
+      final repeated = container.read(mealDraftProvider)!.items.single;
+      expect(repeated.plateGroup, PlateGroup.protein);
+    },
+  );
+
+  appTest(
     'a weight edit updates the plate analysis immediately, with no repository call',
     (tester, app) async {
       await tester.pumpWidget(app.app());

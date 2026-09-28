@@ -6,6 +6,7 @@ import '../../foods/domain/food_repository.dart';
 import 'meal.dart';
 import 'meal_draft.dart';
 import 'meal_repository.dart';
+import 'plate_classification.dart';
 
 /// Recent meals are offered for repeat only within this many days.
 const int repeatMealLookbackDays = 30;
@@ -66,6 +67,7 @@ class RepeatMealUseCase {
       final food = source.foodId == null
           ? null
           : await _foods.getById(source.foodId!);
+      final plate = await plateClassificationSource(_foods, food);
       items.add(
         DraftItem(
           id: _ids.newId(),
@@ -85,8 +87,8 @@ class RepeatMealUseCase {
           nutritionSource: food?.source,
           normalizedName: food?.normalizedName,
           units: _unitsOf(food),
-          plateGroup: food?.plateGroup ?? PlateGroup.unknown,
-          plateQuality: food?.plateQuality,
+          plateGroup: plate?.plateGroup ?? PlateGroup.unknown,
+          plateQuality: plate?.plateQuality,
         ),
       );
     }

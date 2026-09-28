@@ -10,6 +10,7 @@ import '../../foods/domain/food.dart';
 import '../../recognition/domain/analysis.dart';
 import '../domain/meal.dart';
 import '../domain/meal_draft.dart';
+import '../domain/plate_classification.dart';
 import '../domain/portion_calibration.dart';
 
 /// Holds the meal that is being built or edited. One draft exists at a time:
@@ -144,6 +145,7 @@ class MealDraftNotifier extends Notifier<MealDraft?> {
     final items = <DraftItem>[];
     for (final it in meal.items) {
       final food = it.foodId == null ? null : await foods.getById(it.foodId!);
+      final plate = await plateClassificationSource(foods, food);
       items.add(
         DraftItem(
           id: it.id,
@@ -165,8 +167,8 @@ class MealDraftNotifier extends Notifier<MealDraft?> {
               ? it.estimatedWeightG
               : it.weightG,
           units: _unitsOf(food),
-          plateGroup: food?.plateGroup ?? PlateGroup.unknown,
-          plateQuality: food?.plateQuality,
+          plateGroup: plate?.plateGroup ?? PlateGroup.unknown,
+          plateQuality: plate?.plateQuality,
         ),
       );
     }
