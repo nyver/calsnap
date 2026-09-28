@@ -135,7 +135,7 @@ func build(cfg *config.Config, log *slog.Logger) (*app, error) {
 	}
 	log.Info("nutrition catalog loaded", "version", catalog.Version(), "foods", catalog.Len())
 
-	var vision analysis.FoodVisionProvider
+	var vision, visionFallback analysis.FoodVisionProvider
 	switch cfg.AI.Provider {
 	case config.ProviderGemini:
 		vision = gemini.New(gemini.Config{
@@ -143,23 +143,47 @@ func build(cfg *config.Config, log *slog.Logger) (*app, error) {
 			Model:   cfg.AI.Gemini.Model,
 			APIKey:  cfg.AI.Gemini.APIKey,
 		}, &http.Client{Timeout: cfg.AI.CallTimeout})
+		if m := cfg.AI.Gemini.FallbackModel; m != "" {
+			visionFallback = gemini.New(gemini.Config{
+				BaseURL: cfg.AI.Gemini.BaseURL,
+				Model:   m,
+				APIKey:  cfg.AI.Gemini.APIKey,
+			}, &http.Client{Timeout: cfg.AI.CallTimeout})
+		}
 	case config.ProviderOpenRouter:
 		vision = openai.New(openai.Config{
 			BaseURL: cfg.AI.OpenRouter.BaseURL,
 			Model:   cfg.AI.OpenRouter.Model,
 			APIKey:  cfg.AI.OpenRouter.APIKey,
 		}, &http.Client{Timeout: cfg.AI.CallTimeout})
+		if m := cfg.AI.OpenRouter.FallbackModel; m != "" {
+			visionFallback = openai.New(openai.Config{
+				BaseURL: cfg.AI.OpenRouter.BaseURL,
+				Model:   m,
+				APIKey:  cfg.AI.OpenRouter.APIKey,
+			}, &http.Client{Timeout: cfg.AI.CallTimeout})
+		}
 	case config.ProviderRouterAI:
 		vision = openai.New(openai.Config{
 			BaseURL: cfg.AI.RouterAI.BaseURL,
 			Model:   cfg.AI.RouterAI.Model,
 			APIKey:  cfg.AI.RouterAI.APIKey,
 		}, &http.Client{Timeout: cfg.AI.CallTimeout})
+		if m := cfg.AI.RouterAI.FallbackModel; m != "" {
+			visionFallback = openai.New(openai.Config{
+				BaseURL: cfg.AI.RouterAI.BaseURL,
+				Model:   m,
+				APIKey:  cfg.AI.RouterAI.APIKey,
+			}, &http.Client{Timeout: cfg.AI.CallTimeout})
+		}
 	case config.ProviderFake:
 		log.Warn("using the fake AI provider: canned results, for development only")
 		vision = fake.Provider{}
 	default:
 		return nil, fmt.Errorf("unsupported ai.provider %q", cfg.AI.Provider)
+	}
+	if visionFallback != nil {
+		log.Info("AI fallback model configured", "provider", cfg.AI.Provider)
 	}
 
 	prefixes, err := cfg.TrustedProxyPrefixes()
@@ -176,7 +200,7 @@ func build(cfg *config.Config, log *slog.Logger) (*app, error) {
 		QueueWait:        cfg.Limits.QueueWait,
 		ReplayTTL:        cfg.Limits.ReplayTTL,
 		ReplayMaxEntries: cfg.Limits.ReplayMaxEntries,
-	}, analysis.Deps{Vision: vision, Nutrition: catalog, Metrics: m, Logger: log})
+	}, analysis.Deps{Vision: vision, VisionFallback: visionFallback, Nutrition: catalog, Metrics: m, Logger: log})
 
 	limiter := ratelimit.New(ratelimit.Config{
 		PerMinute:  cfg.Limits.RatePerMinute,
@@ -187,13 +211,17 @@ func build(cfg *config.Config, log *slog.Logger) (*app, error) {
 
 	var labels httpapi.LabelReader
 	if reader, ok := vision.(label.Reader); ok {
+		var readerFallback label.Reader
+		if fallbackReader, ok := visionFallback.(label.Reader); ok {
+			readerFallback = fallbackReader
+		}
 		labels = label.NewService(label.Config{
 			ProviderName:   cfg.AI.Provider,
 			CallTimeout:    cfg.AI.CallTimeout,
 			OverallTimeout: cfg.AI.OverallTimeout,
 			MaxConcurrent:  cfg.Limits.MaxConcurrentAnalyses,
 			QueueWait:      cfg.Limits.QueueWait,
-		}, label.Deps{Reader: reader, Metrics: m, Logger: log})
+		}, label.Deps{Reader: reader, ReaderFallback: readerFallback, Metrics: m, Logger: log})
 	}
 
 	limiters := []*ratelimit.Limiter{limiter}

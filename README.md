@@ -60,6 +60,7 @@ Every key is documented in [config.example.yaml](config.example.yaml). The impor
 
 * `ai.provider` – `gemini`, `openrouter`, `routerai` or `fake`. `fake` returns canned results without network access and is refused when `server.environment: production`. Only the section of the selected provider is validated and its key read.
 * `ai.gemini.model`, `ai.openrouter.model`, `ai.routerai.model` – the model is chosen here; the app never learns it, so it can change without an app release. Each provider section also has `api_key_env` (the name of the environment variable holding the key) and `base_url`.
+* `ai.<provider>.fallback_model` – optional; a second model tried under the same account once the main model rejects a request outright (an unsupported model, a content-policy block, an exhausted quota) or exhausts its own retries against a transient failure or an unparsable response. Empty (the default) disables it. It must differ from `model`; both meal analysis and nutrition-label reading use it. Switches are counted in `calsnap_ai_fallback_used_total`.
 * OpenRouter and RouterAI use the OpenAI-compatible chat-completions API, so any vision-capable model they offer works, for example `google/gemini-2.5-flash`. Note that the router forwards the photo to the upstream model vendor (see the [privacy note](docs/security/privacy.md)). The RouterAI defaults (`https://routerai.ru/api/v1`, model id format) are assumptions: check them against your account and override `base_url` and `model` if needed.
 * `server.tls.*` – native HTTPS (TLS 1.2 minimum): either `cert_file` + `key_file` (created as a self-signed pair when both files are missing), or `self_signed: true` for a certificate the server generates itself (see [TLS modes](#tls-modes)). Without any of them the server only starts when `server.allow_plain_http: true` (behind a TLS-terminating reverse proxy, or locally) and logs a warning.
 * `server.trusted_proxies` – proxies whose `X-Forwarded-For` is trusted for per-client rate limiting.
@@ -116,7 +117,7 @@ The image is a static, non-root, distroless binary. The key is passed through th
 ### Observability, cost and abuse
 
 * `GET /healthz` – liveness.
-* Prometheus metrics on `metrics.listen` (default `127.0.0.1:9090`, keep it private): request counts and latency by route and status class, AI latency, AI errors by kind, invalid AI responses, nutrition match kinds and failures, rate-limited requests and AI token usage (`calsnap_ai_tokens_total`, a cost proxy).
+* Prometheus metrics on `metrics.listen` (default `127.0.0.1:9090`, keep it private): request counts and latency by route and status class, AI latency, AI errors by kind, invalid AI responses, AI fallback-model switches (`calsnap_ai_fallback_used_total`), nutrition match kinds and failures, rate-limited requests and AI token usage (`calsnap_ai_tokens_total`, a cost proxy).
 * Alert on `calsnap_ai_tokens_total` growth, `calsnap_rate_limited_total`, and 5xx ratios. The endpoint is unauthenticated; abuse is bounded by the per-client rate limit, the global concurrency cap, the upload limits and request-id replay protection. App attestation is a documented follow-up.
 * Logs are structured (`slog`) and contain request id, route, status, sizes, durations and error codes only: never photos, prompts, AI output, food names or keys.
 

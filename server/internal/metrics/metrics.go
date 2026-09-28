@@ -21,6 +21,7 @@ type Metrics struct {
 	aiDuration      *prometheus.HistogramVec
 	aiErrors        *prometheus.CounterVec
 	aiInvalid       prometheus.Counter
+	aiFallback      prometheus.Counter
 	aiTokens        *prometheus.CounterVec
 	nutritionMatch  *prometheus.CounterVec
 	nutritionFailed prometheus.Counter
@@ -56,6 +57,10 @@ func New() *Metrics {
 			Name: "calsnap_ai_invalid_responses_total",
 			Help: "AI results that were not valid JSON or failed range validation.",
 		}),
+		aiFallback: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "calsnap_ai_fallback_used_total",
+			Help: "Analyses that switched from the primary AI model to the configured fallback model.",
+		}),
 		aiTokens: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "calsnap_ai_tokens_total",
 			Help: "Tokens consumed at the AI provider, when reported (cost proxy).",
@@ -73,7 +78,7 @@ func New() *Metrics {
 		collectors.NewGoCollector(),
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 		m.httpRequests, m.httpDuration, m.rateLimited, m.aiDuration, m.aiErrors,
-		m.aiInvalid, m.aiTokens, m.nutritionMatch, m.nutritionFailed,
+		m.aiInvalid, m.aiFallback, m.aiTokens, m.nutritionMatch, m.nutritionFailed,
 	)
 	// Pre-create the enumerated series so that dashboards and alerts see zeros.
 	for _, kind := range []string{"unavailable", "invalid_response", "rejected"} {
@@ -111,6 +116,9 @@ func (m *Metrics) AIError(kind string) { m.aiErrors.WithLabelValues(kind).Inc() 
 
 // InvalidAIResponse implements analysis.Metrics.
 func (m *Metrics) InvalidAIResponse() { m.aiInvalid.Inc() }
+
+// AIFallbackUsed implements analysis.Metrics.
+func (m *Metrics) AIFallbackUsed() { m.aiFallback.Inc() }
 
 // NutritionMatch implements analysis.Metrics.
 func (m *Metrics) NutritionMatch(kind string) { m.nutritionMatch.WithLabelValues(kind).Inc() }

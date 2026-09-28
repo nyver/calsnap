@@ -119,6 +119,10 @@ type GeminiConfig struct {
 	Model     string `yaml:"model"`
 	APIKeyEnv string `yaml:"api_key_env"`
 	BaseURL   string `yaml:"base_url"`
+	// FallbackModel, when set, is tried under the same account and base URL
+	// once the main model rejects a request outright or exhausts its own
+	// retries. Empty disables the fallback.
+	FallbackModel string `yaml:"fallback_model"`
 
 	// APIKey is resolved from the environment by Load.
 	APIKey string `yaml:"-"`
@@ -133,6 +137,10 @@ type CompatConfig struct {
 	APIKeyEnv string `yaml:"api_key_env"`
 	// BaseURL is the API root without /chat/completions.
 	BaseURL string `yaml:"base_url"`
+	// FallbackModel, when set, is tried under the same account and base URL
+	// once the main model rejects a request outright or exhausts its own
+	// retries. Empty disables the fallback.
+	FallbackModel string `yaml:"fallback_model"`
 
 	// APIKey is resolved from the environment by Load.
 	APIKey string `yaml:"-"`
@@ -387,6 +395,9 @@ func (c *Config) Validate() error {
 		} else if a.Gemini.APIKey == "" {
 			bad("environment variable %s (ai.gemini.api_key_env) is empty or not set", a.Gemini.APIKeyEnv)
 		}
+		if a.Gemini.FallbackModel != "" && a.Gemini.FallbackModel == a.Gemini.Model {
+			bad("ai.gemini.fallback_model must differ from ai.gemini.model")
+		}
 	case ProviderOpenRouter:
 		validateCompat(a.OpenRouter, "ai.openrouter", bad)
 	case ProviderRouterAI:
@@ -471,6 +482,9 @@ func validateCompat(c CompatConfig, section string, bad func(string, ...any)) {
 		bad("%s.api_key_env must name an environment variable", section)
 	case c.APIKey == "":
 		bad("environment variable %s (%s.api_key_env) is empty or not set", c.APIKeyEnv, section)
+	}
+	if c.FallbackModel != "" && c.FallbackModel == c.Model {
+		bad("%s.fallback_model must differ from %s.model", section, section)
 	}
 }
 

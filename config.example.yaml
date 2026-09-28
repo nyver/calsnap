@@ -88,6 +88,11 @@ ai:
   gemini:
     # Model name is server-side only; the app never learns it.
     model: gemini-2.5-flash
+    # Optional: tried, under the same API key, once the main model rejects a
+    # request outright (e.g. a content-policy block) or exhausts its own
+    # retries against a transient or invalid-response failure. Empty (the
+    # default) disables the fallback. Must differ from model.
+    fallback_model: ""
     # Name of the environment variable holding the API key (never the key itself).
     api_key_env: GEMINI_API_KEY
     base_url: https://generativelanguage.googleapis.com/v1beta
@@ -95,6 +100,8 @@ ai:
   # The model must accept image input and is given as "<vendor>/<model>".
   openrouter:
     model: google/gemini-2.5-flash
+    # See ai.gemini.fallback_model above.
+    fallback_model: ""
     api_key_env: OPENROUTER_API_KEY
     # Base URL without the /chat/completions suffix.
     base_url: https://openrouter.ai/api/v1
@@ -102,6 +109,8 @@ ai:
   # your RouterAI account; both are configurable.
   routerai:
     model: google/gemini-2.5-flash
+    # See ai.gemini.fallback_model above.
+    fallback_model: ""
     api_key_env: ROUTERAI_API_KEY
     base_url: https://routerai.ru/api/v1
 

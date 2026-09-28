@@ -36,6 +36,28 @@ func TestParseDefaultsAndSecret(t *testing.T) {
 	}
 }
 
+func TestParseFallbackModel(t *testing.T) {
+	t.Parallel()
+
+	yaml := "server:\n  allow_plain_http: true\nai:\n  gemini:\n    fallback_model: gemini-1.5-flash\n"
+	cfg, err := Parse([]byte(yaml), env(map[string]string{"GEMINI_API_KEY": "secret-key"}))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	if cfg.AI.Gemini.FallbackModel != "gemini-1.5-flash" {
+		t.Errorf("fallback model = %q", cfg.AI.Gemini.FallbackModel)
+	}
+
+	// Empty (the default) leaves the fallback disabled.
+	cfg, err = Parse([]byte(validGemini), env(map[string]string{"GEMINI_API_KEY": "secret-key"}))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	if cfg.AI.Gemini.FallbackModel != "" {
+		t.Errorf("fallback model = %q, want empty by default", cfg.AI.Gemini.FallbackModel)
+	}
+}
+
 func TestParseOverridesDurationsAndProxies(t *testing.T) {
 	t.Parallel()
 
@@ -155,6 +177,18 @@ func TestParseErrors(t *testing.T) {
 			yaml:    "server:\n  allow_plain_http: true\nai:\n  provider: openrouter\n  openrouter:\n    model: \"\"\n",
 			env:     map[string]string{"OPENROUTER_API_KEY": "k"},
 			wantErr: "ai.openrouter.model",
+		},
+		{
+			name:    "gemini fallback model same as the main model",
+			yaml:    "server:\n  allow_plain_http: true\nai:\n  gemini:\n    fallback_model: gemini-2.5-flash\n",
+			env:     map[string]string{"GEMINI_API_KEY": "k"},
+			wantErr: "ai.gemini.fallback_model must differ from ai.gemini.model",
+		},
+		{
+			name:    "openrouter fallback model same as the main model",
+			yaml:    "server:\n  allow_plain_http: true\nai:\n  provider: openrouter\n  openrouter:\n    fallback_model: google/gemini-2.5-flash\n",
+			env:     map[string]string{"OPENROUTER_API_KEY": "k"},
+			wantErr: "ai.openrouter.fallback_model must differ from ai.openrouter.model",
 		},
 		{
 			name:    "routerai invalid base url",

@@ -317,6 +317,35 @@ func TestServiceDoesNotRetryRejections(t *testing.T) {
 	}
 }
 
+func TestServiceFallsBackToTheFallbackModelWhenRejected(t *testing.T) {
+	t.Parallel()
+
+	primary := &scriptedReader{fn: func(context.Context, int) (label.Extraction, error) {
+		return label.Extraction{}, analysis.ErrRejected
+	}}
+	fallback := &scriptedReader{fn: func(context.Context, int) (label.Extraction, error) {
+		return good, nil
+	}}
+	svc := label.NewService(label.Config{
+		CallTimeout: time.Second, OverallTimeout: 5 * time.Second,
+		MaxConcurrent: 4, QueueWait: 10 * time.Millisecond,
+	}, label.Deps{Reader: primary, ReaderFallback: fallback})
+
+	res, err := svc.Read(context.Background(), request())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Nutrition.Kcal == nil || *res.Nutrition.Kcal != 220 {
+		t.Errorf("res = %+v", res)
+	}
+	if primary.calls.Load() != 1 {
+		t.Errorf("primary calls = %d, want 1", primary.calls.Load())
+	}
+	if fallback.calls.Load() != 1 {
+		t.Errorf("fallback calls = %d, want 1", fallback.calls.Load())
+	}
+}
+
 func TestServiceBoundsConcurrency(t *testing.T) {
 	t.Parallel()
 

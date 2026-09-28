@@ -6,7 +6,7 @@ The backend needs structured food recognition from a multimodal model, and the m
 
 ## Decision
 
-The analysis use case defines a consumer-side interface `FoodVisionProvider.Analyze(ctx, image, context) (Result, error)` with typed errors: `ErrUnavailable` (transient, retried), `ErrInvalidResponse` (re-attempted once) and `ErrRejected` (not retried). The retry loop lives in the use case, so every provider shares it.
+The analysis use case defines a consumer-side interface `FoodVisionProvider.Analyze(ctx, image, context) (Result, error)` with typed errors: `ErrUnavailable` (transient, retried), `ErrInvalidResponse` (re-attempted once) and `ErrRejected` (not retried against the same model). The retry loop lives in the use case, so every provider shares it. An optional fallback model can be tried once these retries are exhausted; see [ADR 013](013-ai-fallback-model.md).
 
 The MVP implements Gemini by calling `generateContent` directly with `net/http`: inline base64 image, `responseMimeType: application/json`, and a `responseSchema` that is kept in sync with `protocol/ai/food-vision-result.schema.json` by a test. The API key travels in the `x-goog-api-key` header (URLs get logged), the response body is bounded to 2 MiB, error bodies are never included in errors or logs, and token usage is exported as a metric. The prompt is versioned in code and treats text inside the photo as data.
 

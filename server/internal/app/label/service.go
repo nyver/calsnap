@@ -32,9 +32,13 @@ type Config struct {
 // Deps are the collaborators of Service. Now, Sleep and Jitter are injectable
 // for deterministic tests; nil values select the real implementations.
 type Deps struct {
-	Reader  Reader
-	Metrics analysis.Metrics
-	Logger  *slog.Logger
+	Reader Reader
+	// ReaderFallback is tried, with its own retry budget, once the primary
+	// model is rejected outright or exhausts its own retries. Nil disables
+	// the fallback.
+	ReaderFallback Reader
+	Metrics        analysis.Metrics
+	Logger         *slog.Logger
 
 	Now    func() time.Time
 	Sleep  func(ctx context.Context, d time.Duration) error
@@ -92,10 +96,27 @@ func (s *Service) Read(ctx context.Context, req Request) (Result, error) {
 	rc := analysis.RequestContext{RequestID: req.RequestID, Locale: req.Locale}
 	log := s.d.Logger.With("request_id", req.RequestID)
 	var transient, invalid int
+	reader := s.d.Reader
+	fallbackUsed := false
+
+	// useFallback switches to the fallback model once, giving it its own
+	// full retry budget. It reports whether a fallback was available.
+	useFallback := func(reason string, err error) bool {
+		if fallbackUsed || s.d.ReaderFallback == nil {
+			return false
+		}
+		fallbackUsed = true
+		reader = s.d.ReaderFallback
+		transient, invalid = 0, 0
+		s.d.Metrics.AIFallbackUsed()
+		log.Warn("switching to the fallback AI model", "reason", reason, "error", err.Error())
+		return true
+	}
+
 	for {
 		callCtx, callCancel := context.WithTimeout(ctx, s.cfg.CallTimeout)
 		start := s.d.Now()
-		ext, err := s.d.Reader.ReadLabel(callCtx, req.Image, rc)
+		ext, err := reader.ReadLabel(callCtx, req.Image, rc)
 		callCancel()
 		s.d.Metrics.ObserveAICall(s.cfg.ProviderName, s.d.Now().Sub(start).Seconds())
 
@@ -128,16 +149,25 @@ func (s *Service) Read(ctx context.Context, req Request) (Result, error) {
 			invalid++
 			log.Warn("label reader returned an invalid response", "attempt", invalid, "error", err.Error())
 			if invalid > maxInvalidRetries {
+				if useFallback("invalid response", err) {
+					continue
+				}
 				return Result{}, err
 			}
 		case errors.Is(err, analysis.ErrRejected):
 			s.d.Metrics.AIError(analysis.ErrKindRejected)
+			if useFallback("rejected", err) {
+				continue
+			}
 			return Result{}, err
 		case errors.Is(err, analysis.ErrUnavailable), errors.Is(err, context.DeadlineExceeded):
 			s.d.Metrics.AIError(analysis.ErrKindUnavailable)
 			transient++
 			log.Warn("label reader unavailable", "attempt", transient, "error", err.Error())
 			if transient > maxTransientRetries {
+				if useFallback("unavailable", err) {
+					continue
+				}
 				return Result{}, fmt.Errorf("%w: retries exhausted", analysis.ErrUnavailable)
 			}
 			if serr := s.d.Sleep(ctx, s.backoff(transient)); serr != nil {

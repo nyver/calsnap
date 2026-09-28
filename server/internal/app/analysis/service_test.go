@@ -40,6 +40,7 @@ type recordingMetrics struct {
 	mu       sync.Mutex
 	aiErrors map[string]int
 	invalid  int
+	fallback int
 	matches  map[string]int
 	failed   int
 	usage    [2]int
@@ -52,17 +53,19 @@ func newRecordingMetrics() *recordingMetrics {
 func (m *recordingMetrics) ObserveAICall(string, float64) {}
 func (m *recordingMetrics) AIError(k string)              { m.lock(func() { m.aiErrors[k]++ }) }
 func (m *recordingMetrics) InvalidAIResponse()            { m.lock(func() { m.invalid++ }) }
+func (m *recordingMetrics) AIFallbackUsed()               { m.lock(func() { m.fallback++ }) }
 func (m *recordingMetrics) NutritionMatch(k string)       { m.lock(func() { m.matches[k]++ }) }
 func (m *recordingMetrics) NutritionMatchFailed()         { m.lock(func() { m.failed++ }) }
 func (m *recordingMetrics) AIUsage(in, out int)           { m.lock(func() { m.usage = [2]int{in, out} }) }
 func (m *recordingMetrics) lock(f func())                 { m.mu.Lock(); defer m.mu.Unlock(); f() }
 
 type harness struct {
-	svc     *analysis.Service
-	vision  *stubVision
-	metrics *recordingMetrics
-	sleeps  *[]time.Duration
-	clock   *fakeClock
+	svc            *analysis.Service
+	vision         *stubVision
+	visionFallback *stubVision
+	metrics        *recordingMetrics
+	sleeps         *[]time.Duration
+	clock          *fakeClock
 }
 
 type fakeClock struct {
@@ -113,6 +116,51 @@ func newHarness(t *testing.T, mutate func(*analysis.Config), fn func(ctx context
 		Nutrition: cat,
 		Metrics:   h.metrics,
 		Now:       h.clock.now,
+		Sleep: func(_ context.Context, d time.Duration) error {
+			sleepMu.Lock()
+			defer sleepMu.Unlock()
+			*h.sleeps = append(*h.sleeps, d)
+			return nil
+		},
+		Jitter: func() float64 { return 0.5 }, // factor 1.0
+	})
+	return h
+}
+
+// newFallbackHarness is like newHarness but also wires a fallback vision
+// provider driven by fallbackFn.
+func newFallbackHarness(
+	t *testing.T,
+	fn, fallbackFn func(ctx context.Context, call int) (analysis.Result, error),
+) *harness {
+	t.Helper()
+	cat, err := nutrition.LoadEmbedded(0.85)
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := &harness{
+		vision:         &stubVision{fn: fn},
+		visionFallback: &stubVision{fn: fallbackFn},
+		metrics:        newRecordingMetrics(),
+		sleeps:         new([]time.Duration),
+		clock:          &fakeClock{t: time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)},
+	}
+	var sleepMu sync.Mutex
+	h.svc = analysis.NewService(analysis.Config{
+		ProviderName:     "stub",
+		MinConfidence:    0.2,
+		CallTimeout:      5 * time.Second,
+		OverallTimeout:   10 * time.Second,
+		MaxConcurrent:    4,
+		QueueWait:        20 * time.Millisecond,
+		ReplayTTL:        10 * time.Minute,
+		ReplayMaxEntries: 100,
+	}, analysis.Deps{
+		Vision:         h.vision,
+		VisionFallback: h.visionFallback,
+		Nutrition:      cat,
+		Metrics:        h.metrics,
+		Now:            h.clock.now,
 		Sleep: func(_ context.Context, d time.Duration) error {
 			sleepMu.Lock()
 			defer sleepMu.Unlock()
@@ -356,6 +404,106 @@ func TestRetryPolicy(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestFallbackModel(t *testing.T) {
+	t.Parallel()
+
+	valid := fixtureResult(t, "ai-result-no-food.json")
+	rejected := fmt.Errorf("http 400: %w", analysis.ErrRejected)
+	unavailable := fmt.Errorf("http 503: %w", analysis.ErrUnavailable)
+	invalid := fmt.Errorf("prose: %w", analysis.ErrInvalidResponse)
+
+	t.Run("primary rejected switches to the fallback model", func(t *testing.T) {
+		t.Parallel()
+		h := newFallbackHarness(t, returns0(rejected), returns(valid))
+		if _, err := h.svc.Analyze(context.Background(), request("")); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if got := h.vision.calls.Load(); got != 1 {
+			t.Errorf("primary calls = %d, want 1", got)
+		}
+		if got := h.visionFallback.calls.Load(); got != 1 {
+			t.Errorf("fallback calls = %d, want 1", got)
+		}
+		if h.metrics.fallback != 1 {
+			t.Errorf("fallback metric = %d, want 1", h.metrics.fallback)
+		}
+	})
+
+	t.Run("primary exhausting invalid-response retries switches to the fallback model", func(t *testing.T) {
+		t.Parallel()
+		h := newFallbackHarness(t, script(invalid, invalid), returns(valid))
+		if _, err := h.svc.Analyze(context.Background(), request("")); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if got := h.vision.calls.Load(); got != 2 {
+			t.Errorf("primary calls = %d, want 2", got)
+		}
+		if got := h.visionFallback.calls.Load(); got != 1 {
+			t.Errorf("fallback calls = %d, want 1", got)
+		}
+	})
+
+	t.Run("primary exhausting transient retries switches to the fallback model", func(t *testing.T) {
+		t.Parallel()
+		h := newFallbackHarness(t, script(unavailable, unavailable, unavailable), returns(valid))
+		if _, err := h.svc.Analyze(context.Background(), request("")); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if got := h.vision.calls.Load(); got != 3 {
+			t.Errorf("primary calls = %d, want 3", got)
+		}
+		if got := h.visionFallback.calls.Load(); got != 1 {
+			t.Errorf("fallback calls = %d, want 1", got)
+		}
+	})
+
+	t.Run("a rejected fallback is not retried again", func(t *testing.T) {
+		t.Parallel()
+		h := newFallbackHarness(t, returns0(rejected), returns0(rejected))
+		_, err := h.svc.Analyze(context.Background(), request(""))
+		if !errors.Is(err, analysis.ErrRejected) {
+			t.Fatalf("err = %v, want ErrRejected", err)
+		}
+		if got := h.vision.calls.Load(); got != 1 {
+			t.Errorf("primary calls = %d, want 1", got)
+		}
+		if got := h.visionFallback.calls.Load(); got != 1 {
+			t.Errorf("fallback calls = %d, want 1", got)
+		}
+	})
+
+	t.Run("no fallback configured leaves rejected unretried", func(t *testing.T) {
+		t.Parallel()
+		h := newHarness(t, nil, returns0(rejected))
+		_, err := h.svc.Analyze(context.Background(), request(""))
+		if !errors.Is(err, analysis.ErrRejected) {
+			t.Fatalf("err = %v, want ErrRejected", err)
+		}
+		if got := h.vision.calls.Load(); got != 1 {
+			t.Errorf("calls = %d, want 1", got)
+		}
+		if h.metrics.fallback != 0 {
+			t.Errorf("fallback metric = %d, want 0", h.metrics.fallback)
+		}
+	})
+}
+
+// script returns a stub function that fails with each error in order, then
+// always succeeds.
+func script(errs ...error) func(context.Context, int) (analysis.Result, error) {
+	return func(_ context.Context, call int) (analysis.Result, error) {
+		if call <= len(errs) {
+			return analysis.Result{}, errs[call-1]
+		}
+		return analysis.Result{Items: []analysis.RecognizedItem{}}, nil
+	}
+}
+
+// returns0 always fails with err.
+func returns0(err error) func(context.Context, int) (analysis.Result, error) {
+	return func(context.Context, int) (analysis.Result, error) { return analysis.Result{}, err }
 }
 
 func TestBackoffJitterBounds(t *testing.T) {

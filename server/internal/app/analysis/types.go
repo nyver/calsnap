@@ -151,6 +151,7 @@ type Metrics interface {
 	ObserveAICall(provider string, seconds float64)
 	AIError(kind string)
 	InvalidAIResponse()
+	AIFallbackUsed()
 	NutritionMatch(kind string)
 	NutritionMatchFailed()
 	AIUsage(inputTokens, outputTokens int)
@@ -174,6 +175,9 @@ func (NopMetrics) AIError(string) {}
 
 // InvalidAIResponse implements Metrics.
 func (NopMetrics) InvalidAIResponse() {}
+
+// AIFallbackUsed implements Metrics.
+func (NopMetrics) AIFallbackUsed() {}
 
 // NutritionMatch implements Metrics.
 func (NopMetrics) NutritionMatch(string) {}

@@ -43,10 +43,14 @@ type Config struct {
 // Deps are the collaborators of Service. Now, Sleep and Jitter are injectable
 // for deterministic tests; nil values select the real implementations.
 type Deps struct {
-	Vision    FoodVisionProvider
-	Nutrition NutritionProvider
-	Metrics   Metrics
-	Logger    *slog.Logger
+	Vision FoodVisionProvider
+	// VisionFallback is tried, with its own retry budget, once the primary
+	// model is rejected outright or exhausts its own retries. Nil disables
+	// the fallback.
+	VisionFallback FoodVisionProvider
+	Nutrition      NutritionProvider
+	Metrics        Metrics
+	Logger         *slog.Logger
 
 	Now    func() time.Time
 	Sleep  func(ctx context.Context, d time.Duration) error
@@ -197,11 +201,27 @@ func (s *Service) callProvider(ctx context.Context, req Request) (Result, error)
 	}
 	log := s.d.Logger.With("request_id", req.RequestID)
 	var transient, invalid int
+	provider := s.d.Vision
+	fallbackUsed := false
+
+	// useFallback switches to the fallback model once, giving it its own
+	// full retry budget. It reports whether a fallback was available.
+	useFallback := func(reason string, err error) bool {
+		if fallbackUsed || s.d.VisionFallback == nil {
+			return false
+		}
+		fallbackUsed = true
+		provider = s.d.VisionFallback
+		transient, invalid = 0, 0
+		s.d.Metrics.AIFallbackUsed()
+		log.Warn("switching to the fallback AI model", "reason", reason, "error", err.Error())
+		return true
+	}
 
 	for {
 		callCtx, cancel := context.WithTimeout(ctx, s.cfg.CallTimeout)
 		start := s.d.Now()
-		res, err := s.d.Vision.Analyze(callCtx, req.Image, rc)
+		res, err := provider.Analyze(callCtx, req.Image, rc)
 		cancel()
 		s.d.Metrics.ObserveAICall(s.cfg.ProviderName, s.d.Now().Sub(start).Seconds())
 
@@ -225,16 +245,25 @@ func (s *Service) callProvider(ctx context.Context, req Request) (Result, error)
 			invalid++
 			log.Warn("food vision provider returned an invalid response", "attempt", invalid, "error", err.Error())
 			if invalid > maxInvalidRetries {
+				if useFallback("invalid response", err) {
+					continue
+				}
 				return Result{}, err
 			}
 		case errors.Is(err, ErrRejected):
 			s.d.Metrics.AIError(ErrKindRejected)
+			if useFallback("rejected", err) {
+				continue
+			}
 			return Result{}, err
 		case errors.Is(err, ErrUnavailable), errors.Is(err, context.DeadlineExceeded):
 			s.d.Metrics.AIError(ErrKindUnavailable)
 			transient++
 			log.Warn("food vision provider unavailable", "attempt", transient, "error", err.Error())
 			if transient > maxTransientRetries {
+				if useFallback("unavailable", err) {
+					continue
+				}
 				return Result{}, fmt.Errorf("%w: retries exhausted", ErrUnavailable)
 			}
 			if serr := s.d.Sleep(ctx, s.backoff(transient)); serr != nil {
