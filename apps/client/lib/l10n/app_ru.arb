@@ -302,5 +302,18 @@
   "balancedPlateRecAddProtein": "Можно добавить источник белка, например рыбу, курицу, яйца, бобовые или тофу.",
   "balancedPlateRecAddComplexCarbohydrates": "Можно добавить сложные углеводы, например гречку, бурый рис, киноа или цельнозерновую пасту.",
   "balancedPlateCoverage": "Оценка баланса тарелки основана на {percent}% этого приёма пищи.",
-  "balancedPlateShareSemantics": "{group}, {percent} процентов классифицированного веса тарелки"
+  "balancedPlateShareSemantics": "{group}, {percent} процентов классифицированного веса тарелки",
+  "eatAgain": "Ем это снова",
+  "eatAgainTitle": "Ем это снова",
+  "recentMealsHeader": "Недавнее",
+  "repeatMeal": "Повторить приём пищи",
+  "repeatMealNotFound": "Этот приём пищи больше не существует",
+  "repeatMealFailed": "Не удалось повторить этот приём пищи",
+  "repeatEmptyTitle": "Здесь пока нечего повторять",
+  "repeatEmptyBody": "Уже сохранённые приёмы пищи можно добавить снова одним нажатием.",
+  "repeatEmptyAction": "Сфотографировать еду",
+  "recentMealsError": "Не удалось загрузить недавние приёмы пищи. Попробуйте ещё раз.",
+  "mealAdded": "Приём пищи добавлен",
+  "moreItems": "+{count}",
+  "eatAgainSemantics": "Ем это снова: {names}, {kcal, plural, one{{kcal} килокалория} few{{kcal} килокалории} many{{kcal} килокалорий} other{{kcal} килокалории}}"
 }

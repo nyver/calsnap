@@ -1789,6 +1789,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{group}, {percent} percent of classified plate weight'**
   String balancedPlateShareSemantics(String group, int percent);
+
+  /// No description provided for @eatAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Eat this again'**
+  String get eatAgain;
+
+  /// No description provided for @eatAgainTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Eat this again'**
+  String get eatAgainTitle;
+
+  /// No description provided for @recentMealsHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent meals'**
+  String get recentMealsHeader;
+
+  /// No description provided for @repeatMeal.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat meal'**
+  String get repeatMeal;
+
+  /// No description provided for @repeatMealNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This meal no longer exists'**
+  String get repeatMealNotFound;
+
+  /// No description provided for @repeatMealFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t repeat this meal'**
+  String get repeatMealFailed;
+
+  /// No description provided for @repeatEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to repeat yet'**
+  String get repeatEmptyTitle;
+
+  /// No description provided for @repeatEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Meals you\'ve saved before can be added again in one tap.'**
+  String get repeatEmptyBody;
+
+  /// No description provided for @repeatEmptyAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a photo of food'**
+  String get repeatEmptyAction;
+
+  /// No description provided for @recentMealsError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load recent meals. Please try again.'**
+  String get recentMealsError;
+
+  /// No description provided for @mealAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Meal added'**
+  String get mealAdded;
+
+  /// No description provided for @moreItems.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count}'**
+  String moreItems(int count);
+
+  /// No description provided for @eatAgainSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Eat this again: {names}, {kcal} kilocalories'**
+  String eatAgainSemantics(String names, int kcal);
 }
 
 class _AppLocalizationsDelegate

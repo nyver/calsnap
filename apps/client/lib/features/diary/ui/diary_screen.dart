@@ -16,6 +16,7 @@ import '../../meal/domain/nutrition_calculator.dart';
 import '../../meal/ui/item_edit_sheet.dart';
 import '../../meal/ui/meal_deletion.dart';
 import '../../meal/ui/meal_draft_notifier.dart';
+import '../../meal/ui/repeat_meal_actions.dart';
 import '../../settings/domain/user_settings.dart';
 import 'diary_providers.dart';
 
@@ -152,6 +153,15 @@ class DiaryScreen extends ConsumerWidget {
                 Navigator.pop(sheetContext);
                 ref.read(mealDraftProvider.notifier).startManual();
                 context.push(Routes.newMeal);
+              },
+            ),
+            ListTile(
+              key: const Key('addEatAgain'),
+              leading: const Icon(Icons.replay),
+              title: Text(l10n.eatAgain),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                context.push(Routes.repeatMeal);
               },
             ),
           ],
@@ -362,14 +372,18 @@ class _MealTile extends ConsumerWidget {
             PopupMenuButton<String>(
               key: Key('mealMenu-${meal.id}'),
               onSelected: (value) {
-                if (value == 'edit') {
-                  context.push(Routes.editMeal(meal.id));
-                } else {
-                  confirmAndDeleteMeal(context, ref, meal.id);
+                switch (value) {
+                  case 'edit':
+                    context.push(Routes.editMeal(meal.id));
+                  case 'repeat':
+                    startRepeatAndOpen(context, ref, meal.id);
+                  default:
+                    confirmAndDeleteMeal(context, ref, meal.id);
                 }
               },
               itemBuilder: (context) => [
                 PopupMenuItem(value: 'edit', child: Text(l10n.edit)),
+                PopupMenuItem(value: 'repeat', child: Text(l10n.eatAgain)),
                 PopupMenuItem(value: 'delete', child: Text(l10n.delete)),
               ],
             ),

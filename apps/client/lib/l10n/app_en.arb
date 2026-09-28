@@ -478,5 +478,35 @@
         "type": "int"
       }
     }
+  },
+  "eatAgain": "Eat this again",
+  "eatAgainTitle": "Eat this again",
+  "recentMealsHeader": "Recent meals",
+  "repeatMeal": "Repeat meal",
+  "repeatMealNotFound": "This meal no longer exists",
+  "repeatMealFailed": "Couldn't repeat this meal",
+  "repeatEmptyTitle": "Nothing to repeat yet",
+  "repeatEmptyBody": "Meals you've saved before can be added again in one tap.",
+  "repeatEmptyAction": "Take a photo of food",
+  "recentMealsError": "Couldn't load recent meals. Please try again.",
+  "mealAdded": "Meal added",
+  "moreItems": "+{count}",
+  "@moreItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "eatAgainSemantics": "Eat this again: {names}, {kcal} kilocalories",
+  "@eatAgainSemantics": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      },
+      "kcal": {
+        "type": "int"
+      }
+    }
   }
 }

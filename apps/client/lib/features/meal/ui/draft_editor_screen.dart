@@ -21,6 +21,7 @@ import 'item_edit_sheet.dart';
 import 'meal_deletion.dart';
 import 'meal_draft_notifier.dart';
 import 'plate_analysis_provider.dart';
+import 'repeat_meal_actions.dart';
 
 /// Which flow the editor serves. All three share one editing UI.
 enum EditorMode { recognition, manual, edit }
@@ -134,10 +135,13 @@ class _DraftEditorScreenState extends ConsumerState<DraftEditorScreen> {
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _saving = true);
     try {
+      final isRepeat = draft.repeatedFromMealId != null;
       final saved = await ref.read(saveMealUseCaseProvider)(draft);
       ref.read(mealDraftProvider.notifier).clear();
       ref.read(selectedDayProvider.notifier).select(saved.mealTime);
-      messenger.showSnackBar(SnackBar(content: Text(l10n.mealSaved)));
+      messenger.showSnackBar(
+        SnackBar(content: Text(isRepeat ? l10n.mealAdded : l10n.mealSaved)),
+      );
       if (mounted) {
         setState(() => _leaving = true);
         context.go(Routes.diary);
@@ -244,13 +248,43 @@ class _DraftEditorScreenState extends ConsumerState<DraftEditorScreen> {
         );
   }
 
-  String _title(BuildContext context) {
+  String _title(BuildContext context, MealDraft? draft) {
     final l10n = context.l10n;
+    if (draft?.repeatedFromMealId != null) return l10n.eatAgainTitle;
     return switch (widget.mode) {
       EditorMode.recognition => l10n.resultTitle,
       EditorMode.manual => l10n.newMealTitle,
       EditorMode.edit => l10n.editMealTitle,
     };
+  }
+
+  Future<void> _repeatFromEdit(MealDraft draft) async {
+    if (ref.read(mealDraftProvider.notifier).isDirty) {
+      final l10n = context.l10n;
+      final discard = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(l10n.discardTitle),
+          content: Text(l10n.discardBody),
+          actions: [
+            TextButton(
+              key: const Key('keepEditing'),
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l10n.keepEditing),
+            ),
+            FilledButton(
+              key: const Key('discardChanges'),
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(l10n.discard),
+            ),
+          ],
+        ),
+      );
+      if (discard != true || !mounted) return;
+    }
+    final id = draft.editingMealId;
+    if (id == null) return;
+    await startRepeatAndOpen(context, ref, id, replace: true);
   }
 
   @override
@@ -264,15 +298,22 @@ class _DraftEditorScreenState extends ConsumerState<DraftEditorScreen> {
       onPopInvokedWithResult: (didPop, _) => _onPop(didPop),
       child: Scaffold(
         appBar: AppBar(
-          title: Text(_title(context)),
+          title: Text(_title(context, draft)),
           actions: [
-            if (widget.mode == EditorMode.edit && draft != null)
+            if (widget.mode == EditorMode.edit && draft != null) ...[
+              IconButton(
+                key: const Key('eatAgainButton'),
+                tooltip: l10n.eatAgain,
+                icon: const Icon(Icons.replay),
+                onPressed: () => _repeatFromEdit(draft),
+              ),
               IconButton(
                 key: const Key('deleteMealButton'),
                 tooltip: l10n.deleteMeal,
                 icon: const Icon(Icons.delete_outline),
                 onPressed: () => _delete(draft),
               ),
+            ],
           ],
         ),
         body: draft == null

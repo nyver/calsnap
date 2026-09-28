@@ -973,4 +973,49 @@ class AppLocalizationsEn extends AppLocalizations {
   String balancedPlateShareSemantics(String group, int percent) {
     return '$group, $percent percent of classified plate weight';
   }
+
+  @override
+  String get eatAgain => 'Eat this again';
+
+  @override
+  String get eatAgainTitle => 'Eat this again';
+
+  @override
+  String get recentMealsHeader => 'Recent meals';
+
+  @override
+  String get repeatMeal => 'Repeat meal';
+
+  @override
+  String get repeatMealNotFound => 'This meal no longer exists';
+
+  @override
+  String get repeatMealFailed => 'Couldn\'t repeat this meal';
+
+  @override
+  String get repeatEmptyTitle => 'Nothing to repeat yet';
+
+  @override
+  String get repeatEmptyBody =>
+      'Meals you\'ve saved before can be added again in one tap.';
+
+  @override
+  String get repeatEmptyAction => 'Take a photo of food';
+
+  @override
+  String get recentMealsError =>
+      'Couldn\'t load recent meals. Please try again.';
+
+  @override
+  String get mealAdded => 'Meal added';
+
+  @override
+  String moreItems(int count) {
+    return '+$count';
+  }
+
+  @override
+  String eatAgainSemantics(String names, int kcal) {
+    return 'Eat this again: $names, $kcal kilocalories';
+  }
 }

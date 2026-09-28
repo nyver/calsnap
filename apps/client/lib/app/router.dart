@@ -7,6 +7,7 @@ import '../features/diary/ui/diary_screen.dart';
 import '../features/diary/ui/history_screen.dart';
 import '../features/foods/ui/food_search_screen.dart';
 import '../features/meal/ui/draft_editor_screen.dart';
+import '../features/meal/ui/recent_meals_screen.dart';
 import '../features/onboarding/ui/onboarding_screen.dart';
 import '../features/onboarding/ui/splash_screen.dart';
 import '../features/recognition/ui/analysis_screen.dart';
@@ -30,6 +31,7 @@ abstract final class Routes {
   static const analysis = '/analysis';
   static const result = '/result';
   static const newMeal = '/meal/new';
+  static const repeatMeal = '/meal/repeat';
   static const foodSearch = '/foods/search';
   static const privacy = '/privacy';
 
@@ -118,6 +120,12 @@ GoRouter createRouter({String initialLocation = Routes.splash}) => GoRouter(
       path: Routes.newMeal,
       builder: (context, state) =>
           const DraftEditorScreen(mode: EditorMode.manual),
+    ),
+    GoRoute(
+      // Must come before '/meal/:id', or go_router would match "repeat" as a
+      // meal id.
+      path: Routes.repeatMeal,
+      builder: (context, state) => const RecentMealsScreen(),
     ),
     GoRoute(
       path: '/meal/:id',

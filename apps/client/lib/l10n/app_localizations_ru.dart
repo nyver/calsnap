@@ -979,4 +979,57 @@ class AppLocalizationsRu extends AppLocalizations {
   String balancedPlateShareSemantics(String group, int percent) {
     return '$group, $percent процентов классифицированного веса тарелки';
   }
+
+  @override
+  String get eatAgain => 'Ем это снова';
+
+  @override
+  String get eatAgainTitle => 'Ем это снова';
+
+  @override
+  String get recentMealsHeader => 'Недавнее';
+
+  @override
+  String get repeatMeal => 'Повторить приём пищи';
+
+  @override
+  String get repeatMealNotFound => 'Этот приём пищи больше не существует';
+
+  @override
+  String get repeatMealFailed => 'Не удалось повторить этот приём пищи';
+
+  @override
+  String get repeatEmptyTitle => 'Здесь пока нечего повторять';
+
+  @override
+  String get repeatEmptyBody =>
+      'Уже сохранённые приёмы пищи можно добавить снова одним нажатием.';
+
+  @override
+  String get repeatEmptyAction => 'Сфотографировать еду';
+
+  @override
+  String get recentMealsError =>
+      'Не удалось загрузить недавние приёмы пищи. Попробуйте ещё раз.';
+
+  @override
+  String get mealAdded => 'Приём пищи добавлен';
+
+  @override
+  String moreItems(int count) {
+    return '+$count';
+  }
+
+  @override
+  String eatAgainSemantics(String names, int kcal) {
+    String _temp0 = intl.Intl.pluralLogic(
+      kcal,
+      locale: localeName,
+      other: '$kcal килокалории',
+      many: '$kcal килокалорий',
+      few: '$kcal килокалории',
+      one: '$kcal килокалория',
+    );
+    return 'Ем это снова: $names, $_temp0';
+  }
 }
