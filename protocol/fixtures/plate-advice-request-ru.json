@@ -1,0 +1,14 @@
+{
+  "locale": "ru",
+  "mealType": "lunch",
+  "items": [
+    { "name": "Гречка", "weightG": 180, "plateGroup": "complex_carbohydrate" },
+    { "name": "Куриная грудка", "weightG": 150, "plateGroup": "protein" },
+    { "name": "Помидор", "weightG": 45, "plateGroup": "vegetable" }
+  ],
+  "balance": {
+    "vegetablesFruit": "low",
+    "protein": "ok",
+    "complexCarbohydrates": "ok"
+  }
+}

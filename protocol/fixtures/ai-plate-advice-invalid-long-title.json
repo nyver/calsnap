@@ -1,0 +1,12 @@
+{
+  "summary": "The title of the only suggestion is far too long.",
+  "suggestions": [
+    {
+      "action": "ADD",
+      "targetGroup": "vegetable",
+      "title": "Add a generous portion of fresh, colorful, crunchy vegetables and some seasonal fruit to your plate today",
+      "reason": "Vegetables and fruit are low.",
+      "examples": []
+    }
+  ]
+}

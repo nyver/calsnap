@@ -1,0 +1,6 @@
+{
+  "summary": "Unknown action value.",
+  "suggestions": [
+    { "action": "REMOVE", "targetGroup": "complex_carbohydrate", "title": "Remove some rice", "reason": "Carbohydrates dominate the plate.", "examples": [] }
+  ]
+}

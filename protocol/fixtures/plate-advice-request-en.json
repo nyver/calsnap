@@ -1,0 +1,14 @@
+{
+  "locale": "en",
+  "mealType": "lunch",
+  "items": [
+    { "name": "Buckwheat", "weightG": 180, "plateGroup": "complex_carbohydrate" },
+    { "name": "Chicken breast", "weightG": 150, "plateGroup": "protein" },
+    { "name": "Tomato", "weightG": 45, "plateGroup": "vegetable" }
+  ],
+  "balance": {
+    "vegetablesFruit": "low",
+    "protein": "ok",
+    "complexCarbohydrates": "ok"
+  }
+}

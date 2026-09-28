@@ -1,0 +1,6 @@
+{
+  "summary": "One suggestion has no reason field.",
+  "suggestions": [
+    { "action": "ADD", "targetGroup": "vegetable", "title": "Add vegetables", "examples": [] }
+  ]
+}

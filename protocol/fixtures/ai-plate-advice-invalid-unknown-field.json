@@ -1,0 +1,7 @@
+{
+  "summary": "Has an extra field the schema forbids.",
+  "confidence": 0.9,
+  "suggestions": [
+    { "action": "ADD", "targetGroup": "vegetable", "title": "Add vegetables", "reason": "Vegetables and fruit are low.", "examples": [] }
+  ]
+}

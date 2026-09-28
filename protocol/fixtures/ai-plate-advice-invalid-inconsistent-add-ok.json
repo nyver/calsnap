@@ -1,0 +1,12 @@
+{
+  "summary": "Adds more protein although the supplied balance already reports protein as ok.",
+  "suggestions": [
+    {
+      "action": "ADD",
+      "targetGroup": "protein",
+      "title": "Add more protein",
+      "reason": "More protein never hurts.",
+      "examples": ["extra chicken breast"]
+    }
+  ]
+}

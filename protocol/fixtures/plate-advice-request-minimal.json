@@ -1,0 +1,12 @@
+{
+  "locale": "en",
+  "mealType": "breakfast",
+  "items": [
+    { "name": "Oatmeal", "weightG": 250, "plateGroup": "complex_carbohydrate" }
+  ],
+  "balance": {
+    "vegetablesFruit": "low",
+    "protein": "low",
+    "complexCarbohydrates": "ok"
+  }
+}

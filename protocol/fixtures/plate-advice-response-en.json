@@ -1,0 +1,13 @@
+{
+  "requestId": "0190f7a2-1b2c-7d3e-8f40-123456789abc",
+  "summary": "Add a few more vegetables to balance the plate.",
+  "suggestions": [
+    {
+      "action": "ADD",
+      "targetGroup": "vegetable",
+      "title": "Add vegetables",
+      "reason": "Vegetables and fruit are low compared with the protein and carbohydrates.",
+      "examples": ["cucumber and tomato salad", "steamed broccoli"]
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "summary": "Four suggestions, one too many.",
+  "suggestions": [
+    { "action": "ADD", "targetGroup": "vegetable", "title": "Add vegetables", "reason": "Vegetables and fruit are low.", "examples": [] },
+    { "action": "KEEP", "targetGroup": "protein", "title": "Keep the protein", "reason": "Protein is already on target.", "examples": [] },
+    { "action": "ADD", "targetGroup": "fruit", "title": "Add fruit", "reason": "Fruit adds fiber and vitamins.", "examples": [] },
+    { "action": "OPTIONAL_REPLACE", "targetGroup": "other", "title": "Swap the sauce", "reason": "A lighter sauce reduces added sugar.", "examples": [] }
+  ]
+}
