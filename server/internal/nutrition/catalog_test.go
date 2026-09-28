@@ -3,6 +3,9 @@ package nutrition
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -25,6 +28,39 @@ func TestEmbeddedCatalogMatchesProtocolCopy(t *testing.T) {
 	canonical := testutil.ReadProtocol(t, "nutrition/catalog.json")
 	if !bytes.Equal(canonical, embeddedCatalog) {
 		t.Fatal("server/internal/nutrition/catalog.json differs from protocol/nutrition/catalog.json; run scripts/sync-catalog.sh")
+	}
+}
+
+// Clients re-seed their catalog rows only when catalogVersion changes, so a
+// content change without a bump never reaches installed apps.
+func TestCatalogContentIsPinnedToItsVersion(t *testing.T) {
+	t.Parallel()
+
+	const (
+		pinnedVersion = 4
+		pinnedSHA256  = "1dbf7fdbca38eff9952deec24ccf848d2cfbbc2ac3f098f8054fea8160fe34a7"
+	)
+	var doc map[string]json.RawMessage
+	if err := json.Unmarshal(embeddedCatalog, &doc); err != nil {
+		t.Fatalf("decode catalog: %v", err)
+	}
+	var version int
+	if err := json.Unmarshal(doc["catalogVersion"], &version); err != nil {
+		t.Fatalf("decode catalogVersion: %v", err)
+	}
+	delete(doc, "catalogVersion")
+	// Marshal sorts keys and compacts raw values, so formatting and line
+	// endings do not affect the hash.
+	content, err := json.Marshal(doc)
+	if err != nil {
+		t.Fatalf("encode catalog: %v", err)
+	}
+	sum := sha256.Sum256(content)
+	got := hex.EncodeToString(sum[:])
+	if version != pinnedVersion || got != pinnedSHA256 {
+		t.Errorf("catalogVersion %d with content sha256 %s; pinned: version %d, sha256 %s. "+
+			"After changing the catalog, bump catalogVersion and update both pinned values",
+			version, got, pinnedVersion, pinnedSHA256)
 	}
 }
 
