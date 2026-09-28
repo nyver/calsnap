@@ -69,6 +69,10 @@ limits:
   # limit: lookups are cheap and often come in bursts (scanning a shopping bag).
   product_rate_per_minute: 60
   product_rate_burst: 10
+  # Token bucket per client for POST /v1/plate-advice. Separate from meal analysis
+  # and barcode lookups.
+  plate_advice_rate_per_minute: 10
+  plate_advice_rate_burst: 3
 
 # Values returned to the app by GET /v1/config so they can change without an app release.
 client:
@@ -133,6 +137,15 @@ products:
   # Found products are served from memory this long (unknown products for 10 minutes).
   cache_ttl: 24h
   cache_max_entries: 5000
+
+# AI suggestions that make the current meal's plate more balanced
+# (POST /v1/plate-advice). Uses the AI provider configured above; sends item
+# names, weights and the local plate balance, never a photo. The local
+# balance stays authoritative: the server rejects any AI answer that
+# contradicts it. Disable to keep food names from reaching the AI provider
+# for this feature; the app then hides the "Get AI suggestions" button.
+plate_advice:
+  enabled: true
 
 metrics:
   # Prometheus listener (/metrics). Keep it bound to a private interface.

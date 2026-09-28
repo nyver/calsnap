@@ -64,8 +64,9 @@ Every key is documented in [config.example.yaml](config.example.yaml). The impor
 * OpenRouter and RouterAI use the OpenAI-compatible chat-completions API, so any vision-capable model they offer works, for example `google/gemini-2.5-flash`. Note that the router forwards the photo to the upstream model vendor (see the [privacy note](docs/security/privacy.md)). The RouterAI defaults (`https://routerai.ru/api/v1`, model id format) are assumptions: check them against your account and override `base_url` and `model` if needed.
 * `server.tls.*` – native HTTPS (TLS 1.2 minimum): either `cert_file` + `key_file` (created as a self-signed pair when both files are missing), or `self_signed: true` for a certificate the server generates itself (see [TLS modes](#tls-modes)). Without any of them the server only starts when `server.allow_plain_http: true` (behind a TLS-terminating reverse proxy, or locally) and logs a warning.
 * `server.trusted_proxies` – proxies whose `X-Forwarded-For` is trusted for per-client rate limiting.
-* `limits.*` – upload size (default 4 MiB), image dimensions, rate limit (10/min, burst 3), concurrent AI calls (16), replay window (10 min), and a separate, more generous rate limit for barcode lookups (60/min, burst 10).
+* `limits.*` – upload size (default 4 MiB), image dimensions, rate limit (10/min, burst 3), concurrent AI calls (16), replay window (10 min), a separate, more generous rate limit for barcode lookups (60/min, burst 10), and a separate rate limit for plate advice (`plate_advice_rate_per_minute` / `_burst`, default 10/min, burst 3).
 * `products.*` – the barcode lookup (`GET /v1/products/{barcode}`) reads [Open Food Facts](https://world.openfoodfacts.org). It is on by default and makes outbound HTTPS requests; set `products.enabled: false` on hosts that must not (the route and the scanner in the app then disappear). Set `products.user_agent` to an app name with a contact address, as Open Food Facts asks. Barcodes are never logged.
+* `plate_advice.enabled` – on by default. Turns `POST /v1/plate-advice` and the app's "Get AI suggestions" button on or off; when off, food names never reach the AI provider for this feature. Uses the same AI provider, credentials and model as meal analysis.
 * `client.*` – values the app fetches from `GET /v1/config` (image long side, JPEG quality, timeout). `maxImages` is also sent there, fixed at 2 by the code: the analyze endpoint accepts an optional side photo.
 
 ### Run
@@ -189,6 +190,10 @@ When you change an AI weight, the app records the AI value and yours. From the n
 
 Below the calorie and macro totals, the meal editor shows a "Balance of the plate" card: a short, informational read on the composition of the meal (vegetables & fruit, protein, complex carbohydrates), computed locally from item weights and the catalog's optional `plate` classification, never from calories or an extra AI call. It updates immediately as you edit weights or items, works offline for a saved meal, and shows "Not enough information to evaluate the plate balance." when too little of the meal is classified or the eligible weight is too small (for example a single piece of fruit). The card's info button explains the model and shows a disclaimer: this is general guidance, not medical or individualized advice. The backend never computes or receives plate analysis. Details: [ADR 012](docs/adr/012-balanced-plate-local-analysis.md).
 
+### AI plate suggestions
+
+On an evaluable meal, the Balance of the plate card offers "Get AI suggestions" when the backend advertises `plateAdvice` in `GET /v1/config` (on by default; `plate_advice.enabled: false` turns it off). Tapping it (after a one-time privacy notice) sends the current items' names, weights and plate groups, the meal type, the app language and the local balance status to `POST /v1/plate-advice`; the backend asks the same configured AI provider for 1–3 short, concrete suggestions ("cucumber and tomato salad", "add a source of protein") that fit the current meal. The local balance stays authoritative: the server rejects and retries any AI answer that contradicts it, so the AI can explain the local verdict but never override it. No photo, meal history or profile data is sent, and no photo is involved at all. Advice is shown only in the open editor (never saved, never added to the meal automatically) and becomes stale, with a refresh action, as soon as the meal changes. See the [privacy note](docs/security/privacy.md) and [ADR 014](docs/adr/014-ai-plate-advice.md).
+
 ### Eat this again
 
 Re-adds a previously saved meal as a new, independent diary entry without a new photo, AI analysis or product search: **Add meal -> Eat this again**, a saved meal's card menu on the diary, or the repeat action on the saved-meal editing screen. The recent meals list offers saved meals from the last 30 days (at most 50, newest first, deleted or item-less meals excluded); picking one, or the direct entry points from the diary and the editor, opens the meal editor with a new draft that uses the current date and time, keeps the source meal type (or the time-based default when the source has none), and copies each item's final saved name, weight and per-100 g nutrition, with no photo and no identifiers of the source. Everything runs from the local database only, with no backend, AI, barcode or Open Food Facts call.
@@ -217,6 +222,7 @@ flutter analyze
 flutter test
 flutter test integration_test/photo_flow_test.dart -d <device-id>   # emulator or device
 flutter test integration_test/repeat_meal_flow_test.dart -d <device-id>   # emulator or device
+flutter test integration_test/plate_advice_flow_test.dart -d <device-id>   # emulator or device
 ```
 
 Golden files live in `apps/client/test/goldens/goldens`; refresh them with `flutter test --update-goldens` after intentional layout changes.
@@ -257,6 +263,7 @@ python scripts/generate_app_icons.py
 * **"The server address is not set" when analyzing a photo** – open Settings -> Server address and enter your `https://` address (release builds reject `http://`).
 * **"Analysis service temporarily unavailable"** – check the backend logs by request id; the app shows the same id in nothing user-visible, but the `X-Request-Id` header is echoed by the API.
 * **Backend exits at startup** – the error names the invalid key (for example the environment variable that should hold the API key, never its value).
+* **"Get AI suggestions" button is missing** – the server is older than this feature or has `plate_advice.enabled: false`; either way `GET /v1/config` omits or reports `plateAdvice: false`. It can also be hidden because the local Balance of the plate card says "Not enough information to evaluate the plate balance."
 * **Kotlin/Gradle errors like "Storage already registered" on Windows** – the project and the pub cache are on different drives; `kotlin.incremental=false` in `android/gradle.properties` works around it.
 * **`Access is denied` running `go test` on Windows for a package called `analyze`** – the host blocks executables with that name, which is why the use case package is called `analysis`.
 * **A diary written by a newer app version** – the app shows an update screen and does not touch the data.

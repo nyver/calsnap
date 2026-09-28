@@ -1,0 +1,32 @@
+# 014. AI plate advice on top of the local balance engine
+
+## Context
+
+[ADR 012](012-balanced-plate-local-analysis.md) gives every meal a local, offline "Balance of the plate" verdict and up to two generic recommendations ("add vegetables", "reduce carbohydrate dominance"). Those recommendations name a food group, not a food: they cannot say "cucumber and tomato salad" for *this* meal. Turning that into concrete suggestions needs to look at what is actually on the plate, which only an AI model can do. The requirements are in `CALSNAP_AI_PLATE_ADVICE_SPEC.md`.
+
+## Decision
+
+**The local engine stays the single source of truth; the AI layer is optional and explanatory only.** `BalancedPlateAnalyzer` is untouched by this change. The client derives a per-dimension status (`low`/`ok`/`high`) from the same ratios and thresholds the card already shows and sends that status, not raw ratios or scores, to the backend. The backend instructs the AI provider that this status is authoritative and, more importantly, enforces it in code: `plateadvice.CheckConsistency` rejects any suggestion whose action contradicts the supplied status (`ADD` only toward a `low` dimension, `KEEP` only toward `ok`, `OPTIONAL_REPLACE` never toward `high`). A violation is treated exactly like a malformed AI response — one repair retry, then the fallback model, then `502 AI_INVALID_RESPONSE` — so the guarantee "AI cannot override the local balance" holds even if the prompt is ignored.
+
+**No photo, history or profile is sent.** The request carries only the app language, the meal type, each item's display name/weight/plate group, and the three-dimension balance — never the photo, calories, macros, other meals, or anything from the user's profile or settings. This is deliberately less data than meal analysis or label reading send, because plate advice reasons about composition, not identification.
+
+**The response is structured and validated twice.** `protocol/ai/plate-advice-result.schema.json` bounds a summary and 1–3 suggestions (action, optional target group, title, reason, up to 4 examples), all length-limited. The server decodes strictly (`DisallowUnknownFields`, no trailing data), checks shape (`plateadvice.ValidateAdvice`) and then consistency (`plateadvice.CheckConsistency`) before the client ever sees it. The client itself parses defensively again: an unknown action is dropped, an unknown target group becomes absent, and an empty result is treated as `AI_INVALID_RESPONSE`.
+
+**Advice is not persisted, and the draft is never changed automatically.** The client keeps advice only in the open editor's Riverpod state, keyed by a fingerprint of the request that produced it; closing the editor discards it. `MealDraft` has no write path from this feature at all — the user must add any suggested food manually, exactly like a food they thought of themselves. The server's replay cache holds responses in memory only, for the configured replay window, and is keyed by the client request id plus a hash of the request content (design.md Decision 6), so it never serves stale advice for a different meal.
+
+**Errors reuse the existing vocabulary; only `BALANCE_NOT_EVALUABLE` is new.** `INVALID_REQUEST`, `RATE_LIMITED`, `AI_PROVIDER_UNAVAILABLE`, `AI_INVALID_RESPONSE`, `IMAGE_ANALYSIS_FAILED` (provider refusal) and `INTERNAL_ERROR` all mean what they already mean for meal analysis and label reading. Introducing the spec-sketched synonyms (`AI_UNAVAILABLE`, `AI_TIMEOUT`, `FEATURE_DISABLED`) would fork the error contract for one endpoint; `BALANCE_NOT_EVALUABLE` (422) is added only because an all-`unknown` balance has no existing equivalent.
+
+**Configuration stays flat, like the rest of `limits.*`.** `plate_advice.enabled` (default `true`) is a new top-level section, mirroring `products.enabled`. `limits.plate_advice_rate_per_minute` / `_burst` follow the existing flat naming rather than the nested `limits.plate_advice.*` the source spec sketches. No new timeout, concurrency or replay tunables are added: the endpoint reuses `ai.*` and `limits.replay_*`.
+
+**Metrics are the existing generic series, not a new `calsnap_plate_advice_*` family.** Route-labeled HTTP metrics (`calsnap_http_requests_total{route="/v1/plate-advice"}`, its duration histogram) already show traffic and latency; the AI-level metrics (`calsnap_ai_call_duration_seconds`, `calsnap_ai_errors_total`, `calsnap_ai_tokens_total`, `calsnap_ai_fallback_used_total`) are shared across all three AI use cases exactly as label reading already shares them with meal analysis.
+
+**The retry and replay code is copied from `label`, not extracted.** `plateadvice.Service` repeats `label.Service.Read`'s retry/fallback loop and a package-local replay cache modeled on `analysis`'s. Extracting a shared helper would touch `internal/app/analysis` and `internal/app/label`, both out of scope for this change and, on this host, not reliably testable (`internal/app/analysis`'s test binary is sometimes blocked by the OS). The duplication is deliberate and tracked below.
+
+## Consequences
+
+* Food names and weights (but never a photo) reach the operator's configured AI provider, and via a router (OpenRouter, RouterAI) the upstream vendor, exactly as disclosed in the one-time privacy notice, the privacy screen and `docs/security/privacy.md`.
+* A model can still write medical-sounding or off-topic text inside an otherwise valid, consistent suggestion; free text cannot be schema-validated for content. This is mitigated by the prompt's explicit prohibitions, length limits, the always-visible disclaimer, and is accepted as a residual risk, same as for meal analysis.
+* Two more copies of the AI retry/fallback loop and a third replay cache now exist in the codebase (`analysis`, `label`, `plateadvice`). Follow-up: extract a shared `internal/app/airetry` helper once all three use cases can be verified together on a capable host.
+* AI cost and latency are not split per use case in metrics; a route-level view exists today. Follow-up: per-use-case AI token metrics if operators need a cost breakdown.
+* The spinner can last as long as the shared analysis timeout plus margin. Follow-up: a shorter, dedicated timeout for plate advice, since a text-only call is normally much faster than vision.
+* Follow-up: an optional cheaper text-only model configuration, distinct from the vision model, since plate advice never sends an image.

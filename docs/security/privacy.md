@@ -16,7 +16,9 @@ The app declares `allowBackup="false"`: the diary is not copied to Google cloud 
 
 ## What leaves the device
 
-Only when the user analyzes a photo, the app sends to the CalSnap backend over HTTPS:
+Nothing leaves the device on its own; every request below is triggered by a specific user action (analyzing a photo, reading a label, scanning a barcode, or asking for AI plate suggestions) and only that request's data is sent.
+
+When the user analyzes a photo, the app sends to the CalSnap backend over HTTPS:
 
 * the prepared photo: downscaled, orientation applied, re-encoded as JPEG so that all metadata (EXIF, including GPS) is removed; when the user chooses "Improve accuracy", a second photo of the same meal taken from the side, prepared the same way, is sent in the same request;
 * the app language (`ru` or `en`);
@@ -29,19 +31,21 @@ When the user photographs a nutrition label (for a barcode nobody knows, or in t
 
 When the user scans a product barcode, the code is read on the device and only its number is sent to the CalSnap backend, which asks Open Food Facts for the product (Open Food Facts sees the backend, not the user's device). The barcode is not logged by the backend. Products found this way are cached in the local database. The scanner library (Google ML Kit, on-device) may send anonymous technical usage metrics to Google; it does not receive camera images or barcodes.
 
+When the user taps "Get AI suggestions" on the Balance of the plate card, the app sends to the CalSnap backend over HTTPS: the name and approximate weight of each item on the plate, its plate group (for example "vegetable" or "protein"), the meal type, the app language, and the local balance assessment (low/ok/high per dimension, already computed on the device). It does **not** send the photo, calories or macronutrients, meal history, earlier advice, device or user identifiers, or profile data such as age, weight or goals. The backend forwards the item names, weights and balance to the configured AI provider and returns 1–3 short suggestions; the local balance assessment is never re-scored or overridden by the AI answer. A one-time notice describes this before the first request on a device; declining it sends nothing. Advice is kept only in memory for the open screen and is never written to the database or included in any export.
+
  Nothing else is sent: not the diary, not the settings, not device identifiers, no account (there is none).
 
 ## What the backend does with it
 
 * Processes the photo in memory only, forwards it to the configured AI provider (Google Gemini directly, or OpenRouter or RouterAI, which route the request to an upstream model vendor) together with the language and plate diameter, and returns the result. The photo is never written to disk or any store and is dropped when the request completes.
 * Keeps a short-lived in-memory cache of the *response* (not the photo) keyed by the request id, so that a retry after a lost connection does not trigger a second AI call. It is bounded and expires after 10 minutes.
-* Logs request id, route, status, sizes, durations, error codes and item counts. Logs never contain photos, prompts, AI output, food names or API keys.
+* Logs request id, route, status, sizes, durations, error codes and item counts. Logs never contain photos, prompts, AI output, food names, weights, the plate balance, or API keys — this applies to plate advice exactly as to meal analysis and label reading.
 * Exposes technical metrics without content or client addresses.
 * Stores no diary, meal history or user profile. There is no database.
 
 ## The AI provider
 
-The photo is processed by the AI provider chosen by the operator. When a routing service (OpenRouter, RouterAI) is used, the photo passes through the router **and** the upstream vendor of the selected model, so both sets of terms apply and both must be reviewed. The provider's own terms govern how long it may retain the request and whether inputs may be used for model training. **Before publishing, the operator must review those terms for the chosen provider and plan and state them in the public policy**: use a plan or setting under which inputs are not used for training, where the provider offers one. The API key is held only by the backend (an environment variable) and is never part of the app, the config file, logs or client builds.
+The photo (or, for plate advice, the item names, weights and balance) is processed by the AI provider chosen by the operator. When a routing service (OpenRouter, RouterAI) is used, the request passes through the router **and** the upstream vendor of the selected model, so both sets of terms apply and both must be reviewed. The provider's own terms govern how long it may retain the request and whether inputs may be used for model training. **Before publishing, the operator must review those terms for the chosen provider and plan and state them in the public policy**: use a plan or setting under which inputs are not used for training, where the provider offers one. The API key is held only by the backend (an environment variable) and is never part of the app, the config file, logs or client builds.
 
 ## Security measures
 
