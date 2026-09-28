@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import '../../../app/router.dart';
 import '../../../core/di/providers.dart';
 import '../../../shared/l10n_x.dart';
+import '../../balanced_plate/ui/balanced_plate_card.dart';
 import '../../diary/ui/diary_providers.dart';
 import '../../foods/domain/food.dart';
 import '../../recognition/domain/analysis.dart';
@@ -19,6 +20,7 @@ import '../domain/save_meal_use_case.dart';
 import 'item_edit_sheet.dart';
 import 'meal_deletion.dart';
 import 'meal_draft_notifier.dart';
+import 'plate_analysis_provider.dart';
 
 /// Which flow the editor serves. All three share one editing UI.
 enum EditorMode { recognition, manual, edit }
@@ -435,6 +437,10 @@ class _Editor extends ConsumerWidget {
         ],
         const SizedBox(height: 16),
         _TotalsCard(draft: draft),
+        if (ref.watch(plateAnalysisProvider) case final analysis?) ...[
+          const SizedBox(height: 16),
+          BalancedPlateCard(analysis: analysis),
+        ],
         const SizedBox(height: 16),
         Row(
           children: [

@@ -911,4 +911,66 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get certTrustAction => 'Trust';
+
+  @override
+  String get balancedPlateTitle => 'Balance of the plate';
+
+  @override
+  String get balancedPlateInfoTooltip => 'About balanced plate guidance';
+
+  @override
+  String get balancedPlateInfoBody =>
+      'This estimate is based on the weight of the foods in this meal, not calories, using general and tolerant nutrition ranges. It does not diagnose deficiencies or prescribe a diet.';
+
+  @override
+  String get balancedPlateDisclaimer =>
+      'Balanced Plate recommendations are general nutrition guidance. They do not take medical conditions, allergies, medications, individual diet plans, or professional medical advice into account.';
+
+  @override
+  String get balancedPlateVerdictBalanced => 'Nicely balanced';
+
+  @override
+  String get balancedPlateVerdictNearlyBalanced => 'Reasonably balanced';
+
+  @override
+  String get balancedPlateVerdictImprovable => 'Could be more balanced';
+
+  @override
+  String get balancedPlateInsufficientData =>
+      'Not enough information to evaluate the plate balance.';
+
+  @override
+  String get balancedPlateGroupVegetablesFruit => 'Vegetables & fruit';
+
+  @override
+  String get balancedPlateGroupProtein => 'Protein';
+
+  @override
+  String get balancedPlateGroupComplexCarbohydrates => 'Complex carbohydrates';
+
+  @override
+  String get balancedPlateRecAddVegetables =>
+      'Add some vegetables, for example salad, tomatoes, cucumber, broccoli or peppers.';
+
+  @override
+  String get balancedPlateRecReduceCarbohydrateDominance =>
+      'A large share of this meal is carbohydrate-rich. Adding vegetables or protein can improve the balance.';
+
+  @override
+  String get balancedPlateRecAddProtein =>
+      'Consider adding a source of protein, for example fish, chicken, eggs, legumes or tofu.';
+
+  @override
+  String get balancedPlateRecAddComplexCarbohydrates =>
+      'You could add a complex carbohydrate, for example buckwheat, brown rice, quinoa or whole-grain pasta.';
+
+  @override
+  String balancedPlateCoverage(int percent) {
+    return 'Balanced plate estimate is based on $percent% of this meal.';
+  }
+
+  @override
+  String balancedPlateShareSemantics(String group, int percent) {
+    return '$group, $percent percent of classified plate weight';
+  }
 }

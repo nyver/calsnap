@@ -170,7 +170,25 @@ Future<void> runPhotoFlow(
   expect(find.text('Rice'), findsOneWidget);
   expect(find.text('≈ 470 kcal'), findsOneWidget);
 
-  // Edit the weight of the rice in one action, then save.
+  // The balanced plate card appears immediately, computed locally from the
+  // recognized items (170 g rice, 135 g chicken, 80 g cucumber, 65 g tomato):
+  // complex carbohydrate share is 170 / (170+135+80+65) = 38%.
+  await tester.scrollUntilVisible(
+    find.byKey(const Key('balancedPlateCard')),
+    300,
+  );
+  expect(find.byKey(const Key('balancedPlateCard')), findsOneWidget);
+  expect(
+    find.text('38%'),
+    findsOneWidget,
+    reason: 'complex carbohydrate share before the edit',
+  );
+
+  // Edit the weight of the rice in one action, then save. Scroll back to the
+  // top (a single large drag, clamped by the scroll view) to reach the
+  // item's weight chip.
+  await tester.drag(find.byType(Scrollable).first, const Offset(0, 5000));
+  await settle(tester, frames: 10);
   await tester.tap(find.widgetWithText(ActionChip, '170 g · estimate'));
   await settle(tester, frames: 10);
   await tester.enterText(key('weightField'), '150');
@@ -178,6 +196,18 @@ Future<void> runPhotoFlow(
   await tap('weightApply');
   await settle(tester, frames: 10);
   expect(find.text('≈ 440 kcal'), findsOneWidget);
+  // The card recalculates immediately, purely from local state: complex
+  // carbohydrate share is now 150 / (150+135+80+65) = 35%.
+  await tester.scrollUntilVisible(
+    find.byKey(const Key('balancedPlateCard')),
+    300,
+  );
+  expect(
+    find.text('35%'),
+    findsOneWidget,
+    reason: 'complex carbohydrate share after the edit',
+  );
+  expect(find.text('38%'), findsNothing);
   await tap('saveMeal');
   await waitFor(find.text('441 / 2200 kcal'));
 

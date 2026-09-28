@@ -1,6 +1,9 @@
 import 'dart:convert';
 
 import 'package:calsnap/app/app.dart';
+import 'package:calsnap/app/router.dart';
+import 'package:calsnap/core/di/providers.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/app_harness.dart';
@@ -53,6 +56,28 @@ void main() {
       expect(meal.mealType, 'lunch', reason: '12:30 defaults to lunch');
       expect(meal.photoPath, isNotNull);
       expect(app.services.photos.exists(meal.photoPath!), isTrue);
+
+      // Reopening the saved meal resolves the same plate analysis from the
+      // local database, with the API set to fail on any request.
+      final failingApi = FakeAnalysisApi(
+        (_) async => throw StateError('no network call expected'),
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpWidget(
+        app.app(
+          initialLocation: Routes.editMeal(meal.id),
+          overrides: [analysisApiProvider.overrideWithValue(failingApi)],
+        ),
+      );
+      await settle(tester, frames: 20);
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('balancedPlateCard')),
+        300,
+      );
+      expect(find.byKey(const Key('balancedPlateCard')), findsOneWidget);
+      expect(find.text('35%'), findsOneWidget);
+      expect(failingApi.calls, isEmpty);
     },
   );
 }

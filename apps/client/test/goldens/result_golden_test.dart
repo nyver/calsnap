@@ -1,3 +1,6 @@
+import 'package:calsnap/features/balanced_plate/domain/plate_analysis.dart';
+import 'package:calsnap/features/balanced_plate/ui/balanced_plate_card.dart';
+import 'package:calsnap/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -50,6 +53,46 @@ void main() {
           matchesGoldenFile('goldens/edit_item_$mode.png'),
         );
       });
+    });
+
+    testWidgets('Balanced plate card golden ($mode)', (tester) async {
+      const analysis = PlateAnalysis(
+        verdict: PlateVerdict.improvable,
+        vegetableFruitRatio: 0.125,
+        proteinRatio: 0.125,
+        complexCarbohydrateRatio: 0.75,
+        coverage: 0.72,
+        eligibleWeightG: 400,
+        healthyFatPresent: false,
+        recommendations: [
+          PlateRecommendation(
+            type: PlateRecommendationType.addVegetables,
+            priority: 100,
+          ),
+          PlateRecommendation(
+            type: PlateRecommendationType.reduceCarbohydrateDominance,
+            priority: 90,
+          ),
+        ],
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: dark ? ThemeData.dark() : ThemeData.light(),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(
+            body: Padding(
+              padding: EdgeInsets.all(16),
+              child: BalancedPlateCard(analysis: analysis),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/balanced_plate_card_$mode.png'),
+      );
     });
   }
 }

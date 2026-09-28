@@ -917,4 +917,66 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get certTrustAction => 'Доверять';
+
+  @override
+  String get balancedPlateTitle => 'Баланс тарелки';
+
+  @override
+  String get balancedPlateInfoTooltip => 'О рекомендациях по балансу тарелки';
+
+  @override
+  String get balancedPlateInfoBody =>
+      'Оценка основана на весе продуктов в этом приёме пищи, а не на калориях, с использованием общих и не строгих диапазонов. Она не диагностирует дефициты и не назначает диету.';
+
+  @override
+  String get balancedPlateDisclaimer =>
+      'Рекомендации по балансу тарелки — это общие советы по питанию. Они не учитывают медицинские показания, аллергии, приём лекарств, индивидуальные планы питания или профессиональные медицинские рекомендации.';
+
+  @override
+  String get balancedPlateVerdictBalanced => 'Хорошо сбалансировано';
+
+  @override
+  String get balancedPlateVerdictNearlyBalanced => 'Достаточно сбалансировано';
+
+  @override
+  String get balancedPlateVerdictImprovable => 'Баланс можно улучшить';
+
+  @override
+  String get balancedPlateInsufficientData =>
+      'Недостаточно данных, чтобы оценить баланс тарелки.';
+
+  @override
+  String get balancedPlateGroupVegetablesFruit => 'Овощи и фрукты';
+
+  @override
+  String get balancedPlateGroupProtein => 'Белок';
+
+  @override
+  String get balancedPlateGroupComplexCarbohydrates => 'Сложные углеводы';
+
+  @override
+  String get balancedPlateRecAddVegetables =>
+      'Добавьте овощей, например салат, помидоры, огурцы, брокколи или перец.';
+
+  @override
+  String get balancedPlateRecReduceCarbohydrateDominance =>
+      'Большая часть этого приёма пищи приходится на продукты, богатые углеводами. Добавление овощей или белка поможет улучшить баланс.';
+
+  @override
+  String get balancedPlateRecAddProtein =>
+      'Можно добавить источник белка, например рыбу, курицу, яйца, бобовые или тофу.';
+
+  @override
+  String get balancedPlateRecAddComplexCarbohydrates =>
+      'Можно добавить сложные углеводы, например гречку, бурый рис, киноа или цельнозерновую пасту.';
+
+  @override
+  String balancedPlateCoverage(int percent) {
+    return 'Оценка баланса тарелки основана на $percent% этого приёма пищи.';
+  }
+
+  @override
+  String balancedPlateShareSemantics(String group, int percent) {
+    return '$group, $percent процентов классифицированного веса тарелки';
+  }
 }

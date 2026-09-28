@@ -1687,6 +1687,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Trust'**
   String get certTrustAction;
+
+  /// No description provided for @balancedPlateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance of the plate'**
+  String get balancedPlateTitle;
+
+  /// No description provided for @balancedPlateInfoTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'About balanced plate guidance'**
+  String get balancedPlateInfoTooltip;
+
+  /// No description provided for @balancedPlateInfoBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This estimate is based on the weight of the foods in this meal, not calories, using general and tolerant nutrition ranges. It does not diagnose deficiencies or prescribe a diet.'**
+  String get balancedPlateInfoBody;
+
+  /// No description provided for @balancedPlateDisclaimer.
+  ///
+  /// In en, this message translates to:
+  /// **'Balanced Plate recommendations are general nutrition guidance. They do not take medical conditions, allergies, medications, individual diet plans, or professional medical advice into account.'**
+  String get balancedPlateDisclaimer;
+
+  /// No description provided for @balancedPlateVerdictBalanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Nicely balanced'**
+  String get balancedPlateVerdictBalanced;
+
+  /// No description provided for @balancedPlateVerdictNearlyBalanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Reasonably balanced'**
+  String get balancedPlateVerdictNearlyBalanced;
+
+  /// No description provided for @balancedPlateVerdictImprovable.
+  ///
+  /// In en, this message translates to:
+  /// **'Could be more balanced'**
+  String get balancedPlateVerdictImprovable;
+
+  /// No description provided for @balancedPlateInsufficientData.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough information to evaluate the plate balance.'**
+  String get balancedPlateInsufficientData;
+
+  /// No description provided for @balancedPlateGroupVegetablesFruit.
+  ///
+  /// In en, this message translates to:
+  /// **'Vegetables & fruit'**
+  String get balancedPlateGroupVegetablesFruit;
+
+  /// No description provided for @balancedPlateGroupProtein.
+  ///
+  /// In en, this message translates to:
+  /// **'Protein'**
+  String get balancedPlateGroupProtein;
+
+  /// No description provided for @balancedPlateGroupComplexCarbohydrates.
+  ///
+  /// In en, this message translates to:
+  /// **'Complex carbohydrates'**
+  String get balancedPlateGroupComplexCarbohydrates;
+
+  /// No description provided for @balancedPlateRecAddVegetables.
+  ///
+  /// In en, this message translates to:
+  /// **'Add some vegetables, for example salad, tomatoes, cucumber, broccoli or peppers.'**
+  String get balancedPlateRecAddVegetables;
+
+  /// No description provided for @balancedPlateRecReduceCarbohydrateDominance.
+  ///
+  /// In en, this message translates to:
+  /// **'A large share of this meal is carbohydrate-rich. Adding vegetables or protein can improve the balance.'**
+  String get balancedPlateRecReduceCarbohydrateDominance;
+
+  /// No description provided for @balancedPlateRecAddProtein.
+  ///
+  /// In en, this message translates to:
+  /// **'Consider adding a source of protein, for example fish, chicken, eggs, legumes or tofu.'**
+  String get balancedPlateRecAddProtein;
+
+  /// No description provided for @balancedPlateRecAddComplexCarbohydrates.
+  ///
+  /// In en, this message translates to:
+  /// **'You could add a complex carbohydrate, for example buckwheat, brown rice, quinoa or whole-grain pasta.'**
+  String get balancedPlateRecAddComplexCarbohydrates;
+
+  /// No description provided for @balancedPlateCoverage.
+  ///
+  /// In en, this message translates to:
+  /// **'Balanced plate estimate is based on {percent}% of this meal.'**
+  String balancedPlateCoverage(int percent);
+
+  /// No description provided for @balancedPlateShareSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{group}, {percent} percent of classified plate weight'**
+  String balancedPlateShareSemantics(String group, int percent);
 }
 
 class _AppLocalizationsDelegate

@@ -285,5 +285,22 @@
       }
     }
   },
-  "certTrustAction": "Доверять"
+  "certTrustAction": "Доверять",
+  "balancedPlateTitle": "Баланс тарелки",
+  "balancedPlateInfoTooltip": "О рекомендациях по балансу тарелки",
+  "balancedPlateInfoBody": "Оценка основана на весе продуктов в этом приёме пищи, а не на калориях, с использованием общих и не строгих диапазонов. Она не диагностирует дефициты и не назначает диету.",
+  "balancedPlateDisclaimer": "Рекомендации по балансу тарелки — это общие советы по питанию. Они не учитывают медицинские показания, аллергии, приём лекарств, индивидуальные планы питания или профессиональные медицинские рекомендации.",
+  "balancedPlateVerdictBalanced": "Хорошо сбалансировано",
+  "balancedPlateVerdictNearlyBalanced": "Достаточно сбалансировано",
+  "balancedPlateVerdictImprovable": "Баланс можно улучшить",
+  "balancedPlateInsufficientData": "Недостаточно данных, чтобы оценить баланс тарелки.",
+  "balancedPlateGroupVegetablesFruit": "Овощи и фрукты",
+  "balancedPlateGroupProtein": "Белок",
+  "balancedPlateGroupComplexCarbohydrates": "Сложные углеводы",
+  "balancedPlateRecAddVegetables": "Добавьте овощей, например салат, помидоры, огурцы, брокколи или перец.",
+  "balancedPlateRecReduceCarbohydrateDominance": "Большая часть этого приёма пищи приходится на продукты, богатые углеводами. Добавление овощей или белка поможет улучшить баланс.",
+  "balancedPlateRecAddProtein": "Можно добавить источник белка, например рыбу, курицу, яйца, бобовые или тофу.",
+  "balancedPlateRecAddComplexCarbohydrates": "Можно добавить сложные углеводы, например гречку, бурый рис, киноа или цельнозерновую пасту.",
+  "balancedPlateCoverage": "Оценка баланса тарелки основана на {percent}% этого приёма пищи.",
+  "balancedPlateShareSemantics": "{group}, {percent} процентов классифицированного веса тарелки"
 }
