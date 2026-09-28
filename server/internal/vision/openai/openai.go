@@ -142,10 +142,10 @@ type chatResponse struct {
 		} `json:"message"`
 		FinishReason string `json:"finish_reason"`
 	} `json:"choices"`
-	// Routers such as OpenRouter may answer 200 and report an upstream failure here.
-	Error *struct {
-		Code json.RawMessage `json:"code"`
-	} `json:"error"`
+	// Routers such as OpenRouter may answer 200 and report an upstream failure
+	// here, usually as an object ({"code": ...}) but some gateways send a
+	// plain string instead; kept raw so either shape decodes.
+	Error json.RawMessage `json:"error"`
 	Usage struct {
 		PromptTokens     int `json:"prompt_tokens"`
 		CompletionTokens int `json:"completion_tokens"`
@@ -159,8 +159,8 @@ func parseEnvelope(data []byte) (string, analysis.Usage, error) {
 	if err := json.Unmarshal(data, &cr); err != nil {
 		return "", analysis.Usage{}, fmt.Errorf("%w: chat envelope: %v", analysis.ErrInvalidResponse, err)
 	}
-	if cr.Error != nil {
-		return "", analysis.Usage{}, classifyEmbeddedError(cr.Error.Code)
+	if len(cr.Error) > 0 && string(cr.Error) != "null" {
+		return "", analysis.Usage{}, classifyEmbeddedError(cr.Error)
 	}
 	if len(cr.Choices) == 0 {
 		return "", analysis.Usage{}, fmt.Errorf("%w: no choices returned", analysis.ErrInvalidResponse)
@@ -176,12 +176,19 @@ func parseEnvelope(data []byte) (string, analysis.Usage, error) {
 	return text, analysis.Usage{InputTokens: cr.Usage.PromptTokens, OutputTokens: cr.Usage.CompletionTokens}, nil
 }
 
-// classifyEmbeddedError treats an error object inside an HTTP 200 like the
-// equivalent status: a numeric code of 408, 429 or 5xx is transient.
-func classifyEmbeddedError(code json.RawMessage) error {
-	var n int
-	if err := json.Unmarshal(code, &n); err == nil {
-		return classifyStatus(n)
+// classifyEmbeddedError treats an error value inside an HTTP 200 like the
+// equivalent status: a numeric object code of 408, 429 or 5xx is transient.
+// A plain string, a non-numeric code (for example "content_policy") or any
+// other shape is not expected to succeed on retry.
+func classifyEmbeddedError(raw json.RawMessage) error {
+	var obj struct {
+		Code json.RawMessage `json:"code"`
+	}
+	if err := json.Unmarshal(raw, &obj); err == nil {
+		var n int
+		if err := json.Unmarshal(obj.Code, &n); err == nil {
+			return classifyStatus(n)
+		}
 	}
 	return fmt.Errorf("%w: provider reported an error", analysis.ErrRejected)
 }

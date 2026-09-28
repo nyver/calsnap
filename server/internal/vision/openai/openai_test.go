@@ -170,6 +170,7 @@ func TestAnalyzeErrorClassification(t *testing.T) {
 		{"200 with embedded 502", respond(http.StatusOK, `{"error":{"code":502}}`), analysis.ErrUnavailable},
 		{"200 with embedded 400", respond(http.StatusOK, `{"error":{"code":400}}`), analysis.ErrRejected},
 		{"200 with textual error code", respond(http.StatusOK, `{"error":{"code":"content_policy"}}`), analysis.ErrRejected},
+		{"200 with a string error", respond(http.StatusOK, `{"error":"upstream provider error"}`), analysis.ErrRejected},
 		{"prose instead of JSON", respond(http.StatusOK, completion("I see rice.", "stop")), analysis.ErrInvalidResponse},
 		{"malformed envelope", respond(http.StatusOK, `not json`), analysis.ErrInvalidResponse},
 		{"no choices", respond(http.StatusOK, `{"choices":[]}`), analysis.ErrInvalidResponse},
