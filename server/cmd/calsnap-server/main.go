@@ -22,6 +22,7 @@ import (
 
 	"example.com/calsnap/server/internal/app/analysis"
 	"example.com/calsnap/server/internal/app/label"
+	"example.com/calsnap/server/internal/app/plateadvice"
 	"example.com/calsnap/server/internal/app/product"
 	"example.com/calsnap/server/internal/config"
 	"example.com/calsnap/server/internal/metrics"
@@ -225,6 +226,32 @@ func build(cfg *config.Config, log *slog.Logger) (*app, error) {
 	}
 
 	limiters := []*ratelimit.Limiter{limiter}
+
+	var plateAdviceSvc httpapi.PlateAdviser
+	var plateAdviceLimiter *ratelimit.Limiter
+	if advisor, ok := vision.(plateadvice.Advisor); ok && cfg.PlateAdvice.Enabled {
+		var advisorFallback plateadvice.Advisor
+		if fallbackAdvisor, ok := visionFallback.(plateadvice.Advisor); ok {
+			advisorFallback = fallbackAdvisor
+		}
+		plateAdviceSvc = plateadvice.NewService(plateadvice.Config{
+			ProviderName:     cfg.AI.Provider,
+			CallTimeout:      cfg.AI.CallTimeout,
+			OverallTimeout:   cfg.AI.OverallTimeout,
+			MaxConcurrent:    cfg.Limits.MaxConcurrentAnalyses,
+			QueueWait:        cfg.Limits.QueueWait,
+			ReplayTTL:        cfg.Limits.ReplayTTL,
+			ReplayMaxEntries: cfg.Limits.ReplayMaxEntries,
+		}, plateadvice.Deps{Advisor: advisor, AdvisorFallback: advisorFallback, Metrics: m, Logger: log})
+		plateAdviceLimiter = ratelimit.New(ratelimit.Config{
+			PerMinute:  cfg.Limits.PlateAdviceRatePerMinute,
+			Burst:      cfg.Limits.PlateAdviceRateBurst,
+			MaxClients: cfg.Limits.MaxTrackedClients,
+			IdleTTL:    limiterIdleTTL,
+		})
+		limiters = append(limiters, plateAdviceLimiter)
+	}
+	log.Info("plate advice", "enabled", plateAdviceSvc != nil)
 	var products httpapi.ProductLookup
 	var productLimiter *ratelimit.Limiter
 	if cfg.Products.Enabled {
@@ -253,6 +280,8 @@ func build(cfg *config.Config, log *slog.Logger) (*app, error) {
 		Labels:              labels,
 		Products:            products,
 		ProductLimiter:      productLimiter,
+		PlateAdvice:         plateAdviceSvc,
+		PlateAdviceLimiter:  plateAdviceLimiter,
 		Limiter:             limiter,
 		TrustedProxies:      prefixes,
 		Observer:            m,

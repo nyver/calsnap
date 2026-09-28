@@ -23,6 +23,10 @@ func NewHandler(d Deps) http.Handler {
 		mux.HandleFunc("GET /v1/products/{barcode}", h.product)
 		mux.HandleFunc("/v1/products/{barcode}", methodNotAllowed(http.MethodGet+", "+http.MethodHead))
 	}
+	if d.PlateAdvice != nil {
+		mux.HandleFunc("POST /v1/plate-advice", h.plateAdvice)
+		mux.HandleFunc("/v1/plate-advice", methodNotAllowed(http.MethodPost))
+	}
 	mux.HandleFunc("GET /v1/config", h.config)
 	mux.HandleFunc("/v1/config", methodNotAllowed(http.MethodGet+", "+http.MethodHead))
 	mux.HandleFunc("GET /healthz", h.healthz)

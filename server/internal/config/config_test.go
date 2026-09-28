@@ -360,3 +360,41 @@ func TestProductsDefaultsAndValidation(t *testing.T) {
 		t.Errorf("disabled products: %v", err)
 	}
 }
+
+func TestPlateAdviceDefaultsAndValidation(t *testing.T) {
+	t.Parallel()
+
+	cfg, err := Parse([]byte(validGemini+"ai:\n  provider: fake\n"), env(nil))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	if !cfg.PlateAdvice.Enabled {
+		t.Error("plate advice must default to enabled")
+	}
+	if cfg.Limits.PlateAdviceRatePerMinute != 10 || cfg.Limits.PlateAdviceRateBurst != 3 {
+		t.Errorf("unexpected plate advice limits: %+v", cfg.Limits)
+	}
+
+	off, err := Parse([]byte(validGemini+"ai:\n  provider: fake\nplate_advice:\n  enabled: false\n"), env(nil))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	if off.PlateAdvice.Enabled {
+		t.Error("plate_advice.enabled: false must disable plate advice")
+	}
+
+	bad := map[string]string{
+		"limits.plate_advice_rate_per_minute": "limits:\n  plate_advice_rate_per_minute: 0\n",
+		"limits.plate_advice_rate_burst":      "limits:\n  plate_advice_rate_burst: 0\n",
+	}
+	for key, doc := range bad {
+		_, err := Parse([]byte(validGemini+"ai:\n  provider: fake\n"+doc), env(nil))
+		if err == nil || !strings.Contains(err.Error(), key) {
+			t.Errorf("%s: err = %v", key, err)
+		}
+	}
+
+	if _, err := Parse([]byte(validGemini+"ai:\n  provider: fake\nplate_advice:\n  unknown_field: true\n"), env(nil)); err == nil {
+		t.Error("unknown key under plate_advice must be rejected")
+	}
+}

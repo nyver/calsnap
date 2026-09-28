@@ -27,6 +27,8 @@ const (
 	CodeProductNotFound          = "PRODUCT_NOT_FOUND"
 	CodeProductSourceUnavailable = "PRODUCT_SOURCE_UNAVAILABLE"
 	CodeLabelNotRecognized       = "LABEL_NOT_RECOGNIZED"
+
+	CodeBalanceNotEvaluable = "BALANCE_NOT_EVALUABLE"
 )
 
 // statusClientClosed is the de-facto status for requests the client abandoned.
@@ -48,6 +50,8 @@ var codeStatus = map[string]int{
 	CodeProductNotFound:          http.StatusNotFound,
 	CodeProductSourceUnavailable: http.StatusServiceUnavailable,
 	CodeLabelNotRecognized:       http.StatusUnprocessableEntity,
+
+	CodeBalanceNotEvaluable: http.StatusUnprocessableEntity,
 }
 
 // defaultMessages are short English developer-facing texts. They never contain
@@ -67,6 +71,8 @@ var defaultMessages = map[string]string{
 	CodeProductNotFound:          "No nutrition data was found for this barcode.",
 	CodeProductSourceUnavailable: "The product database is temporarily unavailable.",
 	CodeLabelNotRecognized:       "No readable nutrition table was found in the image.",
+
+	CodeBalanceNotEvaluable: "The plate balance could not be evaluated.",
 }
 
 // apiError is an error that maps directly to a response.

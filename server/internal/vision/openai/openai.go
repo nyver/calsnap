@@ -18,6 +18,7 @@ import (
 
 	"example.com/calsnap/server/internal/app/analysis"
 	"example.com/calsnap/server/internal/app/label"
+	"example.com/calsnap/server/internal/app/plateadvice"
 	"example.com/calsnap/server/internal/vision/prompt"
 )
 
@@ -26,6 +27,9 @@ const maxResponseBytes = 2 << 20
 
 // maxOutputTokens leaves room for 20 items with names in two languages.
 const maxOutputTokens = 2048
+
+// maxAdviceOutputTokens is plenty for a summary and up to 3 short suggestions.
+const maxAdviceOutputTokens = 1024
 
 // Config configures the provider.
 type Config struct {
@@ -43,6 +47,7 @@ type Provider struct {
 var (
 	_ analysis.FoodVisionProvider = (*Provider)(nil)
 	_ label.Reader                = (*Provider)(nil)
+	_ plateadvice.Advisor         = (*Provider)(nil)
 )
 
 // New creates a Provider that sends requests with client, which must have a
@@ -82,6 +87,21 @@ func (p *Provider) ReadLabel(ctx context.Context, img analysis.Image, rc analysi
 	}
 	ext.Usage = usage
 	return ext, nil
+}
+
+// Advise implements plateadvice.Advisor: a text-only request (no image part)
+// asking for 1-3 plate-balance suggestions.
+func (p *Provider) Advise(ctx context.Context, in plateadvice.Input) (plateadvice.Advice, error) {
+	text, usage, err := p.chat(ctx, p.buildPlateAdviceRequest(in))
+	if err != nil {
+		return plateadvice.Advice{}, err
+	}
+	advice, err := plateadvice.ParseAdvice([]byte(extractJSON(text)))
+	if err != nil {
+		return plateadvice.Advice{}, err
+	}
+	advice.Usage = usage
+	return advice, nil
 }
 
 // chat sends one chat-completions request and returns the message text.
@@ -241,7 +261,7 @@ func (p *Provider) buildRequest(img analysis.Image, rc analysis.RequestContext) 
 	if rc.SideImage != nil {
 		content = append(content, imagePart(*rc.SideImage))
 	}
-	return p.chatRequest(prompt.System, content, "food_vision_result", ResponseSchema())
+	return p.chatRequest(prompt.System, content, "food_vision_result", ResponseSchema(), maxOutputTokens)
 }
 
 func (p *Provider) buildLabelRequest(img analysis.Image, rc analysis.RequestContext) map[string]any {
@@ -249,10 +269,15 @@ func (p *Provider) buildLabelRequest(img analysis.Image, rc analysis.RequestCont
 		map[string]any{"type": "text", "text": prompt.LabelUser(rc)},
 		imagePart(img),
 	}
-	return p.chatRequest(prompt.LabelSystem, content, "nutrition_label_result", LabelResponseSchema())
+	return p.chatRequest(prompt.LabelSystem, content, "nutrition_label_result", LabelResponseSchema(), maxOutputTokens)
 }
 
-func (p *Provider) chatRequest(system string, content []any, schemaName string, schema map[string]any) map[string]any {
+func (p *Provider) buildPlateAdviceRequest(in plateadvice.Input) map[string]any {
+	content := []any{map[string]any{"type": "text", "text": prompt.PlateAdviceUser(in)}}
+	return p.chatRequest(prompt.PlateAdviceSystem, content, "plate_advice_result", PlateAdviceResponseSchema(), maxAdviceOutputTokens)
+}
+
+func (p *Provider) chatRequest(system string, content []any, schemaName string, schema map[string]any, maxTokens int) map[string]any {
 	return map[string]any{
 		"model": p.cfg.Model,
 		"messages": []any{
@@ -260,7 +285,7 @@ func (p *Provider) chatRequest(system string, content []any, schemaName string, 
 			map[string]any{"role": "user", "content": content},
 		},
 		"temperature": 0.2,
-		"max_tokens":  maxOutputTokens,
+		"max_tokens":  maxTokens,
 		// Not strict: the contract has optional properties, which strict mode forbids.
 		// Models without structured output support still follow the prompt.
 		"response_format": map[string]any{
@@ -294,6 +319,37 @@ func LabelResponseSchema() map[string]any {
 			"confidence":    map[string]any{"type": "number", "minimum": 0, "maximum": 1},
 		},
 		"required": []any{"found", "confidence"},
+	}
+}
+
+// PlateAdviceResponseSchema returns the JSON Schema sent as response_format
+// for plate advice. It mirrors protocol/ai/plate-advice-result.schema.json
+// (a test keeps them in sync).
+func PlateAdviceResponseSchema() map[string]any {
+	return map[string]any{
+		"type":                 "object",
+		"additionalProperties": false,
+		"properties": map[string]any{
+			"summary": map[string]any{"type": "string", "minLength": 1, "maxLength": 300},
+			"suggestions": map[string]any{
+				"type":     "array",
+				"minItems": 1,
+				"maxItems": 3,
+				"items": map[string]any{
+					"type":                 "object",
+					"additionalProperties": false,
+					"properties": map[string]any{
+						"action":      map[string]any{"type": "string", "enum": []any{"ADD", "KEEP", "OPTIONAL_REPLACE"}},
+						"targetGroup": map[string]any{"type": "string", "enum": []any{"vegetable", "fruit", "protein", "complex_carbohydrate", "healthy_fat", "dairy", "other"}},
+						"title":       map[string]any{"type": "string", "minLength": 1, "maxLength": 100},
+						"reason":      map[string]any{"type": "string", "minLength": 1, "maxLength": 240},
+						"examples":    map[string]any{"type": "array", "minItems": 0, "maxItems": 4, "items": map[string]any{"type": "string", "minLength": 1, "maxLength": 80}},
+					},
+					"required": []any{"action", "title", "reason"},
+				},
+			},
+		},
+		"required": []any{"summary", "suggestions"},
 	}
 }
 

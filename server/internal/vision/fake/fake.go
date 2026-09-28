@@ -9,6 +9,7 @@ import (
 
 	"example.com/calsnap/server/internal/app/analysis"
 	"example.com/calsnap/server/internal/app/label"
+	"example.com/calsnap/server/internal/app/plateadvice"
 )
 
 // Provider returns one of a few canned results chosen by the hash of the image,
@@ -18,6 +19,7 @@ type Provider struct{}
 var (
 	_ analysis.FoodVisionProvider = Provider{}
 	_ label.Reader                = Provider{}
+	_ plateadvice.Advisor         = Provider{}
 )
 
 // Analyze implements analysis.FoodVisionProvider.
@@ -69,6 +71,97 @@ func (Provider) ReadLabel(ctx context.Context, img analysis.Image, _ analysis.Re
 	scenarios := LabelResults()
 	sum := sha256.Sum256(img.Data)
 	return scenarios[int(sum[0])%len(scenarios)], nil
+}
+
+// adviceText is a locale pair of ready-made suggestion wording.
+type adviceText struct {
+	title, reason string
+	examples      []string
+}
+
+func pickText(ru bool, ruText, enText adviceText) adviceText {
+	if ru {
+		return ruText
+	}
+	return enText
+}
+
+// Advise implements plateadvice.Advisor: deterministic, locale-appropriate
+// advice built only from the supplied balance, so it always passes
+// plateadvice.CheckConsistency (see design.md Decision 2). It never touches
+// the network.
+func (Provider) Advise(ctx context.Context, in plateadvice.Input) (plateadvice.Advice, error) {
+	if err := ctx.Err(); err != nil {
+		return plateadvice.Advice{}, err
+	}
+	ru := in.Locale == analysis.LocaleRU
+	b := in.Balance
+
+	var suggestions []plateadvice.Suggestion
+	add := func(action, target string, t adviceText) {
+		suggestions = append(suggestions, plateadvice.Suggestion{
+			Action: action, TargetGroup: target, Title: t.title, Reason: t.reason, Examples: t.examples,
+		})
+	}
+
+	if b.VegetablesFruit == plateadvice.StatusLow {
+		add(plateadvice.ActionAdd, plateadvice.GroupVegetable, pickText(ru,
+			adviceText{"Добавьте овощи", "Овощей и фруктов сейчас мало по сравнению с остальным блюдом.", []string{"огуречно-томатный салат", "брокколи на пару"}},
+			adviceText{"Add vegetables", "Vegetables and fruit are low compared with the rest of the meal.", []string{"cucumber and tomato salad", "steamed broccoli"}},
+		))
+	}
+	if b.Protein == plateadvice.StatusLow {
+		add(plateadvice.ActionAdd, plateadvice.GroupProtein, pickText(ru,
+			adviceText{"Добавьте белок", "Белка сейчас мало по сравнению с остальным блюдом.", []string{"куриная грудка", "яйцо"}},
+			adviceText{"Add protein", "Protein is low compared with the rest of the meal.", []string{"chicken breast", "egg"}},
+		))
+	}
+	switch b.ComplexCarbohydrates {
+	case plateadvice.StatusHigh:
+		// A group whose own dimension is high cannot be an OPTIONAL_REPLACE
+		// target, so fall back to a group outside any dimension when
+		// vegetablesFruit also happens to be high.
+		target := plateadvice.GroupVegetable
+		if b.VegetablesFruit == plateadvice.StatusHigh {
+			target = plateadvice.GroupOther
+		}
+		add(plateadvice.ActionOptionalReplace, target, pickText(ru,
+			adviceText{"Замените часть гарнира", "Сложных углеводов сейчас больше, чем нужно для баланса.", []string{"часть гарнира можно заменить овощами"}},
+			adviceText{"Swap part of the side", "Complex carbohydrates make up more of the plate than a balanced portion.", []string{"trade some of the side for extra vegetables"}},
+		))
+	case plateadvice.StatusLow:
+		add(plateadvice.ActionAdd, plateadvice.GroupComplexCarbohydrate, pickText(ru,
+			adviceText{"Добавьте гарнир", "Сложных углеводов сейчас мало по сравнению с остальным блюдом.", []string{"гречка", "бурый рис"}},
+			adviceText{"Add a side", "Complex carbohydrates are low compared with the rest of the meal.", []string{"buckwheat", "brown rice"}},
+		))
+	}
+
+	if len(suggestions) == 0 {
+		// Nothing is low or high enough to react to: point at whichever
+		// dimension is confirmed ok, so KEEP stays consistent.
+		target := ""
+		switch {
+		case b.Protein == plateadvice.StatusOK:
+			target = plateadvice.GroupProtein
+		case b.VegetablesFruit == plateadvice.StatusOK:
+			target = plateadvice.GroupVegetable
+		case b.ComplexCarbohydrates == plateadvice.StatusOK:
+			target = plateadvice.GroupComplexCarbohydrate
+		}
+		add(plateadvice.ActionKeep, target, pickText(ru,
+			adviceText{"Баланс уже неплохой", "Тарелка уже сбалансирована по этому показателю: менять ничего не обязательно.", nil},
+			adviceText{"The balance already looks good", "The plate is already balanced on this measure: no change is required.", nil},
+		))
+	}
+	if len(suggestions) > 3 {
+		suggestions = suggestions[:3]
+	}
+
+	summary := "A few small changes can help balance the plate."
+	if ru {
+		summary = "Небольшие изменения помогут сбалансировать тарелку."
+	}
+	return plateadvice.Advice{Summary: summary, Suggestions: suggestions}, nil
 }
 
 // LabelResults returns the canned label readings in scenario order.

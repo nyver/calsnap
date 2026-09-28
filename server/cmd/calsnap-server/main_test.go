@@ -466,3 +466,62 @@ func TestLabelReadingEndToEnd(t *testing.T) {
 		t.Errorf("status = %d: %s", rec.Code, rec.Body.String())
 	}
 }
+
+func TestPlateAdviceEndToEnd(t *testing.T) {
+	t.Parallel()
+
+	cfg := testConfig(t, "server:\n  allow_plain_http: true\n")
+	rt, err := build(cfg, slog.New(slog.DiscardHandler))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	configRec := httptest.NewRecorder()
+	rt.api.Handler.ServeHTTP(configRec, httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/v1/config", http.NoBody))
+	if !strings.Contains(configRec.Body.String(), `"plateAdvice":true`) {
+		t.Errorf("config = %s", configRec.Body.String())
+	}
+
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/v1/plate-advice",
+		bytes.NewReader(testutil.Fixture(t, "plate-advice-request-ru.json")))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	rt.api.Handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d: %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), `"suggestions"`) {
+		t.Errorf("body = %s", rec.Body.String())
+	}
+}
+
+func TestPlateAdviceCanBeDisabled(t *testing.T) {
+	t.Parallel()
+
+	cfg := testConfig(t, "server:\n  allow_plain_http: true\nplate_advice:\n  enabled: false\n")
+	rt, err := build(cfg, slog.New(slog.DiscardHandler))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for path, want := range map[string]struct {
+		status int
+		body   string
+	}{
+		"/v1/config": {http.StatusOK, `"plateAdvice":false`},
+	} {
+		rec := httptest.NewRecorder()
+		rt.api.Handler.ServeHTTP(rec, httptest.NewRequestWithContext(context.Background(), http.MethodGet, path, http.NoBody))
+		if rec.Code != want.status || !strings.Contains(rec.Body.String(), want.body) {
+			t.Errorf("%s: %d %s", path, rec.Code, rec.Body.String())
+		}
+	}
+
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/v1/plate-advice",
+		bytes.NewReader(testutil.Fixture(t, "plate-advice-request-ru.json")))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	rt.api.Handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want 404", rec.Code)
+	}
+}

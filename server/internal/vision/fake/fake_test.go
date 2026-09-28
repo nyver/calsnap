@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"example.com/calsnap/server/internal/app/analysis"
+	"example.com/calsnap/server/internal/app/plateadvice"
 	"example.com/calsnap/server/internal/testutil"
 	"example.com/calsnap/server/internal/vision/fake"
 )
@@ -81,5 +82,49 @@ func TestResultsMirrorProtocolFixtures(t *testing.T) {
 		if string(a) != string(b) {
 			t.Errorf("%s differs from fake scenario %d:\n%s\n%s", name, i, a, b)
 		}
+	}
+}
+
+// TestAdviseIsConsistentForEveryBalance exercises every combination of the
+// three statuses except all-unknown (rejected before Advise is ever called),
+// in both locales, and checks the canned advice always passes shape and
+// consistency validation, as design.md Decision 2 promises.
+func TestAdviseIsConsistentForEveryBalance(t *testing.T) {
+	t.Parallel()
+
+	statuses := []plateadvice.Status{plateadvice.StatusLow, plateadvice.StatusOK, plateadvice.StatusHigh, plateadvice.StatusUnknown}
+	p := fake.Provider{}
+	for _, locale := range []string{analysis.LocaleRU, analysis.LocaleEN} {
+		for _, veg := range statuses {
+			for _, protein := range statuses {
+				for _, carb := range statuses {
+					balance := plateadvice.Balance{VegetablesFruit: veg, Protein: protein, ComplexCarbohydrates: carb}
+					if veg == plateadvice.StatusUnknown && protein == plateadvice.StatusUnknown && carb == plateadvice.StatusUnknown {
+						continue
+					}
+					advice, err := p.Advise(context.Background(), plateadvice.Input{Locale: locale, MealType: plateadvice.MealLunch, Balance: balance})
+					if err != nil {
+						t.Fatalf("locale=%s balance=%+v: Advise() error = %v", locale, balance, err)
+					}
+					if err := plateadvice.ValidateAdvice(advice); err != nil {
+						t.Fatalf("locale=%s balance=%+v: ValidateAdvice() error = %v", locale, balance, err)
+					}
+					if err := plateadvice.CheckConsistency(advice, balance); err != nil {
+						t.Fatalf("locale=%s balance=%+v: CheckConsistency() error = %v", locale, balance, err)
+					}
+				}
+			}
+		}
+	}
+}
+
+func TestAdviseRespectsCancelledContext(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	balance := plateadvice.Balance{VegetablesFruit: plateadvice.StatusLow, Protein: plateadvice.StatusOK, ComplexCarbohydrates: plateadvice.StatusOK}
+	if _, err := (fake.Provider{}).Advise(ctx, plateadvice.Input{Locale: analysis.LocaleEN, Balance: balance}); err == nil {
+		t.Fatal("expected context error")
 	}
 }

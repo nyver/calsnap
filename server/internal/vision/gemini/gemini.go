@@ -17,6 +17,7 @@ import (
 
 	"example.com/calsnap/server/internal/app/analysis"
 	"example.com/calsnap/server/internal/app/label"
+	"example.com/calsnap/server/internal/app/plateadvice"
 	"example.com/calsnap/server/internal/vision/prompt"
 )
 
@@ -25,6 +26,9 @@ const maxResponseBytes = 2 << 20
 
 // maxOutputTokens leaves room for 20 items with names in two languages.
 const maxOutputTokens = 2048
+
+// maxAdviceOutputTokens is plenty for a summary and up to 3 short suggestions.
+const maxAdviceOutputTokens = 1024
 
 // Config configures the provider.
 type Config struct {
@@ -42,6 +46,7 @@ type Provider struct {
 var (
 	_ analysis.FoodVisionProvider = (*Provider)(nil)
 	_ label.Reader                = (*Provider)(nil)
+	_ plateadvice.Advisor         = (*Provider)(nil)
 )
 
 // New creates a Provider that sends requests with client, which must have a
@@ -81,6 +86,21 @@ func (p *Provider) ReadLabel(ctx context.Context, img analysis.Image, rc analysi
 	}
 	ext.Usage = usage
 	return ext, nil
+}
+
+// Advise implements plateadvice.Advisor: a text-only request (no image part)
+// asking for 1-3 plate-balance suggestions.
+func (p *Provider) Advise(ctx context.Context, in plateadvice.Input) (plateadvice.Advice, error) {
+	text, usage, err := p.generate(ctx, buildPlateAdviceRequest(in))
+	if err != nil {
+		return plateadvice.Advice{}, err
+	}
+	advice, err := plateadvice.ParseAdvice([]byte(text))
+	if err != nil {
+		return plateadvice.Advice{}, err
+	}
+	advice.Usage = usage
+	return advice, nil
 }
 
 // generate sends one generateContent request and returns the model text.
@@ -179,7 +199,7 @@ func buildRequest(img analysis.Image, rc analysis.RequestContext) map[string]any
 	if rc.SideImage != nil {
 		parts = append(parts, inlineImage(*rc.SideImage))
 	}
-	return generateRequest(prompt.System, parts, ResponseSchema())
+	return generateRequest(prompt.System, parts, ResponseSchema(), maxOutputTokens)
 }
 
 func buildLabelRequest(img analysis.Image, rc analysis.RequestContext) map[string]any {
@@ -187,10 +207,15 @@ func buildLabelRequest(img analysis.Image, rc analysis.RequestContext) map[strin
 		map[string]any{"text": prompt.LabelUser(rc)},
 		inlineImage(img),
 	}
-	return generateRequest(prompt.LabelSystem, parts, LabelResponseSchema())
+	return generateRequest(prompt.LabelSystem, parts, LabelResponseSchema(), maxOutputTokens)
 }
 
-func generateRequest(system string, parts []any, schema map[string]any) map[string]any {
+func buildPlateAdviceRequest(in plateadvice.Input) map[string]any {
+	parts := []any{map[string]any{"text": prompt.PlateAdviceUser(in)}}
+	return generateRequest(prompt.PlateAdviceSystem, parts, PlateAdviceResponseSchema(), maxAdviceOutputTokens)
+}
+
+func generateRequest(system string, parts []any, schema map[string]any, maxTokens int) map[string]any {
 	return map[string]any{
 		"systemInstruction": map[string]any{
 			"parts": []any{map[string]any{"text": system}},
@@ -203,7 +228,7 @@ func generateRequest(system string, parts []any, schema map[string]any) map[stri
 			"responseMimeType": "application/json",
 			"responseSchema":   schema,
 			"temperature":      0.2,
-			"maxOutputTokens":  maxOutputTokens,
+			"maxOutputTokens":  maxTokens,
 		},
 	}
 }
@@ -234,6 +259,34 @@ func LabelResponseSchema() map[string]any {
 			"confidence":    map[string]any{"type": "NUMBER", "minimum": 0, "maximum": 1},
 		},
 		"required": []any{"found", "confidence"},
+	}
+}
+
+// PlateAdviceResponseSchema returns the Gemini responseSchema equivalent of
+// protocol/ai/plate-advice-result.schema.json (a test keeps them in sync).
+func PlateAdviceResponseSchema() map[string]any {
+	str := map[string]any{"type": "STRING"}
+	return map[string]any{
+		"type": "OBJECT",
+		"properties": map[string]any{
+			"summary": str,
+			"suggestions": map[string]any{
+				"type":     "ARRAY",
+				"maxItems": 3,
+				"items": map[string]any{
+					"type": "OBJECT",
+					"properties": map[string]any{
+						"action":      map[string]any{"type": "STRING", "enum": []any{"ADD", "KEEP", "OPTIONAL_REPLACE"}},
+						"targetGroup": map[string]any{"type": "STRING", "enum": []any{"vegetable", "fruit", "protein", "complex_carbohydrate", "healthy_fat", "dairy", "other"}},
+						"title":       str,
+						"reason":      str,
+						"examples":    map[string]any{"type": "ARRAY", "maxItems": 4, "items": str},
+					},
+					"required": []any{"action", "title", "reason"},
+				},
+			},
+		},
+		"required": []any{"summary", "suggestions"},
 	}
 }
 

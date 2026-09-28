@@ -55,6 +55,9 @@ type ClientConfig struct {
 	// MaxImages tells clients whether a side photo is accepted (2) or not (1).
 	// It is set by the handler, not by the operator.
 	MaxImages int `json:"maxImages"`
+	// PlateAdvice tells clients whether POST /v1/plate-advice exists. It is
+	// set by the handler from the presence of the use case.
+	PlateAdvice bool `json:"plateAdvice"`
 }
 
 // Deps are the collaborators of the HTTP transport.
@@ -68,10 +71,15 @@ type Deps struct {
 	// ProductLimiter limits lookups separately from analyses: they are cheap
 	// and scanning several products in a row is normal. Nil means unlimited.
 	ProductLimiter *ratelimit.Limiter
-	TrustedProxies []netip.Prefix
-	Observer       Observer
-	Logger         *slog.Logger
-	Now            func() time.Time
+	// PlateAdvice is the plate advice use case; nil disables the endpoint.
+	PlateAdvice PlateAdviser
+	// PlateAdviceLimiter limits plate advice requests separately from
+	// analyses and product lookups. Required when PlateAdvice is set.
+	PlateAdviceLimiter *ratelimit.Limiter
+	TrustedProxies     []netip.Prefix
+	Observer           Observer
+	Logger             *slog.Logger
+	Now                func() time.Time
 
 	MaxUploadBytes      int64
 	MaxImageDimensionPx int
@@ -114,6 +122,7 @@ func (h *handlers) config(w http.ResponseWriter, _ *http.Request) {
 	cfg.MaxImages = maxImages
 	cfg.BarcodeLookup = h.Products != nil
 	cfg.LabelReading = h.Labels != nil
+	cfg.PlateAdvice = h.PlateAdvice != nil
 	writeJSON(w, http.StatusOK, cfg)
 }
 

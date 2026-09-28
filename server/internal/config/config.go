@@ -32,14 +32,15 @@ const (
 
 // Config is the complete server configuration.
 type Config struct {
-	Server    ServerConfig    `yaml:"server"`
-	Limits    LimitsConfig    `yaml:"limits"`
-	Client    ClientConfig    `yaml:"client"`
-	AI        AIConfig        `yaml:"ai"`
-	Nutrition NutritionConfig `yaml:"nutrition"`
-	Products  ProductsConfig  `yaml:"products"`
-	Metrics   MetricsConfig   `yaml:"metrics"`
-	Log       LogConfig       `yaml:"log"`
+	Server      ServerConfig      `yaml:"server"`
+	Limits      LimitsConfig      `yaml:"limits"`
+	Client      ClientConfig      `yaml:"client"`
+	AI          AIConfig          `yaml:"ai"`
+	Nutrition   NutritionConfig   `yaml:"nutrition"`
+	Products    ProductsConfig    `yaml:"products"`
+	PlateAdvice PlateAdviceConfig `yaml:"plate_advice"`
+	Metrics     MetricsConfig     `yaml:"metrics"`
+	Log         LogConfig         `yaml:"log"`
 }
 
 // ServerConfig describes the listener, transport security and timeouts.
@@ -93,6 +94,11 @@ type LimitsConfig struct {
 	// shopping bag), so they get their own, more generous bucket.
 	ProductRatePerMinute float64 `yaml:"product_rate_per_minute"`
 	ProductRateBurst     int     `yaml:"product_rate_burst"`
+
+	// Plate advice gets its own bucket, separate from meal analysis and
+	// barcode lookups.
+	PlateAdviceRatePerMinute float64 `yaml:"plate_advice_rate_per_minute"`
+	PlateAdviceRateBurst     int     `yaml:"plate_advice_rate_burst"`
 }
 
 // ClientConfig contains values exposed to the client through GET /v1/config.
@@ -170,6 +176,14 @@ type ProductsConfig struct {
 	CacheMaxEntries int `yaml:"cache_max_entries"`
 }
 
+// PlateAdviceConfig is the operator switch for AI plate advice.
+type PlateAdviceConfig struct {
+	// Enabled turns POST /v1/plate-advice on and advertises it through
+	// GET /v1/config. Operators who do not want food names sent to their AI
+	// provider set this to false.
+	Enabled bool `yaml:"enabled"`
+}
+
 // MetricsConfig configures the Prometheus listener.
 type MetricsConfig struct {
 	Listen string `yaml:"listen"`
@@ -195,17 +209,19 @@ func Default() Config {
 			TLS:             TLSConfig{SelfSignedDir: "certs"},
 		},
 		Limits: LimitsConfig{
-			MaxUploadBytes:        4 << 20,
-			MaxImageDimensionPx:   4096,
-			RatePerMinute:         10,
-			RateBurst:             3,
-			MaxTrackedClients:     10000,
-			MaxConcurrentAnalyses: 16,
-			QueueWait:             2 * time.Second,
-			ReplayTTL:             10 * time.Minute,
-			ReplayMaxEntries:      1000,
-			ProductRatePerMinute:  60,
-			ProductRateBurst:      10,
+			MaxUploadBytes:           4 << 20,
+			MaxImageDimensionPx:      4096,
+			RatePerMinute:            10,
+			RateBurst:                3,
+			MaxTrackedClients:        10000,
+			MaxConcurrentAnalyses:    16,
+			QueueWait:                2 * time.Second,
+			ReplayTTL:                10 * time.Minute,
+			ReplayMaxEntries:         1000,
+			ProductRatePerMinute:     60,
+			ProductRateBurst:         10,
+			PlateAdviceRatePerMinute: 10,
+			PlateAdviceRateBurst:     3,
 		},
 		Client: ClientConfig{
 			ImageMaxLongSidePx:    1280,
@@ -241,8 +257,9 @@ func Default() Config {
 			CacheTTL:        24 * time.Hour,
 			CacheMaxEntries: 5000,
 		},
-		Metrics: MetricsConfig{Listen: "127.0.0.1:9090"},
-		Log:     LogConfig{Level: "info", Format: "json"},
+		PlateAdvice: PlateAdviceConfig{Enabled: true},
+		Metrics:     MetricsConfig{Listen: "127.0.0.1:9090"},
+		Log:         LogConfig{Level: "info", Format: "json"},
 	}
 }
 
@@ -368,6 +385,12 @@ func (c *Config) Validate() error {
 	}
 	if l.ProductRateBurst < 1 || l.ProductRateBurst > 1000 {
 		bad("limits.product_rate_burst must be between 1 and 1000, got %d", l.ProductRateBurst)
+	}
+	if l.PlateAdviceRatePerMinute <= 0 || l.PlateAdviceRatePerMinute > 6000 {
+		bad("limits.plate_advice_rate_per_minute must be in (0, 6000], got %v", l.PlateAdviceRatePerMinute)
+	}
+	if l.PlateAdviceRateBurst < 1 || l.PlateAdviceRateBurst > 1000 {
+		bad("limits.plate_advice_rate_burst must be between 1 and 1000, got %d", l.PlateAdviceRateBurst)
 	}
 
 	cl := c.Client
