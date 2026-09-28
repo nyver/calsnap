@@ -337,6 +337,62 @@ func TestParseValidation(t *testing.T) {
 	}
 }
 
+// TestPlateClassificationCoverage guards the balanced-plate coverage gate: a
+// catalog edit that drops classification below 90% must fail here.
+func TestPlateClassificationCoverage(t *testing.T) {
+	t.Parallel()
+
+	c := loadCatalog(t)
+	classified := 0
+	for i := range c.entries {
+		if c.entries[i].Plate != nil {
+			classified++
+		}
+	}
+	if got := float64(classified) / float64(len(c.entries)); got < 0.90 {
+		t.Errorf("plate classification coverage = %.1f%%, want >= 90%%", got*100)
+	}
+}
+
+// TestPlateStaples pins the plate classification of everyday staples that
+// users log most often, so a catalog edit cannot silently change them.
+func TestPlateStaples(t *testing.T) {
+	t.Parallel()
+
+	c := loadCatalog(t)
+	tests := []struct {
+		id          string
+		wantGroup   PlateGroup
+		wantQuality PlateQuality
+	}{
+		{"chicken_breast", PlateGroupProtein, ""},
+		{"broccoli", PlateGroupVegetable, ""},
+		{"tomato", PlateGroupVegetable, ""},
+		{"buckwheat", PlateGroupComplexCarbohydrate, ""},
+		{"rice", PlateGroupComplexCarbohydrate, ""},
+		{"olive_oil", PlateGroupHealthyFat, ""},
+		{"potato", PlateGroupComplexCarbohydrate, ""},
+		{"lentils", PlateGroupProtein, ""},
+		{"cheese", PlateGroupDairy, ""},
+		{"plov", PlateGroupOther, PlateQualityMixed},
+	}
+	for _, tt := range tests {
+		t.Run(tt.id, func(t *testing.T) {
+			t.Parallel()
+			e, ok := c.byID[tt.id]
+			if !ok {
+				t.Fatalf("catalog id %q not found", tt.id)
+			}
+			if e.Plate == nil {
+				t.Fatalf("%q has no plate metadata", tt.id)
+			}
+			if e.Plate.Group != tt.wantGroup || e.Plate.Quality != tt.wantQuality {
+				t.Errorf("%q plate = %+v, want group=%s quality=%s", tt.id, e.Plate, tt.wantGroup, tt.wantQuality)
+			}
+		})
+	}
+}
+
 func TestSimilarity(t *testing.T) {
 	t.Parallel()
 
