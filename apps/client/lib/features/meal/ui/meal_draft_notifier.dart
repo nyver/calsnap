@@ -5,6 +5,7 @@ import 'package:logging/logging.dart';
 
 import '../../../core/di/providers.dart';
 import '../../../core/domain/nutrition.dart';
+import '../../balanced_plate/domain/plate_group.dart';
 import '../../foods/domain/food.dart';
 import '../../recognition/domain/analysis.dart';
 import '../domain/meal.dart';
@@ -104,6 +105,8 @@ class MealDraftNotifier extends Notifier<MealDraft?> {
           originalName: it.name,
           originalPer100: it.per100,
           units: _unitsOf(food),
+          plateGroup: food?.plateGroup ?? PlateGroup.unknown,
+          plateQuality: food?.plateQuality,
         ),
       );
     }
@@ -162,6 +165,8 @@ class MealDraftNotifier extends Notifier<MealDraft?> {
               ? it.estimatedWeightG
               : it.weightG,
           units: _unitsOf(food),
+          plateGroup: food?.plateGroup ?? PlateGroup.unknown,
+          plateQuality: food?.plateQuality,
         ),
       );
     }
@@ -291,13 +296,16 @@ class MealDraftNotifier extends Notifier<MealDraft?> {
             nutritionSource: food.source,
             normalizedName: food.normalizedName,
             units: _unitsOf(food),
+            plateGroup: food.plateGroup,
+            plateQuality: food.plateQuality,
           ),
         ],
       ),
     );
   }
 
-  /// Replaces the product of an item, keeping its weight.
+  /// Replaces the product of an item, keeping its weight. The plate group
+  /// and quality always follow the new food, including back to `unknown`.
   void replaceFood(String itemId, Food food) {
     final languageCode = ref.read(effectiveLanguageCodeProvider);
     _mapItem(
@@ -309,6 +317,9 @@ class MealDraftNotifier extends Notifier<MealDraft?> {
         nutritionSource: food.source,
         normalizedName: food.normalizedName,
         units: _unitsOf(food) ?? const FoodUnits(),
+        plateGroup: food.plateGroup,
+        plateQuality: food.plateQuality,
+        clearPlateQuality: food.plateQuality == null,
       ),
     );
   }

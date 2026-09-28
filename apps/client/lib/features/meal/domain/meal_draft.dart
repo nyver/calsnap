@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import '../../../core/domain/nutrition.dart';
+import '../../balanced_plate/domain/plate_group.dart';
 import 'meal.dart';
 import 'nutrition_calculator.dart';
 import 'portion_calibration.dart';
@@ -37,6 +38,8 @@ class DraftItem {
     this.units,
     this.suggestedWeightG,
     this.adjustment,
+    this.plateGroup = PlateGroup.unknown,
+    this.plateQuality,
   });
 
   /// A manually added item (from search or a custom product).
@@ -49,6 +52,8 @@ class DraftItem {
     String? nutritionSource,
     String? normalizedName,
     FoodUnits? units,
+    PlateGroup plateGroup = PlateGroup.unknown,
+    PlateQuality? plateQuality,
   }) => DraftItem(
     id: id,
     name: name,
@@ -61,6 +66,8 @@ class DraftItem {
     nutritionSource: nutritionSource,
     normalizedName: normalizedName,
     units: units,
+    plateGroup: plateGroup,
+    plateQuality: plateQuality,
   );
 
   /// The item id equals the id of the persisted meal item.
@@ -100,6 +107,13 @@ class DraftItem {
   /// recognition only (it is not persisted).
   final PortionAdjustment? adjustment;
 
+  /// Balanced-plate classification of the linked food, resolved locally.
+  /// `unknown` for uncached AI estimates, custom, and packaged foods without
+  /// classification. Independent of [PortionCalibration]'s macro-derived
+  /// categories; never inferred from macronutrients.
+  final PlateGroup plateGroup;
+  final PlateQuality? plateQuality;
+
   /// True when the user changed the proposed weight of an AI item.
   bool get weightCorrected {
     final estimate = estimatedWeightG;
@@ -131,6 +145,9 @@ class DraftItem {
     String? nutritionSource,
     String? normalizedName,
     FoodUnits? units,
+    PlateGroup? plateGroup,
+    PlateQuality? plateQuality,
+    bool clearPlateQuality = false,
   }) => DraftItem(
     id: id,
     foodId: clearFoodId ? null : (foodId ?? this.foodId),
@@ -148,6 +165,10 @@ class DraftItem {
     units: units ?? this.units,
     suggestedWeightG: suggestedWeightG,
     adjustment: adjustment,
+    plateGroup: plateGroup ?? this.plateGroup,
+    plateQuality: clearPlateQuality
+        ? null
+        : (plateQuality ?? this.plateQuality),
   );
 }
 
