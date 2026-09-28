@@ -189,6 +189,12 @@ When you change an AI weight, the app records the AI value and yours. From the n
 
 Below the calorie and macro totals, the meal editor shows a "Balance of the plate" card: a short, informational read on the composition of the meal (vegetables & fruit, protein, complex carbohydrates), computed locally from item weights and the catalog's optional `plate` classification, never from calories or an extra AI call. It updates immediately as you edit weights or items, works offline for a saved meal, and shows "Not enough information to evaluate the plate balance." when too little of the meal is classified or the eligible weight is too small (for example a single piece of fruit). The card's info button explains the model and shows a disclaimer: this is general guidance, not medical or individualized advice. The backend never computes or receives plate analysis. Details: [ADR 012](docs/adr/012-balanced-plate-local-analysis.md).
 
+### Eat this again
+
+Re-adds a previously saved meal as a new, independent diary entry without a new photo, AI analysis or product search: **Add meal -> Eat this again**, a saved meal's card menu on the diary, or the repeat action on the saved-meal editing screen. The recent meals list offers saved meals from the last 30 days (at most 50, newest first, deleted or item-less meals excluded); picking one, or the direct entry points from the diary and the editor, opens the meal editor with a new draft that uses the current date and time, keeps the source meal type (or the time-based default when the source has none), and copies each item's final saved name, weight and per-100 g nutrition, with no photo and no identifiers of the source. Everything runs from the local database only, with no backend, AI, barcode or Open Food Facts call.
+
+The copied weights are not treated as a new AI estimate: repeated items are stored as `recognitionSource: manual`, so no personalization is re-applied and saving the repeat creates no AI weight-correction record, even for an item whose source came from AI recognition. This also means a repeated AI-sourced item is exported afterwards as `manual`, like any other manually added item; the origin of its *nutrition* values (catalog, AI estimate, custom or packaged product) is unaffected and still shown as usual. The source and the repeated meal are independent from the moment the repeat is saved: editing or deleting either one never changes the other.
+
 ### Export format
 
 Settings offers CSV (RFC 4180, one row per item, spreadsheet-formula guard) and JSON (`format: calsnap-export`, `formatVersion: 1`). Photos are not embedded.
@@ -210,6 +216,7 @@ dart format --set-exit-if-changed .
 flutter analyze
 flutter test
 flutter test integration_test/photo_flow_test.dart -d <device-id>   # emulator or device
+flutter test integration_test/repeat_meal_flow_test.dart -d <device-id>   # emulator or device
 ```
 
 Golden files live in `apps/client/test/goldens/goldens`; refresh them with `flutter test --update-goldens` after intentional layout changes.
