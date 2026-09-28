@@ -1,11 +1,35 @@
+import 'package:calsnap/core/database/app_database.dart';
 import 'package:calsnap/core/domain/nutrition.dart';
+import 'package:calsnap/core/utils/ids.dart';
+import 'package:calsnap/features/barcode/domain/packaged_product.dart';
+import 'package:calsnap/features/foods/domain/food.dart';
+import 'package:calsnap/features/meal/data/drift_meal_repository.dart';
 import 'package:calsnap/features/meal/domain/meal.dart';
 import 'package:calsnap/features/meal/domain/meal_draft.dart';
 import 'package:calsnap/features/meal/domain/portion_calibration.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
+import 'package:calsnap/features/meal/domain/repeat_meal_use_case.dart';
+import 'package:drift/drift.dart'
+    show ApplyInterceptor, QueryExecutor, QueryInterceptor, driftRuntimeOptions;
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/fixtures.dart';
+
+/// Counts `SELECT` statements executed through the wrapped executor, to
+/// assert that a batch read stays at a fixed number of queries.
+class _SelectCounter extends QueryInterceptor {
+  int count = 0;
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    count++;
+    return executor.runSelect(statement, args);
+  }
+}
 
 void main() {
   setUpAll(() => driftRuntimeOptions.dontWarnAboutMultipleDatabases = true);
@@ -600,6 +624,182 @@ void main() {
 
     test('deleting an unknown meal is a no-op', () async {
       expect(await r.meals.delete('nope'), isNull);
+    });
+  });
+
+  group('recentMeals', () {
+    test('newest first', () async {
+      await r.meals.save(
+        draftOf([aiItem('a')], time: DateTime.utc(2026, 3, 8, 8)),
+      );
+      await r.meals.save(
+        draftOf([aiItem('b')], time: DateTime.utc(2026, 3, 9, 13)),
+      );
+      await r.meals.save(
+        draftOf([aiItem('c')], time: DateTime.utc(2026, 3, 5)),
+      );
+
+      final list = await r.meals.recentMeals(
+        since: DateTime.utc(2026, 2, 1),
+        limit: 50,
+      );
+      expect(list.map((m) => m.items.single.id), ['b', 'a', 'c']);
+    });
+
+    test('the 30-day window includes 29 days ago and excludes 31', () async {
+      final now = DateTime.utc(2026, 3, 10, 12);
+      await r.meals.save(
+        draftOf([aiItem('a')], time: now.subtract(const Duration(days: 29))),
+      );
+      await r.meals.save(
+        draftOf([aiItem('b')], time: now.subtract(const Duration(days: 31))),
+      );
+
+      final list = await r.meals.recentMeals(
+        since: now.subtract(const Duration(days: 30)),
+        limit: 50,
+      );
+      expect(list.map((m) => m.items.single.id), ['a']);
+    });
+
+    test('the limit keeps only the newest meals', () async {
+      for (var i = 0; i < 60; i++) {
+        await r.meals.save(
+          draftOf([aiItem('i$i')], time: DateTime.utc(2026, 3, 10, 0, i)),
+        );
+      }
+      final list = await r.meals.recentMeals(
+        since: DateTime.utc(2026, 1, 1),
+        limit: 50,
+      );
+      expect(list, hasLength(50));
+      expect(list.first.items.single.id, 'i59');
+      expect(list.last.items.single.id, 'i10');
+    });
+
+    test('a deleted meal is not returned', () async {
+      final id = await r.meals.save(draftOf([aiItem('a')]));
+      await r.meals.delete(id);
+      expect(
+        await r.meals.recentMeals(since: DateTime.utc(2026, 1, 1), limit: 50),
+        isEmpty,
+      );
+    });
+
+    test('a meal without items is not returned', () async {
+      await r.meals.save(draftOf(const []));
+      expect(
+        await r.meals.recentMeals(since: DateTime.utc(2026, 1, 1), limit: 50),
+        isEmpty,
+      );
+    });
+
+    test('custom and packaged items are returned from local data, with no network fake involved', () async {
+      final custom = await r.foods.createCustom(
+        const CustomFoodInput(
+          name: 'Homemade granola',
+          per100: Nutrition(kcal: 450, protein: 10, fat: 18, carbs: 55),
+        ),
+      );
+      final packaged = await r.foods.savePackaged(
+        const PackagedProduct(
+          barcode: '4006381333931',
+          name: 'Snack bar',
+          per100: Nutrition(kcal: 400, protein: 8, fat: 15, carbs: 55),
+        ),
+      );
+      await r.meals.save(
+        draftOf([
+          DraftItem.manual(
+            id: 'c1',
+            name: custom.name,
+            weightG: 40,
+            per100: custom.per100,
+            foodId: custom.id,
+            nutritionSource: custom.source,
+          ),
+          DraftItem.manual(
+            id: 'p1',
+            name: packaged.name,
+            weightG: 35,
+            per100: packaged.per100,
+            foodId: packaged.id,
+            nutritionSource: packaged.source,
+          ),
+        ]),
+      );
+
+      final list = await r.meals.recentMeals(
+        since: DateTime.utc(2026, 1, 1),
+        limit: 50,
+      );
+      expect(list, hasLength(1));
+      final items = list.single.items;
+      expect(items.map((i) => i.id), ['c1', 'p1']);
+      expect(items[0].weightG, 40);
+      expect(items[0].foodId, custom.id);
+      expect(items[1].weightG, 35);
+      expect(items[1].foodId, packaged.id);
+    });
+
+    test('does the same number of SELECTs for 1 and for 50 meals', () async {
+      Future<int> selectsFor(int mealCount) async {
+        final counter = _SelectCounter();
+        final db = AppDatabase(NativeDatabase.memory().interceptWith(counter));
+        final repo = DriftMealRepository(
+          db,
+          clock: () => DateTime.utc(2026, 3, 10, 12),
+        );
+        for (var i = 0; i < mealCount; i++) {
+          await repo.save(
+            draftOf([aiItem('i$i')], time: DateTime.utc(2026, 3, 10, 0, i)),
+          );
+        }
+        counter.count = 0;
+        await repo.recentMeals(since: DateTime.utc(2026, 1, 1), limit: 50);
+        await db.close();
+        return counter.count;
+      }
+
+      expect(await selectsFor(1), await selectsFor(50));
+    });
+  });
+
+  group('repeat and save (regression)', () {
+    test('repeating an AI-sourced meal, editing it and saving keeps ai_corrections '
+        'unchanged and both meals independent', () async {
+      final sourceId = await r.meals.save(
+        draftOf([aiItem('rice1', estimated: 170, weight: 150)]),
+      );
+      final useCase = RepeatMealUseCase(
+        meals: r.meals,
+        foods: r.foods,
+        ids: const IdGenerator(),
+        clock: () => DateTime.utc(2026, 3, 12, 9),
+      );
+      final draft = await useCase(sourceId);
+      final edited = draft.copyWith(
+        items: [draft.items.single.copyWith(weightG: 200)],
+      );
+      final before = await r.db.select(r.db.aiCorrections).get();
+
+      final repeatedId = await r.meals.save(edited);
+
+      expect(repeatedId, isNot(sourceId));
+      final after = await r.db.select(r.db.aiCorrections).get();
+      expect(
+        after.map((c) => (c.id, c.aiWeightG, c.userWeightG)),
+        before.map((c) => (c.id, c.aiWeightG, c.userWeightG)),
+      );
+
+      final source = (await r.meals.getMeal(sourceId))!;
+      expect(source.items.single.weightG, 150);
+      final repeated = (await r.meals.getMeal(repeatedId))!;
+      expect(repeated.items.single.weightG, 200);
+
+      await r.meals.delete(sourceId);
+      final stillThere = (await r.meals.getMeal(repeatedId))!;
+      expect(stillThere.items.single.weightG, 200);
     });
   });
 }
