@@ -12,7 +12,8 @@ CalSnap is an Android app for logging food with a photo: take a picture, get a d
 apps/client/        Flutter app (Android only)
   lib/app/          entry widget, router, theme
   lib/core/         database (Drift), network (Dio), files, config, logging, DI
-  lib/features/     onboarding, diary, meal, camera, recognition, foods, statistics, settings, export
+  lib/features/     onboarding, diary, meal, camera, recognition, foods, balanced_plate,
+                    statistics, settings, export
                     (each: domain/ data/ ui/)
   assets/catalog/   copy of the nutrition catalog
   drift_schemas/    exported database schema snapshots (one per released version)
@@ -161,7 +162,7 @@ The release manifest requests `INTERNET` and `CAMERA` (a dependency of the barco
 
 ### Data and privacy
 
-Meals, items, foods, settings and AI correction records live in SQLite on the device (Drift, schema version 1, WAL, foreign keys on). Photos are files under `meals/YYYY/MM/DD/`, never BLOBs. See [docs/security/privacy.md](docs/security/privacy.md).
+Meals, items, foods, settings and AI correction records live in SQLite on the device (Drift, schema version 2, WAL, foreign keys on). Photos are files under `meals/YYYY/MM/DD/`, never BLOBs. See [docs/security/privacy.md](docs/security/privacy.md).
 
 ### Packaged products: scan the barcode
 
@@ -182,6 +183,10 @@ After a normal analysis the result screen offers "Improve accuracy": a second ph
 ### Personalized portions
 
 When you change an AI weight, the app records the AI value and yours. From the next photo on, weights are proposed with your usual bias applied (for example the AI says 190 g of buckwheat and you usually serve about 1.3 times that, so the app proposes about 247 g; the item is labeled "adjusted" and shows the AI value). A factor is learned per food, then per food category (light, carb, protein, fat, mixed), then over all foods, from the first level with at least 3 corrections; it is limited to 0.6 .. 1.6, and newer corrections count more. Accepting a proposal is not a correction. Everything is computed on the device from the local diary; nothing extra is sent to the server. Turn it off in Settings ("Adapt weights to my corrections"). Details: [ADR 007](docs/adr/007-personal-portion-calibration.md).
+
+### Balance of the plate
+
+Below the calorie and macro totals, the meal editor shows a "Balance of the plate" card: a short, informational read on the composition of the meal (vegetables & fruit, protein, complex carbohydrates), computed locally from item weights and the catalog's optional `plate` classification, never from calories or an extra AI call. It updates immediately as you edit weights or items, works offline for a saved meal, and shows "Not enough information to evaluate the plate balance." when too little of the meal is classified or the eligible weight is too small (for example a single piece of fruit). The card's info button explains the model and shows a disclaimer: this is general guidance, not medical or individualized advice. The backend never computes or receives plate analysis. Details: [ADR 012](docs/adr/012-balanced-plate-local-analysis.md).
 
 ### Export format
 
@@ -223,6 +228,14 @@ scripts/sync-catalog.sh          # copy the canonical file to server/ and apps/c
 scripts/sync-catalog.sh --check  # verify (both test suites also fail on drift)
 ```
 
+Each food may also carry an optional `plate` object for the [balance-of-the-plate card](#balance-of-the-plate): `{"group": "...", "quality": "..."?}`. `group` is one of `vegetable`, `fruit`, `protein`, `complex_carbohydrate`, `healthy_fat`, `dairy` or `other`; a food without `plate` is treated as unclassified ("unknown"). `quality` is optional and, today, only ever set to `mixed` (paired with `group: other`) for multi-component dishes without a dominant group; the server also accepts the other documented quality values for future use. Print a coverage report (total, classified, unknown, mixed, per-group counts) with:
+
+```bash
+python scripts/catalog-plate-report.py
+```
+
+The server enforces at least 90% classification coverage (`TestPlateClassificationCoverage`); a catalog change that drops below it fails the build.
+
 ### App icon
 
 The source artwork is `apps/client/assets/branding/app_icon.png`. Regenerate the Android launcher icons (legacy and adaptive) and `play_store_icon.png` after changing it (needs Pillow and NumPy):
@@ -239,6 +252,7 @@ python scripts/generate_app_icons.py
 * **Kotlin/Gradle errors like "Storage already registered" on Windows** – the project and the pub cache are on different drives; `kotlin.incremental=false` in `android/gradle.properties` works around it.
 * **`Access is denied` running `go test` on Windows for a package called `analyze`** – the host blocks executables with that name, which is why the use case package is called `analysis`.
 * **A diary written by a newer app version** – the app shows an update screen and does not touch the data.
+* **The balanced plate card says "Not enough information to evaluate the plate balance."** – either too little of the meal's weight is classified (custom or uncached AI-estimated foods, or catalog dishes still marked `other`/`mixed`), or the classified weight itself is small (for example a single piece of fruit); neither is a bug. Editing weights or replacing an item with a classified food can change the result immediately.
 
 ## Known limitations
 
