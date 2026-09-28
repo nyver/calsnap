@@ -292,6 +292,10 @@ func TestParseValidation(t *testing.T) {
 		return `{"id":"` + id + `","name":{"en":"` + id + ` en","ru":"` + id + ` ru"},"aliases":{"en":["` + alias +
 			`"],"ru":[]},"nutrition":{"kcal":` + kcal + `,"protein":1,"fat":1,"carbs":1},"source":"test"}`
 	}
+	entryPlate := func(id, alias, plateJSON string) string {
+		return `{"id":"` + id + `","name":{"en":"` + id + ` en","ru":"` + id + ` ru"},"aliases":{"en":["` + alias +
+			`"],"ru":[]},"nutrition":{"kcal":10,"protein":1,"fat":1,"carbs":1},"source":"test","plate":` + plateJSON + `}`
+	}
 	tests := []struct {
 		name    string
 		doc     string
@@ -307,6 +311,15 @@ func TestParseValidation(t *testing.T) {
 		{"unknown field", strings.Replace(head, `"modifiers"`, `"extra":1,"modifiers"`, 1) + entry("a", "x", "10") + `]}`, "unknown field"},
 		{"no foods", `{"formatVersion":1,"catalogVersion":1,"modifiers":{"en":[],"ru":[]},"foods":[]}`, "no foods"},
 		{"bad modifier", strings.Replace(head, `"grilled"`, `"Two Words"`, 1) + entry("a", "x", "10") + `]}`, "modifier"},
+		{"plate absent", head + entry("a", "x", "10") + `]}`, ""},
+		{"plate valid group only", head + entryPlate("a", "x", `{"group":"vegetable"}`) + `]}`, ""},
+		{"plate group and quality", head + entryPlate("a", "x", `{"group":"other","quality":"mixed"}`) + `]}`, ""},
+		{"plate invalid group", head + entryPlate("a", "x", `{"group":"carbs"}`) + `]}`, "plate group"},
+		{"plate explicit unknown", head + entryPlate("a", "x", `{"group":"unknown"}`) + `]}`, "plate group"},
+		{"plate invalid quality", head + entryPlate("a", "x", `{"group":"vegetable","quality":"bogus"}`) + `]}`, "plate quality"},
+		{"plate mixed outside other", head + entryPlate("a", "x", `{"group":"protein","quality":"mixed"}`) + `]}`, "requires group"},
+		{"plate composition key", head + entryPlate("a", "x", `{"group":"other","composition":{"protein":0.5}}`) + `]}`, "unknown field"},
+		{"plate empty object", head + entryPlate("a", "x", `{}`) + `]}`, "plate group"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

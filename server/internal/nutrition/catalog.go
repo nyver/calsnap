@@ -50,6 +50,82 @@ type Entry struct {
 	GramsPerPortion float64            `json:"gramsPerPortion"`
 	DensityGPerMl   float64            `json:"densityGPerMl"`
 	Source          string             `json:"source"`
+	// Plate is the optional balanced-plate classification. A nil Plate means
+	// unclassified ("unknown"); the server never uses it beyond validation.
+	Plate *Plate `json:"plate,omitempty"`
+}
+
+// PlateGroup is the balanced-plate group of a food. The literal "unknown" is
+// deliberately not a valid value: an unclassified food omits Plate entirely.
+type PlateGroup string
+
+// Balanced-plate group values.
+const (
+	PlateGroupVegetable           PlateGroup = "vegetable"
+	PlateGroupFruit               PlateGroup = "fruit"
+	PlateGroupProtein             PlateGroup = "protein"
+	PlateGroupComplexCarbohydrate PlateGroup = "complex_carbohydrate"
+	PlateGroupHealthyFat          PlateGroup = "healthy_fat"
+	PlateGroupDairy               PlateGroup = "dairy"
+	PlateGroupOther               PlateGroup = "other"
+)
+
+var validPlateGroups = map[PlateGroup]bool{
+	PlateGroupVegetable:           true,
+	PlateGroupFruit:               true,
+	PlateGroupProtein:             true,
+	PlateGroupComplexCarbohydrate: true,
+	PlateGroupHealthyFat:          true,
+	PlateGroupDairy:               true,
+	PlateGroupOther:               true,
+}
+
+// PlateQuality further refines a PlateGroup. Only "mixed" is populated by the
+// catalog today; the rest are accepted so future classification work does not
+// require another parser change.
+type PlateQuality string
+
+// Balanced-plate quality values.
+const (
+	PlateQualityNonStarchyVegetable PlateQuality = "non_starchy_vegetable"
+	PlateQualityStarchyVegetable    PlateQuality = "starchy_vegetable"
+	PlateQualityWholeGrain          PlateQuality = "whole_grain"
+	PlateQualityRefinedGrain        PlateQuality = "refined_grain"
+	PlateQualityLeanProtein         PlateQuality = "lean_protein"
+	PlateQualityPlantProtein        PlateQuality = "plant_protein"
+	PlateQualityFish                PlateQuality = "fish"
+	PlateQualityRedMeat             PlateQuality = "red_meat"
+	PlateQualityProcessedMeat       PlateQuality = "processed_meat"
+	PlateQualityUnsaturatedFat      PlateQuality = "unsaturated_fat"
+	PlateQualitySaturatedFat        PlateQuality = "saturated_fat"
+	PlateQualityAddedSugar          PlateQuality = "added_sugar"
+	PlateQualityHighlyProcessed     PlateQuality = "highly_processed"
+	PlateQualityMixed               PlateQuality = "mixed"
+)
+
+var validPlateQualities = map[PlateQuality]bool{
+	PlateQualityNonStarchyVegetable: true,
+	PlateQualityStarchyVegetable:    true,
+	PlateQualityWholeGrain:          true,
+	PlateQualityRefinedGrain:        true,
+	PlateQualityLeanProtein:         true,
+	PlateQualityPlantProtein:        true,
+	PlateQualityFish:                true,
+	PlateQualityRedMeat:             true,
+	PlateQualityProcessedMeat:       true,
+	PlateQualityUnsaturatedFat:      true,
+	PlateQualitySaturatedFat:        true,
+	PlateQualityAddedSugar:          true,
+	PlateQualityHighlyProcessed:     true,
+	PlateQualityMixed:               true,
+}
+
+// Plate is the optional balanced-plate classification of a catalog food. Any
+// key other than group/quality is already rejected by the decoder's
+// DisallowUnknownFields, so "composition" weights are unsupported for free.
+type Plate struct {
+	Group   PlateGroup   `json:"group"`
+	Quality PlateQuality `json:"quality,omitempty"`
 }
 
 // scanKey is one searchable name of an entry used by the fuzzy stage.
@@ -182,6 +258,25 @@ func validateEntry(e *Entry) error {
 		if v < 0 {
 			return fmt.Errorf("entry %q: %s must not be negative", e.ID, name)
 		}
+	}
+	return validatePlate(e)
+}
+
+// validatePlate checks the optional balanced-plate classification. A nil
+// Plate is valid and means "unclassified".
+func validatePlate(e *Entry) error {
+	p := e.Plate
+	if p == nil {
+		return nil
+	}
+	if !validPlateGroups[p.Group] {
+		return fmt.Errorf("entry %q: plate group %q is invalid", e.ID, p.Group)
+	}
+	if p.Quality != "" && !validPlateQualities[p.Quality] {
+		return fmt.Errorf("entry %q: plate quality %q is invalid", e.ID, p.Quality)
+	}
+	if p.Quality == PlateQualityMixed && p.Group != PlateGroupOther {
+		return fmt.Errorf("entry %q: plate quality %q requires group %q", e.ID, PlateQualityMixed, PlateGroupOther)
 	}
 	return nil
 }
